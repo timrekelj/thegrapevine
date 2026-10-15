@@ -9,9 +9,9 @@ enum Config {
     static let webURL = URL(string: "http://localhost:3000")!
     #else
     /// Hosted: the production Supabase project and the deployed web app.
-    static let supabaseURL = URL(string: "https://YOUR-PROJECT.supabase.co")!
-    static let supabasePublishableKey = "YOUR-PUBLISHABLE-KEY"
-    static let webURL = URL(string: "https://YOUR-DOMAIN")!
+    static let supabaseURL = URL(string: "https://ivjaenrmhsqnsvzemoez.supabase.co")!
+    static let supabasePublishableKey = "sb_publishable_oT-H6EAfuoNp8dcVdTHJow_l1-Skd1C"
+    static let webURL = URL(string: "https://thegrapevine.si")!
     #endif
     static let authCallbackURL = URL(string: "grapevine://auth/callback")!
 }
