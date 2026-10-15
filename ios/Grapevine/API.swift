@@ -43,7 +43,7 @@ enum API {
         }
         var request = URLRequest(url: url(for: path, query: query))
         request.httpMethod = method
-        request.setValue(Config.supabaseAnonKey, forHTTPHeaderField: "apikey")
+        request.setValue(Config.supabasePublishableKey, forHTTPHeaderField: "apikey")
         if let session {
             request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
         }
@@ -121,7 +121,7 @@ enum API {
 
     static func mediaURL(_ path: String) async throws -> URL {
         if let url = URL(string: path), ["http", "https"].contains(url.scheme ?? "") { return url }
-        if path.hasPrefix("/seed/") { return URL(string: "http://localhost:3000\(path)")! }
+        if path.hasPrefix("/seed/") { return Config.webURL.appending(path: path) }
         struct Signed: Decodable { let signedURL: String }
         let signed = try await postObject(Signed.self, path: "storage/v1/object/sign/media/\(path)", body: ["expiresIn": 3600])
         guard let url = URL(string: "storage/v1\(signed.signedURL)", relativeTo: Config.supabaseURL) else { throw APIError.network("Invalid media URL") }

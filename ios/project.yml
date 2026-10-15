@@ -24,9 +24,12 @@ targets:
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
     settings:
+      PRODUCT_BUNDLE_IDENTIFIER: si.timrekelj.thegrapevine
       MARKETING_VERSION: 0.1.0
       CURRENT_PROJECT_VERSION: "1"
       GENERATE_INFOPLIST_FILE: true
+    scheme:
+      testTargets: [GrapevineTests]
   GrapevineTests:
     type: bundle.unit-test
     platform: iOS

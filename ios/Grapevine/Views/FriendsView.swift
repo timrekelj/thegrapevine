@@ -20,7 +20,7 @@ struct FriendsView: View {
                 if let group = app.group {
                     Section("Invite a friend") {
                         Text(group.invite_code).textSelection(.enabled)
-                        ShareLink(item: URL(string: "http://localhost:3000/invite?code=\(group.invite_code)")!) {
+                        ShareLink(item: Config.webURL.appending(path: "invite").appending(queryItems: [URLQueryItem(name: "code", value: group.invite_code)])) {
                             Label("Share invitation", systemImage: "square.and.arrow.up")
                         }
                     }
