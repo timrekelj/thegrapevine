@@ -1,0 +1,97 @@
+[
+  {
+    "name": "a-riso-zine",
+    "fails": [
+      "Contrast below WCAG on solid ground: 3.98:1 13px \"+1 source\""
+    ],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "Gloock": 4,
+        "SF Pro": 16
+      },
+      "sizes": [
+        34,
+        33,
+        21,
+        15,
+        13,
+        11
+      ],
+      "weights": [
+        "400",
+        "500",
+        "600"
+      ],
+      "leftEdges": 3,
+      "accentHues": [
+        240,
+        336
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "b-coffeehouse",
+    "fails": [],
+    "warns": [
+      "8 elements cast shadows. Depth should come from one or two layers, not every tile."
+    ],
+    "facts": {
+      "fonts": {
+        "New York": 10,
+        "SF Pro": 10
+      },
+      "sizes": [
+        30,
+        29,
+        20,
+        17,
+        15,
+        13,
+        12
+      ],
+      "weights": [
+        "400",
+        "500",
+        "600",
+        "700"
+      ],
+      "leftEdges": 2,
+      "accentHues": [
+        48
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "c-confluence",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "SF Pro": 17
+      },
+      "sizes": [
+        54,
+        25,
+        22,
+        15,
+        13,
+        12
+      ],
+      "weights": [
+        "400",
+        "500",
+        "600",
+        "700",
+        "800"
+      ],
+      "leftEdges": 4,
+      "accentHues": [
+        48
+      ],
+      "cards": 0
+    }
+  }
+]

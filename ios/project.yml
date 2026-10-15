@@ -1,0 +1,37 @@
+name: Grapevine
+options:
+  bundleIdPrefix: si.timrekelj
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "26.0"
+settings:
+  SWIFT_VERSION: "5.10"
+targets:
+  Grapevine:
+    type: application
+    platform: iOS
+    sources:
+      - path: Grapevine
+    info:
+      path: Grapevine/Info.plist
+      properties:
+        CFBundleDisplayName: The Grapevine
+        CFBundleURLTypes:
+          - CFBundleURLName: si.timrekelj.grapevine
+            CFBundleURLSchemes: [grapevine]
+        UIAppFonts: [Gloock-Regular.ttf]
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+    settings:
+      MARKETING_VERSION: 0.1.0
+      CURRENT_PROJECT_VERSION: "1"
+      GENERATE_INFOPLIST_FILE: true
+  GrapevineTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [GrapevineTests]
+    dependencies:
+      - target: Grapevine
+    settings:
+      GENERATE_INFOPLIST_FILE: true

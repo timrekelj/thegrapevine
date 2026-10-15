@@ -1,0 +1,22 @@
+# secrets — never commit
+.env
+.env.local
+
+# dependencies / builds
+node_modules/
+.next/
+build/
+DerivedData/
+*.xcuserstate
+
+# os
+.DS_Store
+
+# python (model-server)
+.venv/
+__pycache__/
+*.pyc
+
+# supabase local
+supabase/.branches/
+supabase/.temp/

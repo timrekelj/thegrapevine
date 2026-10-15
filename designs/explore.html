@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>The Grapevine exploration</title>
+<link rel="stylesheet" href="file:///Users/timrekelj/.claude/skills/app-designer/assets/device.css">
+<link href="https://fonts.googleapis.com/css2?family=Gloock&display=block" rel="stylesheet">
+<style>
+.ic{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;display:block}
+.body{position:absolute;inset:0;overflow:hidden}
+.toolbar{position:absolute;top:62px;left:16px;right:16px;height:44px;display:flex;align-items:center;justify-content:space-between;z-index:5}
+.round{width:44px;height:44px;border-radius:22px;display:grid;place-items:center;border:0;color:inherit;padding:0}
+.tabs{position:absolute;left:20px;right:92px;bottom:21px;height:62px;border-radius:31px;display:flex;align-items:center;justify-content:space-around;padding:0 6px;z-index:10}
+.tabs a{display:flex;flex-direction:column;align-items:center;gap:2px;font:500 10px/12px var(--sf);width:84px;padding:6px 0;border-radius:24px}
+.searchbtn{position:absolute;right:20px;bottom:21px;width:62px;height:62px;border-radius:31px;display:grid;place-items:center;z-index:10;color:inherit}
+
+/* Halftone plate: grey image + dot screen, thresholded, then printed in one ink. */
+.riso{position:relative;overflow:hidden;background:var(--paper)}
+.riso .plate{position:absolute;inset:0;isolation:isolate;mix-blend-mode:multiply}
+.riso .ht{position:absolute;inset:0;background:#fff;filter:contrast(40);overflow:hidden}
+.riso img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:var(--pos,50% 50%);filter:grayscale(1) brightness(var(--b,1.1)) contrast(var(--k,1.1)) blur(.4px)}
+.riso .ht::after{content:"";position:absolute;inset:-60%;background:radial-gradient(circle closest-side,#000,#fff) 0 0/var(--dot,4.5px) var(--dot,4.5px);opacity:.5;transform:rotate(30deg)}
+.riso .plate::after{content:"";position:absolute;inset:0;background:var(--plate-ink,var(--ink));mix-blend-mode:lighten}
+
+/* ---------------- A. Riso zine ---------------- */
+.A{--paper:#EFEEE9;--ink:#26368A;--ink2:#4C5794;--ink3:#6C74A6;--rule:rgba(38,54,138,.30);--pink:#FF6AA6;--glass:rgba(239,238,233,.72);background:var(--paper);color:var(--ink)}
+.A .mast{position:absolute;top:106px;left:20px;right:20px;text-align:center}
+.A .mast h1{font:400 34px/1 Gloock,var(--ny);letter-spacing:-.02em;margin:0 0 10px}
+.A .mast .ed{border-top:1.5px solid var(--ink);border-bottom:.5px solid var(--ink);padding:6px 0 5px;font:600 11px/13px var(--sf);letter-spacing:.07em;text-transform:uppercase;display:flex;justify-content:space-between;color:var(--ink)}
+.A .feed{position:absolute;top:196px;left:0;right:0;bottom:0}
+.A .leadimg{height:200px;margin:0 20px;--b:1.05;--k:1.25;--pos:50% 40%}
+.A .kick{display:flex;gap:10px;align-items:center;margin:14px 20px 6px;font:600 13px/16px var(--sf)}
+.A .kick .cat{letter-spacing:.06em;text-transform:uppercase;font-size:11px}
+.A .new{display:inline-flex;align-items:center;gap:6px;background:var(--pink);color:var(--ink);padding:2px 8px 2px 7px;border-radius:4px;font:600 13px/17px var(--sf)}
+.A h2{font:400 33px/1.04 Gloock,var(--ny);letter-spacing:-.015em;margin:0 20px 10px;text-wrap:balance}
+.A .sum{font:400 15px/21px var(--sf);color:var(--ink2);margin:0 20px 12px}
+.A .meta{display:flex;gap:14px;align-items:center;margin:0 20px;font:500 13px/18px var(--sf);color:var(--ink2)}
+.A .meta b{font-weight:600;color:var(--ink)}
+.A .dot{width:8px;height:8px;border-radius:4px;background:var(--pink);display:inline-block;margin-right:5px;vertical-align:1px}
+.A .rows{margin:22px 20px 0;border-top:1.5px solid var(--ink)}
+.A .row{display:flex;gap:14px;padding:14px 0;border-bottom:.5px solid var(--rule)}
+.A .row .txt{flex:1;min-width:0}
+.A .row .cat{font:600 11px/13px var(--sf);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px;color:var(--ink2)}
+.A .row h3{font:400 21px/1.08 Gloock,var(--ny);letter-spacing:-.01em;margin:0 0 6px}
+.A .row .meta{margin:0;font-size:13px}
+.A .thumb{width:88px;height:88px;flex:none;--dot:4px}
+.A .tabs a{color:var(--ink2)}
+.A .tabs a.on{color:var(--ink);background:rgba(38,54,138,.08)}
+
+/* ---------------- B. Coffeehouse table ---------------- */
+.B{--ground:#0F2B22;--ink:#EFE8D7;--ink2:#B4C0B2;--ink3:#8A9A8C;--rule:rgba(239,232,215,.16);--brass:#D7B064;--paper:#EDE6D2;--paper-ink:#132B23;--walnut:#5A3A22;background:var(--ground);color:var(--ink)}
+.B .mast{position:absolute;top:104px;left:20px;right:20px;text-align:center}
+.B .mast h1{font:italic 600 30px/1.05 var(--ny);letter-spacing:-.01em;margin:0}
+.B .mast .ed{margin-top:8px;font:400 13px/18px var(--sf);color:var(--ink2)}
+.B .mast .ed b{color:var(--brass);font-weight:600}
+.B .table{position:absolute;top:186px;left:20px;right:20px;display:flex;align-items:center;gap:10px;font:400 13px/18px var(--sf);color:var(--ink2)}
+.B .avs{display:flex}
+.B .av{width:28px;height:28px;border-radius:14px;display:grid;place-items:center;font:600 12px/1 var(--ny);background:#21463A;color:var(--ink);box-shadow:0 0 0 2px var(--ground);margin-right:-6px}
+.B .av.live{background:var(--brass);color:#1B1A10}
+.B .sheet{position:absolute;top:240px;left:34px;right:20px;background:var(--paper);color:var(--paper-ink);padding:18px 18px 18px 22px;border-radius:2px}
+.B .rod{position:absolute;left:-14px;top:-26px;bottom:-10px;width:12px;border-radius:6px;background:linear-gradient(90deg,#6E4A2D,#4A2F1B)}
+.B .rod::before{content:"";position:absolute;top:-8px;left:-2px;width:16px;height:16px;border-radius:8px;background:var(--brass)}
+.B .sheet .cat{font:600 12px/16px var(--sf);letter-spacing:.06em;text-transform:uppercase;color:#7A5A1E}
+.B .sheet h2{font:700 29px/1.08 var(--ny);letter-spacing:-.015em;margin:6px 0 10px;text-wrap:balance}
+.B .sheet p{font:400 15px/21px var(--sf);margin:0 0 14px;color:#3A4A42}
+.B .quote{border-top:.5px solid rgba(19,43,35,.25);padding-top:12px;font:italic 400 17px/23px var(--ny)}
+.B .quote small{display:block;font:500 13px/18px var(--sf);font-style:normal;color:#55655C;margin-top:4px}
+.B .rows{position:absolute;top:592px;left:20px;right:20px}
+.B .row{padding:14px 0;border-top:.5px solid var(--rule)}
+.B .row h3{font:600 20px/1.15 var(--ny);margin:0 0 6px}
+.B .row .said{font:400 15px/20px var(--sf);color:var(--ink2)}
+.B .row .said b{color:var(--brass);font-weight:600}
+.B .tabs a{color:var(--ink2)}
+.B .tabs a.on{color:var(--brass);background:rgba(255,255,255,.08)}
+.B .glass{--glass-dark:rgba(20,52,41,.62)}
+
+/* ---------------- C. Confluence ---------------- */
+.C{--field:#0B6A62;--ink:#FFFFFF;--ink2:rgba(255,255,255,.80);--rule:rgba(255,255,255,.24);--new:#FFE3A1;--glass:rgba(255,255,255,.16);background:var(--field);color:var(--ink)}
+.C .cond{font-family:var(--sf);font-stretch:60%}
+.C .mast{position:absolute;top:110px;left:20px;right:20px;display:flex;justify-content:space-between;align-items:baseline;font:800 22px/1 var(--sf);font-stretch:60%;letter-spacing:.01em;text-transform:uppercase}
+.C .mast span{font:500 13px/1 var(--sf);font-stretch:100%;letter-spacing:0;text-transform:none;color:var(--ink2)}
+.C .river{position:absolute;top:150px;left:20px;right:20px;height:178px}
+.C .river svg{width:100%;height:100%;overflow:visible}
+.C .river text{font:500 12px var(--sf);fill:rgba(255,255,255,.86)}
+.C h2{position:absolute;top:336px;left:20px;right:16px;margin:0;font:800 54px/.94 var(--sf);font-stretch:60%;letter-spacing:-.01em;text-wrap:balance}
+.C .sum{position:absolute;top:500px;left:20px;right:20px;margin:0;font:400 15px/21px var(--sf);color:var(--ink2)}
+.C .meta{position:absolute;top:572px;left:20px;right:20px;font:500 13px/18px var(--sf);color:var(--ink2);display:flex;gap:14px}
+.C .meta b{color:var(--new);font-weight:600}
+.C .rows{position:absolute;top:614px;left:20px;right:20px;border-top:1px solid var(--rule)}
+.C .row{display:flex;gap:14px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--rule)}
+.C .row svg{flex:none;width:28px;height:44px}
+.C .row h3{margin:0 0 4px;font:700 25px/1 var(--sf);font-stretch:60%;letter-spacing:.005em}
+.C .row .m{font:500 13px/18px var(--sf);color:var(--ink2)}
+.C .tabs a{color:var(--ink2)}
+.C .tabs a.on{color:#fff;background:rgba(255,255,255,.16)}
+
+.label{font:600 15px/1.3 var(--sf);color:#3d3d3a;width:402px;margin-top:-30px}
+.col{display:flex;flex-direction:column;gap:40px}
+</style></head>
+<body>
+
+<!-- ======================= A ======================= -->
+<div class="col"><div class="label">A. The Grapevine is a riso zine the five of you run off between lunches.</div>
+<section class="screen A" data-name="a-riso-zine" data-time="14:52">
+ <div class="body" data-scrolls>
+  <div class="toolbar">
+    <button class="round glass" aria-label="Members"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3.2"/><path d="M3.5 19c.6-3 2.8-4.6 5.5-4.6s4.9 1.6 5.5 4.6"/><path d="M15.5 6.2a3 3 0 0 1 0 5.6M17.5 14.6c1.6.6 2.6 2 3 4.4"/></svg></button>
+    <button class="round glass" aria-label="Share a link"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+  </div>
+  <div class="mast">
+    <h1>The Grapevine</h1>
+    <div class="ed"><span>Mon 12 October</span><span>Live · 14:48</span></div>
+  </div>
+  <div class="feed">
+   <article>
+    <div class="riso leadimg"><div class="plate"><div class="ht"><img src="img/rocket.jpg" alt=""></div></div></div>
+    <div class="kick"><span class="cat">Space</span><span class="new">+1 source</span></div>
+    <h2>Reusable booster lands at sea on its second try</h2>
+    <p class="sum">Vela Orbital’s Nimbus booster touched down on a barge in the North Sea on Sunday night, two months after the first attempt tipped over.</p>
+    <div class="meta"><span><b>4</b> sources</span><span><b>23</b> messages</span><span><i class="dot"></i>3 new</span></div>
+   </article>
+   <div class="rows">
+    <div class="row"><div class="txt"><div class="cat">Games</div><h3>Studio Kettle pushes Wayfarer to spring 2027</h3><div class="meta"><span>3 sources</span><span><i class="dot"></i>8 new of 41</span></div></div>
+      <div class="riso thumb" style="--b:1.5"><div class="plate"><div class="ht"><img src="img/games.jpg" alt=""></div></div></div></div>
+    <div class="row"><div class="txt"><div class="cat">City</div><h3>Old town goes car-free on Sundays from March</h3><div class="meta"><span>2 sources</span><span>6 messages</span></div></div>
+      <div class="riso thumb" style="--b:1.15"><div class="plate"><div class="ht"><img src="img/city.jpg" alt=""></div></div></div></div>
+   </div>
+  </div>
+ </div>
+ <nav class="tabs glass" data-system data-float>
+  <a class="on"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5.5h12v12.6c0 .8.7 1.4 1.5 1.4H6a2 2 0 0 1-2-2z"/><path d="M16 9h3.5v9a1.5 1.5 0 0 1-3 0"/><path d="M7 9h6M7 12.5h6M7 16h4"/></svg><span>Paper</span></a>
+  <a><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.6"/><rect x="13" y="4" width="7" height="7" rx="1.6"/><rect x="4" y="13" width="7" height="7" rx="1.6"/><rect x="13" y="13" width="7" height="7" rx="1.6"/></svg><span>Sections</span></a>
+  <a><svg class="ic" viewBox="0 0 24 24"><path d="M4.5 11.5C4.5 7.6 7.9 5 12 5s7.5 2.6 7.5 6.5S16.1 18 12 18c-1 0-2-.1-2.9-.4L5 19l1.1-3.3c-1-1.1-1.6-2.6-1.6-4.2z"/></svg><span>Replies</span></a>
+ </nav>
+ <button class="searchbtn glass" aria-label="Search"><svg class="ic" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg></button>
+</section></div>
+
+<!-- ======================= B ======================= -->
+<div class="col"><div class="label">B. The Grapevine is the regulars’ table at a coffeehouse, papers on wooden holders.</div>
+<section class="screen B" data-name="b-coffeehouse" data-time="14:52" data-theme="dark">
+ <div class="body" data-scrolls>
+  <div class="toolbar">
+    <button class="round glass" aria-label="Members"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3.2"/><path d="M3.5 19c.6-3 2.8-4.6 5.5-4.6s4.9 1.6 5.5 4.6"/><path d="M15.5 6.2a3 3 0 0 1 0 5.6M17.5 14.6c1.6.6 2.6 2 3 4.4"/></svg></button>
+    <button class="round glass" aria-label="Share a link"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+  </div>
+  <div class="mast"><h1>The Grapevine</h1><div class="ed">Monday afternoon · <b>4 stories</b> moved since you left</div></div>
+  <div class="table"><div class="avs"><span class="av live">N</span><span class="av live">J</span><span class="av">L</span><span class="av">M</span><span class="av">T</span></div><span style="margin-left:8px">Nika and Jure are reading</span></div>
+  <article class="sheet"><i class="rod"></i>
+    <div class="cat">Space · 4 sources</div>
+    <h2>Reusable booster lands at sea on its second try</h2>
+    <p>Vela Orbital’s Nimbus booster touched down on a barge in the North Sea on Sunday night, two months after the first attempt tipped over.</p>
+    <div class="quote">“Second try is still a landing. Ask anyone how many tries the first ones took.”<small>Jure, 14:31 · 23 messages</small></div>
+  </article>
+  <div class="rows">
+    <div class="row"><h3>Studio Kettle pushes Wayfarer to spring 2027</h3><div class="said"><b>Maja</b> Fine by me if they fix the save system.</div></div>
+    <div class="row"><h3>Old town goes car-free on Sundays from March</h3><div class="said"><b>Luka</b> The buses still won’t run on time.</div></div>
+  </div>
+ </div>
+ <nav class="tabs glass" data-system data-float>
+  <a class="on"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5.5h12v12.6c0 .8.7 1.4 1.5 1.4H6a2 2 0 0 1-2-2z"/><path d="M16 9h3.5v9a1.5 1.5 0 0 1-3 0"/><path d="M7 9h6M7 12.5h6M7 16h4"/></svg><span>Paper</span></a>
+  <a><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.6"/><rect x="13" y="4" width="7" height="7" rx="1.6"/><rect x="4" y="13" width="7" height="7" rx="1.6"/><rect x="13" y="13" width="7" height="7" rx="1.6"/></svg><span>Sections</span></a>
+  <a><svg class="ic" viewBox="0 0 24 24"><path d="M4.5 11.5C4.5 7.6 7.9 5 12 5s7.5 2.6 7.5 6.5S16.1 18 12 18c-1 0-2-.1-2.9-.4L5 19l1.1-3.3c-1-1.1-1.6-2.6-1.6-4.2z"/></svg><span>Replies</span></a>
+ </nav>
+ <button class="searchbtn glass" aria-label="Search"><svg class="ic" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg></button>
+</section></div>
+
+<!-- ======================= C ======================= -->
+<div class="col"><div class="label">C. The Grapevine is a confluence: separate streams of links running into one river.</div>
+<section class="screen C" data-name="c-confluence" data-time="14:52" data-chrome="light">
+ <div class="body" data-scrolls>
+  <div class="toolbar">
+    <button class="round glass" aria-label="Members" style="color:#fff"><svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3.2"/><path d="M3.5 19c.6-3 2.8-4.6 5.5-4.6s4.9 1.6 5.5 4.6"/><path d="M15.5 6.2a3 3 0 0 1 0 5.6M17.5 14.6c1.6.6 2.6 2 3 4.4"/></svg></button>
+    <button class="round glass" aria-label="Share a link" style="color:#fff"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+  </div>
+  <div class="mast">The Grapevine <span>Mon 12 Oct, 14:48</span></div>
+  <div class="river"><svg viewBox="0 0 362 178">
+    <g fill="none" stroke="#fff" stroke-linecap="round">
+      <path d="M8 26 C8 80 70 70 70 104" stroke-width="2.5"/>
+      <path d="M110 26 C110 84 74 96 74 124" stroke-width="2.5"/>
+      <path d="M212 26 C212 96 78 110 78 142" stroke-width="2.5"/>
+      <path d="M318 26 C318 110 82 130 82 160" stroke-width="2.5" style="stroke:var(--new)"/>
+      <path d="M76 100 L76 178" stroke-width="14"/>
+    </g>
+    <text x="0" y="12">Orbit Weekly</text><text x="96" y="12">@launchwatch</text><text x="196" y="12">The Meridian</text><text x="298" y="12" style="fill:var(--new)">Ferrite</text>
+  </svg></div>
+  <h2>Reusable booster lands at sea on its second try</h2>
+  <p class="sum">Vela Orbital’s Nimbus booster touched down on a barge in the North Sea on Sunday night, two months after the first attempt tipped over.</p>
+  <div class="meta"><span>Space</span><span>4 sources, <b>1 new</b></span><span>23 messages</span></div>
+  <div class="rows">
+    <div class="row"><svg viewBox="0 0 28 44"><g fill="none" stroke="#fff" stroke-linecap="round" stroke-width="2"><path d="M4 2C4 14 14 14 14 24"/><path d="M14 2V24"/><path d="M24 2C24 14 14 16 14 26"/><path d="M14 24V42" stroke-width="6"/></g></svg><div><h3>Studio Kettle pushes Wayfarer to spring 2027</h3><div class="m">Games · 41 messages, <b style="color:var(--new);font-weight:600">8 new</b></div></div></div>
+    <div class="row"><svg viewBox="0 0 28 44"><g fill="none" stroke="#fff" stroke-linecap="round" stroke-width="2"><path d="M6 2C6 14 14 14 14 24"/><path d="M22 2C22 14 14 16 14 26"/><path d="M14 24V42" stroke-width="5"/></g></svg><div><h3>Old town goes car-free on Sundays from March</h3><div class="m">City · 6 messages</div></div></div>
+  </div>
+ </div>
+ <nav class="tabs glass" data-system data-float>
+  <a class="on"><svg class="ic" viewBox="0 0 24 24"><path d="M4 5.5h12v12.6c0 .8.7 1.4 1.5 1.4H6a2 2 0 0 1-2-2z"/><path d="M16 9h3.5v9a1.5 1.5 0 0 1-3 0"/><path d="M7 9h6M7 12.5h6M7 16h4"/></svg><span>Paper</span></a>
+  <a><svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.6"/><rect x="13" y="4" width="7" height="7" rx="1.6"/><rect x="4" y="13" width="7" height="7" rx="1.6"/><rect x="13" y="13" width="7" height="7" rx="1.6"/></svg><span>Sections</span></a>
+  <a><svg class="ic" viewBox="0 0 24 24"><path d="M4.5 11.5C4.5 7.6 7.9 5 12 5s7.5 2.6 7.5 6.5S16.1 18 12 18c-1 0-2-.1-2.9-.4L5 19l1.1-3.3c-1-1.1-1.6-2.6-1.6-4.2z"/></svg><span>Replies</span></a>
+ </nav>
+ <button class="searchbtn glass" aria-label="Search" style="color:#fff"><svg class="ic" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg></button>
+</section></div>
+
+<script src="file:///Users/timrekelj/.claude/skills/app-designer/assets/device.js"></script>
+</body></html>

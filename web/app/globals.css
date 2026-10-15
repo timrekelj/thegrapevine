@@ -1,0 +1,100 @@
+@import url('https://fonts.googleapis.com/css2?family=Gloock&display=swap');
+
+/* ---------- tokens (designs/DIRECTION.md) ---------- */
+:root {
+  /* paper */
+  --paper: #EFEEE9;
+  --raised: #F8F7F3;
+  /* one black ink for all text, rules and images */
+  --ink: #141414;
+  --ink-2: #4A4A47;
+  --ink-3: #6E6D68;
+  --rule: rgba(20, 20, 20, .28);
+  --plate: #141414;
+  /* the second drum: one role — "new to you" */
+  --pink: #FF6AA6;
+  --on-pink: #141414;
+  /* section colours: each category gets one, picked by lib/category.ts */
+  --cat-0: #B3261E; --cat-1: #1F5AA6; --cat-2: #2E6B3A; --cat-3: #8A5A00;
+  --cat-4: #6B3FA0; --cat-5: #00687A; --cat-6: #B04A12;
+  --tint: rgba(20, 20, 20, .07);
+  --glass: rgba(239, 238, 233, .72);
+  /* type */
+  --serif: 'Gloock', Georgia, serif;
+  --sans: -apple-system, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* the night run */
+    --paper: #121212;
+    --raised: #1C1C1B;
+    --ink: #ECEAE4;
+    --ink-2: #B3B1AA;
+    --ink-3: #85837D;
+    --rule: rgba(236, 234, 228, .18);
+    --plate: #D6D4CE;
+    --pink: #FF7DB2;
+    --cat-0: #FF7A70; --cat-1: #7EB0FF; --cat-2: #7CCB8A; --cat-3: #E8B84A;
+    --cat-4: #C3A2F0; --cat-5: #5CCBDC; --cat-6: #FF9A5C;
+    --tint: rgba(236, 234, 228, .10);
+    --glass: rgba(28, 28, 27, .66);
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 17px/22px var(--sans);
+  letter-spacing: -0.4px;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- type scale (web is one step up from mobile) ---------- */
+.display { font: 400 56px/1.02 var(--serif); letter-spacing: -0.015em; margin: 0; text-wrap: balance; }
+.masthead { font: 400 28px/1 var(--serif); letter-spacing: -0.02em; margin: 0; }
+.headline { font: 400 26px/1.1 var(--serif); letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+.summary { font: 400 15px/21px var(--sans); letter-spacing: -0.2px; color: var(--ink-2); margin: 0; }
+.meta { font: 500 13px/18px var(--sans); color: var(--ink-2); }
+.meta b { font-weight: 600; color: var(--ink); }
+.label { font: 600 11px/13px var(--sans); letter-spacing: .07em; text-transform: uppercase; color: var(--ink-2); }
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* "new to you" marker */
+.new { display: inline-flex; align-items: center; gap: 5px; color: var(--ink); font-weight: 600; }
+.new::before { content: ""; width: 8px; height: 8px; border-radius: 4px; background: var(--pink); }
+
+/* stamp */
+.stamp { display: inline-flex; align-items: center; background: var(--pink); color: var(--on-pink); font: 600 13px/17px var(--sans); padding: 3px 8px; border-radius: 2px; }
+.stamp.rest { transform: rotate(-2deg); }
+
+/* ---------- the halftone plate: every image is printed, not shown ---------- */
+.riso { position: relative; overflow: hidden; background: var(--paper); }
+.riso .plate { position: absolute; inset: 0; isolation: isolate; mix-blend-mode: multiply; }
+.riso .ht { position: absolute; inset: 0; background: #fff; filter: contrast(40); overflow: hidden; }
+.riso img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: var(--pos, 50% 50%); filter: grayscale(1) brightness(var(--b, 1.1)) contrast(var(--k, 1.15)) blur(.4px); }
+.riso .ht::after { content: ""; position: absolute; inset: -60%; background: radial-gradient(circle closest-side, #000, #fff) 0 0 / var(--dot, 4.5px) var(--dot, 4.5px); opacity: .5; transform: rotate(30deg); }
+.riso .plate::after { content: ""; position: absolute; inset: 0; background: var(--plate-ink, var(--plate)); mix-blend-mode: lighten; }
+
+@media (prefers-color-scheme: dark) {
+  .riso .plate { mix-blend-mode: screen; }
+  .riso .ht { filter: contrast(40) invert(1); }
+  .riso img { filter: grayscale(1) invert(1) brightness(var(--bd, 1.15)) contrast(var(--k, 1.15)) blur(.4px); }
+  .riso .plate::after { mix-blend-mode: multiply; }
+}
+
+/* GIFs are the one exception: they print on the pink drum */
+.riso.pinkdrum { --plate-ink: var(--pink); }
+
+/* a source with no image: a flat 30% screen and the publisher's name */
+.noimg { position: relative; background: radial-gradient(circle, var(--plate) 1.05px, transparent 1.45px) 0 0 / 4.5px 4.5px; display: grid; place-items: center; }
+.noimg span { background: var(--paper); font: 400 13px/1.05 var(--serif); padding: 4px 5px; text-align: center; max-width: 90%; }
+
+/* members are monograms in Gloock, never photos */
+.av { width: 32px; height: 32px; border-radius: 16px; display: grid; place-items: center; background: var(--ink); color: var(--paper); font: 400 15px/1 var(--serif); flex: none; }
+
+/* primary button: ink capsule with paper text */
+.btn { height: 40px; border-radius: 20px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; font: 600 15px/1 var(--sans); background: var(--ink); color: var(--paper); border: 0; cursor: pointer; white-space: nowrap; text-decoration: none; }

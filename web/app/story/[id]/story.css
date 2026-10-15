@@ -1,0 +1,74 @@
+.story-reader { max-width: 800px; margin: auto; padding: 24px 24px 220px; }
+.story-reader button, .story-reader input, .story-reader textarea, .story-reader select { font: inherit; color: inherit; }
+.story-reader button { cursor: pointer; }
+.story-reader button:disabled { cursor: default; opacity: .6; }
+.story-reader a { color: inherit; }
+.story-reader button:focus-visible, .story-reader a:focus-visible, .story-reader input:focus-visible, .story-reader textarea:focus-visible, .story-reader select:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.story-back { margin-bottom: 24px; font-size: 14px; }
+.story-hero { width: 100%; height: 290px; margin-bottom: 24px; }
+.story-kicker { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+.story-summary { color: var(--ink); font-size: 17px; line-height: 25px; margin: 16px 0 12px; white-space: pre-line; }
+.story-text-button { border: 0; padding: 0; background: none; text-decoration: underline; text-underline-offset: 3px; font-weight: 600 !important; }
+.story-clippings { display: flex; overflow-x: auto; gap: 10px; margin: 20px -24px 0; padding: 0 24px 12px; }
+.story-clipping { display: flex; gap: 10px; border: 1px solid var(--ink); padding: 8px; flex: 0 0 245px; text-decoration: none; }
+.story-clipping-thumb { width: 64px; height: 64px; flex: none; }
+.story-clipping-title { font: 400 15px/1.15 var(--serif); margin-top: 5px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.story-correction { padding: 12px 0 18px; border-bottom: 1.5px solid var(--ink); }
+.story-flag { display: block; margin-top: 8px; }
+.story-day { display: flex; align-items: center; gap: 12px; padding: 28px 0 6px; }
+.story-day::after { content: ''; flex: 1; height: 1px; background: var(--rule); }
+.story-entry { display: flex; gap: 10px; padding: 14px 0 4px; scroll-margin-top: 24px; }
+.story-entry-body { flex: 1; min-width: 0; }
+.story-who { display: flex; gap: 10px; align-items: baseline; font-size: 15px; margin-bottom: 6px; }
+.story-entry p { margin: 0 0 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.story-grouped { padding-top: 4px; }
+.story-avatar-space { width: 32px; flex: none; }
+.story-source-card { display: flex; gap: 12px; border: 1px solid var(--ink); padding: 10px; margin: 4px 0; }
+.story-source-thumb { width: 72px; height: 72px; flex: none; }
+.story-source-content { min-width: 0; flex: 1; }
+.story-source-title { font: 400 19px/1.18 var(--serif); margin: 6px 0; overflow-wrap: anywhere; }
+.story-source-foot { display: flex; justify-content: space-between; gap: 8px; }
+.story-source-note { border-top: 1px solid var(--rule); margin-top: 8px; padding-top: 6px; }
+.story-quote { border-left: 2px solid var(--rule); padding-left: 10px; margin-bottom: 8px; color: var(--ink-2); font-size: 13px; line-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.story-message-actions { display: flex; align-items: center; gap: 10px; }
+.story-reactions { display: flex; flex-wrap: wrap; gap: 6px; }
+.story-reactions button { border: 1px solid var(--rule); border-radius: 16px; padding: 4px 9px; background: none; font-size: 13px; min-height: 32px; }
+.story-reactions .mine { background: var(--ink); color: var(--paper); }
+.story-reply { border: 0; background: none; width: 44px; height: 44px; }
+.story-new-divider { display: flex; align-items: center; gap: 12px; padding: 24px 0 6px; font-size: 13px; font-weight: 600; }
+.story-new-divider::before, .story-new-divider::after { content: ''; flex: 1; height: 1.5px; background: var(--pink); }
+.story-media { margin: 8px 0; }
+.story-media-plate { width: min(100%, 360px); height: 220px; }
+.story-media video { width: min(100%, 480px); max-height: 320px; filter: grayscale(1); }
+.story-gif-paused { border: 1px solid var(--rule); background: var(--paper); padding: 24px; }
+.story-system { margin: 20px 0; }
+.story-composer { position: fixed; z-index: 10; bottom: 0; left: 50%; transform: translateX(-50%); width: min(100%, 800px); padding: 12px 20px max(16px, env(safe-area-inset-bottom)); border-top: 1px solid var(--rule); background: var(--glass); backdrop-filter: blur(24px); }
+.story-composer p { margin: 0 0 8px; }
+.story-composer-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.story-composer-row input { min-width: 0; flex: 1; background: var(--raised); border: 1px solid var(--rule); border-radius: 24px; height: 48px; padding: 0 16px; }
+.story-composer-row > button:not(.btn) { border: 0; background: none; min-width: 36px; height: 44px; font-size: 14px; }
+.story-toast { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%); z-index: 20; background: var(--ink); color: var(--paper); border-radius: 24px; padding: 12px 20px; font-size: 14px; width: max-content; max-width: calc(100% - 40px); }
+.story-dialog { background: var(--raised); color: var(--ink); border: 1px solid var(--ink); width: min(600px, calc(100% - 32px)); max-height: 85vh; padding: 24px; }
+.story-dialog::backdrop { background: #11142a66; }
+.story-dialog-close { margin: 16px 0; }
+.story-dialog article { border-top: 1px solid var(--rule); padding: 16px 0; }
+.story-dialog h3 { font: 400 21px/1.2 var(--serif); }
+.story-dialog label { display: block; margin-bottom: 16px; }
+.story-dialog select, .story-dialog textarea { display: block; width: 100%; margin-top: 8px; padding: 10px; border: 1px solid var(--rule); background: var(--paper); }
+.story-dialog textarea { min-height: 100px; }
+.story-gif-search { max-height: 50vh; overflow: auto; padding-bottom: 12px; }
+.story-gif-search form { display: flex; gap: 8px; }
+.story-gif-search input { width: 100%; min-width: 0; background: var(--raised); border: 1px solid var(--rule); padding: 8px; }
+.story-gif-results { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+.story-gif-results button { padding: 0; border: 0; background: none; }
+.story-gif-results img { width: 100%; height: 100px; object-fit: cover; }
+@media (max-width: 600px) {
+  .story-reader { padding: 20px 20px 220px; }
+  .story-reader .display { font-size: 34px; line-height: 1.04; }
+  .story-hero { height: 176px; margin-bottom: 16px; }
+  .story-clippings { margin-left: -20px; margin-right: -20px; padding-left: 20px; padding-right: 20px; }
+  .story-summary { font-size: 15px; line-height: 21px; }
+  .story-source-title { font-size: 17px; }
+  .story-composer { padding-left: 12px; padding-right: 12px; }
+  .story-composer .btn { padding: 0 12px; }
+}

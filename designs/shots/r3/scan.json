@@ -1,0 +1,281 @@
+[
+  {
+    "name": "front-page",
+    "fails": [],
+    "warns": [
+      "Text inside the system's safe areas: \"City\" (home indicator)"
+    ],
+    "facts": {
+      "fonts": {
+        "Gloock": 8,
+        "SF Pro": 16
+      },
+      "sizes": [
+        34,
+        28,
+        21,
+        17,
+        15,
+        13,
+        11
+      ],
+      "weights": [
+        "400",
+        "500",
+        "600"
+      ],
+      "leftEdges": 5,
+      "accentHues": [
+        240,
+        336
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "story",
+    "fails": [],
+    "warns": [
+      "Text inside the system's safe areas: \"Nimbus is down on the ba\" (home indicator)",
+      "7 distinct left edges in the left third. Align to fewer verticals.",
+      "3 gradients. Gradients are a seasoning, not a surface treatment."
+    ],
+    "facts": {
+      "fonts": {
+        "SF Pro": 21,
+        "Gloock": 6
+      },
+      "sizes": [
+        34,
+        17,
+        15,
+        13,
+        11
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 7,
+      "accentHues": [
+        240
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "story-conversation",
+    "fails": [],
+    "warns": [
+      "Largest text is 17px. No element owns the screen. (Mark data-dense if this is deliberate.)",
+      "6 distinct left edges in the left third. Align to fewer verticals."
+    ],
+    "facts": {
+      "fonts": {
+        "Gloock": 6,
+        "SF Pro": 23
+      },
+      "sizes": [
+        17,
+        15,
+        13,
+        11
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 6,
+      "accentHues": [
+        240
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "share",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "Gloock": 2,
+        "SF Pro": 9
+      },
+      "sizes": [
+        28,
+        21,
+        17,
+        13,
+        11
+      ],
+      "weights": [
+        "400",
+        "600"
+      ],
+      "leftEdges": 5,
+      "accentHues": [
+        240
+      ],
+      "cards": 2
+    }
+  },
+  {
+    "name": "filed-printing",
+    "fails": [],
+    "warns": [
+      "Text inside the system's safe areas: \"City\" (home indicator)",
+      "7 distinct left edges in the left third. Align to fewer verticals.",
+      "7 elements cast shadows. Depth should come from one or two layers, not every tile."
+    ],
+    "facts": {
+      "fonts": {
+        "Gloock": 8,
+        "SF Pro": 20
+      },
+      "sizes": [
+        34,
+        28,
+        21,
+        17,
+        15,
+        13,
+        11
+      ],
+      "weights": [
+        "400",
+        "500",
+        "600"
+      ],
+      "leftEdges": 7,
+      "accentHues": [
+        240,
+        336
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "filed",
+    "fails": [],
+    "warns": [
+      "Largest text is 21px. No element owns the screen. (Mark data-dense if this is deliberate.)"
+    ],
+    "facts": {
+      "fonts": {
+        "SF Pro": 17,
+        "Gloock": 7
+      },
+      "sizes": [
+        21,
+        17,
+        15,
+        13,
+        11
+      ],
+      "weights": [
+        "400",
+        "500",
+        "600"
+      ],
+      "leftEdges": 4,
+      "accentHues": [
+        240
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "split",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "SF Pro": 13,
+        "Gloock": 5
+      },
+      "sizes": [
+        34,
+        17,
+        15,
+        13,
+        11
+      ],
+      "weights": [
+        "400",
+        "600"
+      ],
+      "leftEdges": 5,
+      "accentHues": [
+        240
+      ],
+      "cards": 1
+    }
+  },
+  {
+    "name": "front-page-dark",
+    "fails": [],
+    "warns": [
+      "Text inside the system's safe areas: \"Games\" (home indicator); \"Studio Kettle pushes Way\" (home indicator)"
+    ],
+    "facts": {
+      "fonts": {
+        "Gloock": 9,
+        "SF Pro": 15
+      },
+      "sizes": [
+        34,
+        28,
+        21,
+        17,
+        15,
+        13,
+        11
+      ],
+      "weights": [
+        "400",
+        "500",
+        "600"
+      ],
+      "leftEdges": 4,
+      "accentHues": [
+        240,
+        336
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "web-front-page",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "SF Pro": 41,
+        "Gloock": 17
+      },
+      "sizes": [
+        56,
+        26,
+        21,
+        17,
+        15,
+        13,
+        11
+      ],
+      "weights": [
+        "400",
+        "500",
+        "600",
+        "700"
+      ],
+      "leftEdges": 2,
+      "accentHues": [
+        240,
+        336
+      ],
+      "cards": 0
+    }
+  }
+]
