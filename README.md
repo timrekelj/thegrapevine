@@ -1,6 +1,6 @@
 # The Grapevine
 
-A private newspaper curated by friends. The full product direction and decisions live in [PRODUCT_PLAN.md](PRODUCT_PLAN.md); the visual direction is in [designs/DIRECTION.md](designs/DIRECTION.md).
+A private newspaper curated by friends. The full product direction and decisions live in [PRODUCT_PLAN.md](PRODUCT_PLAN.md).
 
 ## Stack
 

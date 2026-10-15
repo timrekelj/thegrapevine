@@ -1,5 +1,5 @@
 -- Demo data for local development: the fictional paper "The Grapevine"
--- from the design mockups (designs/mockup.html). Runs automatically on `supabase db reset`.
+-- from the design mockups. Runs automatically on `supabase db reset`.
 -- All people, publishers and stories are fictional.
 
 -- members (profiles are auto-created by the handle_new_user trigger)

@@ -122,11 +122,11 @@ Later possibilities: public groups, richer discovery, and publication-style edit
 
 ## Exploratory visual direction
 
-Three directions were explored on 12 October (`designs/explore.html`): a riso zine the five of you run off between lunches (chosen), the regulars' table at a coffeehouse, and a confluence of link streams merging into one river. The chosen direction is documented in `designs/DIRECTION.md`, mocked up in `designs/mockup.html`, and has passed three critique rounds (`designs/CRITIQUE.md`).
+Three directions were explored on 12 October: a riso zine the five of you run off between lunches (chosen), the regulars' table at a coffeehouse, and a confluence of link streams merging into one river. The chosen direction was mocked up and passed three critique rounds.
 
 The look: a printed zine, not a feed. A warm paper ground, one blue riso ink for all text, rules and images, and a single pink accent reserved for "new to you" (new sources, new messages). Headlines are set in Gloock, a display serif; everything you read or touch is SF Pro. Every source image is printed through a halftone screen in the one ink, so five different publishers read as one publication; a source with no image gets a flat printed plate with the publisher's name; GIFs are the one exception, printed on the pink drum because they are reactions, not reporting. Members are monograms, never photos. Printed matter keeps square corners; rules are thin; whitespace is generous. A dark "night run" variant inverts the paper to blue-black with light ink.
 
-Mocked-up screens (`designs/mockup.html`, renders in `designs/shots/r3/`): mobile front page (masthead "The Grapevine", lead story, editorial rows, tabs), story top (hero plate, evolving summary with provenance, source clippings, correction line), story conversation (day rules, compact avatar and author rows, inline source clippings, chronological quoted replies, emoji reactions, GIF with alt text, composer), share sheet, the "Filed" signature moment (a shared link prints dot by dot while the status reads "Reading …", then slides into its story as a pink "+1 source" stamp lands), dark front page, web front page (12-column grid, lead across seven columns, "At the table" conversation band), and an app icon. The mockup's split-correction sheet is superseded: splitting was removed from the direction.
+Mocked-up screens: mobile front page (masthead "The Grapevine", lead story, editorial rows, tabs), story top (hero plate, evolving summary with provenance, source clippings, correction line), story conversation (day rules, compact avatar and author rows, inline source clippings, chronological quoted replies, emoji reactions, GIF with alt text, composer), share sheet, the "Filed" signature moment (a shared link prints dot by dot while the status reads "Reading …", then slides into its story as a pink "+1 source" stamp lands), dark front page, web front page (12-column grid, lead across seven columns, "At the table" conversation band), and an app icon. The mockup's split-correction sheet is superseded: splitting was removed from the direction.
 
 The front page does not reshuffle while you read; when ranking changes, a line appears between two pink rules ("Later edition · N stories moved") and tapping it reprints the page.
 
@@ -138,18 +138,8 @@ The iOS pilot builds and runs on iPhone 17. Simulator checks covered magic-link 
 
 Visible iOS conversations currently poll every 10 seconds rather than subscribing to Realtime. GIPHY search needs a key; Android, push notifications, discussion-triggered AI summary updates, hosted configuration, media cleanup, and real-device/accessibility testing remain before launch. AI text currently regenerates on source submissions and reports, not new messages. Native group onboarding, correction reports, and video support are implemented but need additional end-to-end coverage.
 
-All mockup stories, publishers, people, timestamps, and counts are fictional sample content (paper name "The Grapevine"; members You, Luka, Nika, Jure, Maja). Source images are Unsplash stand-ins in `designs/img/`; in production they are the sources' own preview images. Final branding, complete navigation, native platform conventions, and production behavior remain to be developed.
+All mockup stories, publishers, people, timestamps, and counts are fictional sample content (paper name "The Grapevine"; members You, Luka, Nika, Jure, Maja). Source images were Unsplash stand-ins; in production they are the sources' own preview images. Final branding, complete navigation, native platform conventions, and production behavior remain to be developed.
 
 ## Pilot success criteria to validate
 
 Friends can understand a story without requesting basic backstory; sharing takes little effort; related sources consolidate without hiding attribution; quiet readers return to the newspaper; and discussions remain findable. Track successful shares, clustering corrections, story opens, distinct discussion participants, and whether the five-person group actually moves its routine from Discord. Set numerical targets after observing the pilot.
-
-## Design files
-
-- `designs/explore.html` — the three explored directions (riso zine, coffeehouse table, confluence river); renders in `designs/shots/explore/`.
-- `designs/mockup.html` — editable mockups for the chosen direction: mobile front page, story, conversation, share sheet, "Filed" moment, dark mode, web front page, app icon; renders in `designs/shots/r1/`, `r1-se/`, `r2/`, `r3/`, `r3-se/`. Its split-correction sheet is superseded (splits removed).
-- `designs/DIRECTION.md` — the chosen direction: tokens, type scale, content.
-- `designs/CRITIQUE.md` — critique log across three rounds.
-- `designs/img/` — stand-in source images.
-
-These are exploratory UI fragments, not deployed applications.
