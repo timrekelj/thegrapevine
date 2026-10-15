@@ -16,6 +16,9 @@ targets:
       path: Grapevine/Info.plist
       properties:
         CFBundleDisplayName: The Grapevine
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
         CFBundleURLTypes:
           - CFBundleURLName: si.timrekelj.grapevine
             CFBundleURLSchemes: [grapevine]
@@ -25,6 +28,7 @@ targets:
           NSAllowsLocalNetworking: true
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: si.timrekelj.thegrapevine
+      TARGETED_DEVICE_FAMILY: "1"
       MARKETING_VERSION: 0.1.0
       CURRENT_PROJECT_VERSION: "1"
       GENERATE_INFOPLIST_FILE: true
