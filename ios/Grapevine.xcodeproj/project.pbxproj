@@ -13,6 +13,7 @@
 		3B908FDDB93741F7F7F3523B /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C64C3AA447C2EAD95E1C859 /* OnboardingView.swift */; };
 		4644AE20EF6C62FC9FDC3485 /* GrapevineApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27DEB58B2B6E443497BAC3BA /* GrapevineApp.swift */; };
 		4958D5616C3D3C4C72CD3957 /* ShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2432CCCAAD5B4BF4CE261CD /* ShareView.swift */; };
+		5416A2BCD4B6C8043E8A0E5B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BFC4CB83A7051D6FE9F40A2A /* Assets.xcassets */; };
 		59FB85F152C28994AB829C2F /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E08268B923B30869950C713 /* Components.swift */; };
 		5BE7BADF4BCAB77537BE7343 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBB8C71D3A341CFCF812FCAD /* Keychain.swift */; };
 		601B5DA60D9540F83B768A7B /* FrontPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F4EC19C9B801E1E2690AE1 /* FrontPageView.swift */; };
@@ -55,6 +56,7 @@
 		8AA540084F673BB60FCCF1DE /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		A16B340A581EACB81CB43627 /* GrapevineTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = GrapevineTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A6AD76F6620CD0DDC4317B9A /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		BFC4CB83A7051D6FE9F40A2A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C63E5297B4E947A049701574 /* API.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = API.swift; sourceTree = "<group>"; };
 		D0F4EC19C9B801E1E2690AE1 /* FrontPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrontPageView.swift; sourceTree = "<group>"; };
 		DBB8C71D3A341CFCF812FCAD /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
@@ -121,6 +123,7 @@
 			children = (
 				C63E5297B4E947A049701574 /* API.swift */,
 				8AA540084F673BB60FCCF1DE /* AppState.swift */,
+				BFC4CB83A7051D6FE9F40A2A /* Assets.xcassets */,
 				090A32009737A8ACB7374B07 /* Config.swift */,
 				27DEB58B2B6E443497BAC3BA /* GrapevineApp.swift */,
 				0DA69381B67C37C52E985388 /* Info.plist */,
@@ -210,6 +213,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5416A2BCD4B6C8043E8A0E5B /* Assets.xcassets in Resources */,
 				B8DC0C8725384657B80F2889 /* Gloock-Regular.ttf in Resources */,
 				1BE5AC0736BCE1C20EDAA5EE /* OFL.txt in Resources */,
 			);
