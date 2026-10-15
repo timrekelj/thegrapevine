@@ -57,7 +57,7 @@ struct StoryView: View {
                         HStack {
                             Text((story.category ?? "News").uppercased())
                                 .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(Theme.section(story.category ?? "News"))
+                                .foregroundColor(Theme.ink2)
                             Spacer()
                             MetaRow(text: "Updated \(timeAgo(story.last_activity_at))")
                         }

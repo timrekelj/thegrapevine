@@ -5,19 +5,16 @@
   /* paper */
   --paper: #EFEEE9;
   --raised: #F8F7F3;
-  /* one black ink for all text, rules and images */
-  --ink: #141414;
-  --ink-2: #4A4A47;
-  --ink-3: #6E6D68;
-  --rule: rgba(20, 20, 20, .28);
-  --plate: #141414;
+  /* one grape ink for all text, rules and images */
+  --ink: #4A2160;
+  --ink-2: #6E5280;
+  --ink-3: #7A6589;
+  --rule: rgba(74, 33, 96, .30);
+  --plate: #4A2160;
   /* the second drum: one role — "new to you" */
   --pink: #FF6AA6;
-  --on-pink: #141414;
-  /* section colours: each category gets one, picked by lib/category.ts */
-  --cat-0: #B3261E; --cat-1: #1F5AA6; --cat-2: #2E6B3A; --cat-3: #8A5A00;
-  --cat-4: #6B3FA0; --cat-5: #00687A; --cat-6: #B04A12;
-  --tint: rgba(20, 20, 20, .07);
+  --on-pink: #2E1340;
+  --tint: rgba(74, 33, 96, .08);
   --glass: rgba(239, 238, 233, .72);
   /* type */
   --serif: 'Gloock', Georgia, serif;
@@ -27,18 +24,16 @@
 @media (prefers-color-scheme: dark) {
   :root {
     /* the night run */
-    --paper: #121212;
-    --raised: #1C1C1B;
-    --ink: #ECEAE4;
-    --ink-2: #B3B1AA;
-    --ink-3: #85837D;
-    --rule: rgba(236, 234, 228, .18);
-    --plate: #D6D4CE;
+    --paper: #17101F;
+    --raised: #221830;
+    --ink: #ECE4F0;
+    --ink-2: #BBAFC8;
+    --ink-3: #9488A3;
+    --rule: rgba(236, 228, 240, .18);
+    --plate: #B79AD6;
     --pink: #FF7DB2;
-    --cat-0: #FF7A70; --cat-1: #7EB0FF; --cat-2: #7CCB8A; --cat-3: #E8B84A;
-    --cat-4: #C3A2F0; --cat-5: #5CCBDC; --cat-6: #FF9A5C;
-    --tint: rgba(236, 234, 228, .10);
-    --glass: rgba(28, 28, 27, .66);
+    --tint: rgba(236, 228, 240, .10);
+    --glass: rgba(34, 24, 48, .66);
   }
 }
 

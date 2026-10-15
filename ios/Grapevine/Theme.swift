@@ -5,15 +5,11 @@ import CoreImage.CIFilterBuiltins
 enum Theme {
     static let paper = Color(hex: 0xEFEEE9)
     static let raised = Color(hex: 0xF8F7F3)
-    static let ink = Color(hex: 0x141414)
-    static let ink2 = Color(hex: 0x4A4A47)
+    static let ink = Color(hex: 0x4A2160)
+    static let ink2 = Color(hex: 0x6E5280)
     static let pink = Color(hex: 0xFF6AA6)
-    static let onPink = Color(hex: 0x141414)
-    static let rule = Color(hex: 0x141414).opacity(0.28)
-
-    /// Section colours; same palette and pick as web/lib/category.ts so a category matches on both.
-    static let sections: [Color] = [0xB3261E, 0x1F5AA6, 0x2E6B3A, 0x8A5A00, 0x6B3FA0, 0x00687A, 0xB04A12].map { Color(hex: $0) }
-    static func section(_ name: String) -> Color { sections[name.utf16.reduce(0) { $0 + Int($1) } % sections.count] }
+    static let onPink = Color(hex: 0x2E1340)
+    static let rule = Color(hex: 0x4A2160).opacity(0.30)
 
     static func display(_ size: CGFloat) -> Font { .custom("Gloock", size: size) }
 }
@@ -33,7 +29,12 @@ enum Plate {
         filter.saturation = 0
         filter.contrast = 1.15
         filter.brightness = 0.04
-        guard let output = filter.outputImage,
+        // Print in one ink: black becomes grape, white becomes paper.
+        let ink = CIFilter.falseColor()
+        ink.inputImage = filter.outputImage
+        ink.color0 = CIColor(red: 0x4A / 255, green: 0x21 / 255, blue: 0x60 / 255)
+        ink.color1 = CIColor(red: 0xEF / 255, green: 0xEE / 255, blue: 0xE9 / 255)
+        guard let output = ink.outputImage,
               let printed = CIContext().createCGImage(output, from: output.extent) else { return image }
         return UIImage(cgImage: printed)
     }

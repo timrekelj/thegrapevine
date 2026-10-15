@@ -6,7 +6,6 @@ import type { PaperMember, RankedStory } from '@/lib/types';
 import LaterEdition from '@/components/paper/later-edition';
 import ShareLink from '@/components/paper/share-link';
 import styles from '@/components/paper/paper.module.css';
-import { categoryColor } from '@/lib/category';
 import { connection } from 'next/server';
 
 function Plate({ story, hero = false }: { story: RankedStory; hero?: boolean }) {
@@ -69,13 +68,13 @@ export default async function Home() {
         <div className={styles.members} aria-label="At the table">{members.map(member => <span className="av" key={member.id} title={member.display_name}>{member.monogram}</span>)}</div>
       </div>
     </header>
-    <nav className={styles.sections} aria-label="Sections"><b>Front page</b>{categories.map(category => <span key={category} style={{ color: categoryColor(category!) }}>{category}</span>)}<input className={styles.search} placeholder="Search the paper" aria-label="Search the paper (coming soon)" readOnly /></nav>
+    <nav className={styles.sections} aria-label="Sections"><b>Front page</b>{categories.map(category => <span key={category}>{category}</span>)}<input className={styles.search} placeholder="Search the paper" aria-label="Search the paper (coming soon)" readOnly /></nav>
     <LaterEdition key={stories.map(story => story.id).join(',')} groupId={groupId} order={stories.map(story => story.id)} />
     {lead ? <div className={styles.grid}>
       <article className={styles.lead}>
         <Link href={`/story/${lead.id}`}>
           <Plate story={lead} hero />
-          <div className={styles.category}><span className="label" style={{ color: categoryColor(lead.category || 'News') }}>{lead.category || 'News'}</span>{lead.newSources > 0 && <span className="stamp rest">+{lead.newSources} {lead.newSources === 1 ? 'source' : 'sources'}</span>}</div>
+          <div className={styles.category}><span className="label">{lead.category || 'News'}</span>{lead.newSources > 0 && <span className="stamp rest">+{lead.newSources} {lead.newSources === 1 ? 'source' : 'sources'}</span>}</div>
           <h2 className="display">{lead.title || 'A link from the table'}</h2>
           <p className="summary">{lead.summary || 'The summary is still being prepared. Open the story to read the shared link.'}</p>
           <StoryMeta story={lead} lead />
@@ -83,7 +82,7 @@ export default async function Home() {
       </article>
       <aside className={styles.side} aria-label="More stories">{rest.map(story => <article key={story.id}>
         <Link className={styles.story} href={`/story/${story.id}`}>
-          <div><div className="label" style={{ color: categoryColor(story.category || 'News') }}>{story.category || 'News'}</div><h3 className="headline">{story.title || 'A link from the table'}</h3><StoryMeta story={story} /></div>
+          <div><div className="label">{story.category || 'News'}</div><h3 className="headline">{story.title || 'A link from the table'}</h3><StoryMeta story={story} /></div>
           <Plate story={story} />
         </Link>
       </article>)}</aside>

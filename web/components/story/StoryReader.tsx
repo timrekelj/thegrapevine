@@ -5,7 +5,6 @@ import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent } fr
 import { createClient } from '@/lib/supabase/client'
 import { loadStoryDetails, mergeTimeline, type Source, type Story, type Message } from './queries'
 import Composer from './Composer'
-import { categoryColor } from '@/lib/category'
 
 const emojis = ['🚀', '👏', '😂', '❤️', '🔥', '👀']
 const time = (date: string) => new Date(date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Ljubljana' })
@@ -112,7 +111,7 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
     <nav className="story-back"><Link href="/">← Back to the paper</Link></nav>
     <header>
       <Plate url={lead?.image_url} label={lead ? publisher(lead) : 'The paper'} className="story-hero" />
-      <div className="story-kicker"><span className="label" style={{ color: categoryColor(story.category || 'Unfiled') }}>{story.category || 'Unfiled'}</span><span className="meta">Updated {time(details.history[0]?.created_at || story.last_activity_at)}</span></div>
+      <div className="story-kicker"><span className="label">{story.category || 'Unfiled'}</span><span className="meta">Updated {time(details.history[0]?.created_at || story.last_activity_at)}</span></div>
       <h1 className="display">{story.title || 'Reading this story'}</h1>
       <p className="summary story-summary">{story.summary || 'Summary failed'}</p>
       {!story.summary && <button className="story-text-button" onClick={() => openReport('summary')}>Retry summary</button>}

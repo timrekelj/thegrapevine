@@ -36,7 +36,7 @@
 .empty { padding: 80px 0; text-align: center; }
 .empty h2 { margin-bottom: 24px; }
 .dialog { width: min(520px, calc(100% - 32px)); padding: 28px; background: var(--paper); color: var(--ink); border: 1px solid var(--ink); }
-.dialog::backdrop { background: rgb(17 20 42 / .45); }
+.dialog::backdrop { background: rgb(23 16 31 / .45); }
 .dialog h2 { margin-bottom: 24px; }
 .dialog label { display: block; margin-bottom: 18px; font-size: 15px; }
 .dialog input, .dialog textarea { display: block; margin-top: 8px; width: 100%; padding: 12px; border: 1px solid var(--rule); background: var(--raised); color: var(--ink); font: inherit; }

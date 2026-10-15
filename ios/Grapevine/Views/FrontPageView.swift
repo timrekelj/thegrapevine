@@ -113,7 +113,7 @@ struct LeadStoryView: View {
             HStack {
                 Text((story.category ?? "News").uppercased())
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(Theme.section(story.category ?? "News"))
+                    .foregroundColor(Theme.ink2)
                 if newSources > 0 {
                     Stamp(text: "+\(newSources) source\(newSources == 1 ? "" : "s")")
                 }
@@ -160,7 +160,7 @@ struct StoryRowView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text((story.category ?? "News").uppercased())
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(Theme.section(story.category ?? "News"))
+                    .foregroundColor(Theme.ink2)
                 Text(story.title.isEmpty ? "A link from the table" : story.title)
                     .font(Theme.display(21))
                 HStack(spacing: 10) {

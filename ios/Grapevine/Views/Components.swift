@@ -39,7 +39,6 @@ struct PlateView: View {
             if let image, !failed {
                 Image(uiImage: image)
                     .resizable().scaledToFill()
-                    .overlay { Rectangle().fill(Theme.ink.opacity(0.25)).blendMode(.multiply) }
             } else {
                 Rectangle()
                     .fill(Theme.ink.opacity(0.08))
