@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { loadStoryDetails, mergeTimeline, type Source, type Story, type Message } from './queries'
+import { isNativeApp, openExternal } from '@/lib/capacitor'
 import Composer from './Composer'
 
 const emojis = ['🚀', '👏', '😂', '❤️', '🔥', '👀']
@@ -11,6 +12,11 @@ const time = (date: string) => new Date(date).toLocaleTimeString('en-GB', { hour
 const day = (date: string) => new Date(date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Ljubljana' })
 const safeUrl = (url: string | null | undefined) => url && (/^https?:\/\//i.test(url) || /^\/(?!\/)/.test(url)) ? url : undefined
 const publisher = (source: Source) => source.author || source.publisher || source.domain || 'Source'
+// In the native app, external articles open in the system browser via the Capacitor bridge.
+function SourceLink({ url, children }: { url: string; children: React.ReactNode }) {
+  if (isNativeApp) return <a href={url} onClick={event => { event.preventDefault(); openExternal(url) }}>{children}</a>
+  return <a href={url} target="_blank" rel="noopener noreferrer">{children}</a>
+}
 
 function Plate({ url, label, className = '', alt = '' }: { url?: string | null; label: string; className?: string; alt?: string }) {
   const [failed, setFailed] = useState(false)
@@ -22,7 +28,7 @@ function SourceCard({ source }: { source: Source }) {
   return <div className="story-source-card">
     <Plate url={source.image_url} label={publisher(source)} className="story-source-thumb" />
     <div className="story-source-content"><b className="meta">{publisher(source)}{source.author && ' · on X'}</b><div className="story-source-title">{source.extraction_status === 'failed' ? source.url : source.source_title || source.url}</div>
-      <div className="meta story-source-foot"><time dateTime={source.created_at}>{time(source.created_at)}</time><a href={safeUrl(source.url)} target="_blank" rel="noopener noreferrer">Open{source.author ? ' on X' : ''} ↗</a></div>
+      <div className="meta story-source-foot"><time dateTime={source.created_at}>{time(source.created_at)}</time>{safeUrl(source.url) && <SourceLink url={safeUrl(source.url)!}>Open{source.author ? ' on X' : ''} ↗</SourceLink>}</div>
       {note && <div className="meta story-source-note">{source.extraction_status === 'paywalled' && <span aria-label="Locked">🔒 </span>}{note}</div>}
     </div>
   </div>

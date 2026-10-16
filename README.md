@@ -7,7 +7,7 @@ A private newspaper curated by friends. The full product direction and decisions
 - **Backend:** Supabase only — Postgres, Auth (magic links), Realtime, Storage, Edge Functions. No separate app server.
 - **Web:** Next.js (`web/`)
 - **iOS:** SwiftUI with native Liquid Glass navigation and tabs (`ios/`, local pilot)
-- **Android:** Jetpack Compose (planned, `android/`)
+- **Android:** Capacitor shell around the web app (`web/android/`, sideload APK via GitHub Releases); a native Jetpack Compose app remains the long-term plan
 - **AI:** Mistral API (titles, summaries, categories, embeddings); OpenAI Decisions API `gpt-6-luna` (same-event/conflict decisions). A self-hosted alternative (Strands Decider 2B, `model-server/`) exists but is not wired in.
 
 ## Local development
@@ -53,7 +53,41 @@ The membership-permission regression can be run against seeded local data:
 
 Local-only configuration lives in `ios/Grapevine/Config.swift`. `localhost` works on the simulator, not a physical phone; invitation links and demo images also use localhost. Configure reachable URLs and a hosted Supabase project before distribution. No AI secret is bundled in the app.
 
-Still required before release: Android, GIPHY search credentials, push notifications, discussion-triggered AI summary updates, and cleanup/atomic finalization for abandoned media uploads. AI text currently regenerates on source submissions and correction reports, not new messages. Current GIF attachments render, but GIF search is unavailable without a GIPHY key. Test large videos, Dynamic Type, VoiceOver, and auth/network failure recovery on real hardware before release.
+Still required before release: GIPHY search credentials, push notifications, discussion-triggered AI summary updates, and cleanup/atomic finalization for abandoned media uploads. AI text currently regenerates on source submissions and correction reports, not new messages. Current GIF attachments render, but GIF search is unavailable without a GIPHY key. Test large videos, Dynamic Type, VoiceOver, and auth/network failure recovery on real hardware before release.
+
+## Android app (sideload APK)
+
+The Android app is a [Capacitor](https://capacitorjs.com) shell around the deployed site (`web/android/`, configured in `web/capacitor.config.ts`). Every merge to `master` runs `.github/workflows/android-apk.yml`, which builds a signed release APK and publishes it as a [GitHub Release](https://github.com/timrekelj/thegrapevine/releases) asset (`grapevine.apk`). The app intercepts the `grapevine://` scheme so magic-link sign-in and invite links open back inside the app; external articles open in the system browser.
+
+Install: download `grapevine.apk` from the latest release, allow *Install unknown apps* for your browser/file manager in Android settings, then open the APK. Because the repo is private, you must be signed in to GitHub with access to download it.
+
+First-time setup (one-off, maintainer):
+
+    # 1. Generate a release keystore — back it up outside the repo; losing it
+    #    means existing installs can never be updated.
+    keytool -genkeypair -v -keystore release.keystore -alias grapevine \
+      -keyalg RSA -keysize 2048 -validity 10000
+    # 2. Add GitHub secrets (Settings → Secrets and variables → Actions):
+    #    ANDROID_KEYSTORE_B64   = base64 -i release.keystore
+    #    ANDROID_STORE_PASSWORD = keystore password
+    #    ANDROID_KEY_ALIAS      = grapevine
+    #    ANDROID_KEY_PASSWORD   = key password
+    # 3. Allow the app scheme in Supabase: Authentication → URL Configuration,
+    #    add grapevine://auth/callback to Redirect URLs.
+    # 4. Set Vercel env vars for the web build:
+    #    NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    #    NEXT_PUBLIC_SITE_URL=https://thegrapevine.si
+
+Local development:
+
+    cd web && npm run dev          # web, as usual
+    npm run android:sync           # refresh the native project after web changes
+    npm run android:apk            # local release build (needs ANDROID_* env vars)
+    npm run android:open           # open in Android Studio
+
+Unit tests for the deep-link mapping: `cd web/android && ./gradlew testDebugUnitTest`.
+
+When a Google Play account is available, switch the workflow from `assembleRelease` to `bundleRelease` and upload the AAB with `google-github-actions/release-please` or `r0adkll/upload-google-play`.
 
 ## Edge Functions
 
