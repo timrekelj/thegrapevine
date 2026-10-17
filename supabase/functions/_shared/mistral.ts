@@ -1,8 +1,11 @@
+import { observeAI } from './telemetry.ts';
+
 export const CHAT_LARGE = 'mistral-large-latest';
 export const CHAT_SMALL = 'mistral-small-latest';
 export const EMBEDDINGS = 'mistral-embed';
 
-async function request(path: string, payload: unknown) {
+async function request(path: string, payload: { model: string; [key: string]: unknown }) {
+  return observeAI('mistral', payload.model, path, async () => {
   const key = Deno.env.get('MISTRAL_API_KEY');
   if (!key) throw new Error('MISTRAL_API_KEY is missing');
   const response = await fetch(`https://api.mistral.ai/v1/${path}`, {
@@ -11,6 +14,7 @@ async function request(path: string, payload: unknown) {
   });
   if (!response.ok) throw new Error(`Mistral ${path} returned ${response.status}`);
   return response.json();
+  });
 }
 
 export async function chat(model: string, system: string, content: string) {

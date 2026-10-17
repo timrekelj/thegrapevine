@@ -3,9 +3,11 @@ package si.timrekelj.thegrapevine
 import android.content.Context
 import com.onesignal.OneSignal
 import com.onesignal.debug.LogLevel
+import com.onesignal.notifications.INotificationClickListener
+import com.onesignal.notifications.INotificationClickEvent
 
 /** The only place the app talks to the OneSignal SDK. */
-object OneSignalManager {
+object OneSignalManager : INotificationClickListener {
 
     private var initialized = false
 
@@ -14,6 +16,11 @@ object OneSignalManager {
         if (BuildConfig.DEBUG) OneSignal.Debug.logLevel = LogLevel.VERBOSE
         OneSignal.initWithContext(context, appId)
         initialized = true
+        OneSignal.Notifications.addClickListener(this)
+    }
+
+    override fun onClick(event: INotificationClickEvent) {
+        Telemetry.capture("notification_opened")
     }
 
     // ------------------------------------------------------------- identity

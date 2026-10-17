@@ -146,7 +146,8 @@ max_catalogs = 2
 
 # Store vector embeddings in S3 for large and durable datasets
 [storage.vector]
-enabled = true
+# The experimental local stack does not support vector buckets.
+enabled = false
 max_buckets = 10
 max_indexes = 5
 
@@ -383,10 +384,7 @@ enabled = true
 # `per_worker` (default) — enables hot reload during local development.
 # `oneshot` — fallback mode if hot reload causes issues (e.g. in large repos or with symlinks).
 policy = "per_worker"
-# Port to attach the Chrome inspector for debugging edge functions.
-inspector_port = 8083
-# The Deno major version to use.
-deno_version = 2
+# Let each local stack allocate its own debugger port.
 
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
@@ -399,6 +397,7 @@ backend = "postgres"
 
 # Experimental features may be deprecated any time
 [experimental]
+stack = true
 # Configures S3 bucket URL, eg. <bucket_name>.s3-<region>.amazonaws.com
 s3_host = "env(S3_HOST)"
 # Configures S3 bucket region, eg. us-east-1

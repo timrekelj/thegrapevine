@@ -5,6 +5,7 @@ import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent } fr
 import { createClient } from '@/lib/supabase/client'
 import { loadStoryDetails, mergeTimeline, type Source, type Story, type Message } from './queries'
 import Composer from './Composer'
+import { capture, correctionsEnabled } from '@/lib/telemetry'
 
 const emojis = ['🚀', '👏', '😂', '❤️', '🔥', '👀']
 const time = (date: string) => new Date(date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Ljubljana' })
@@ -63,6 +64,7 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
   }, [initialStory.id])
 
   useEffect(() => {
+    capture('story_opened')
     const key = `grapevine:story:${userId}:${initialStory.id}:viewed`
     // Browser-only reading history must load after hydration to keep the server markup stable.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -93,7 +95,9 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
     setReactionBusy(null)
   }
   async function report(event: FormEvent) {
-    event.preventDefault(); setReportBusy(true); setError('')
+    event.preventDefault()
+    if (!correctionsEnabled()) { setError('Corrections are temporarily unavailable.'); return }
+    setReportBusy(true); setError('')
     const { error } = await createClient().functions.invoke('report-story', { body: { story_id: story.id, target, note } })
     setReportBusy(false)
     if (error) { setError('Could not send the report. Your note is kept; try again.'); return }

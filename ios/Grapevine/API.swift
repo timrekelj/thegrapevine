@@ -61,6 +61,7 @@ enum API {
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw APIError.network("No response from the server") }
         if http.statusCode == 401 { throw APIError.unauthorized }
+        if http.statusCode >= 500 { Telemetry.httpError(http.statusCode) }
         guard (200..<300).contains(http.statusCode) else {
             throw APIError.http(http.statusCode, String(data: data, encoding: .utf8) ?? "")
         }

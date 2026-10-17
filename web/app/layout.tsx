@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import Telemetry from "@/components/telemetry";
 
 export const metadata: Metadata = {
   title: "The Grapevine",
@@ -16,7 +17,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body><Telemetry />{children}</body>
     </html>
   );
 }

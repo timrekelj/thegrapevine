@@ -1,6 +1,7 @@
 import { body, HttpError, json, uuid } from '../_shared/cors.ts';
 import { supabase } from '../_shared/supabase.ts';
 import { preferenceFor, pushPayload, type PushKind } from './push.ts';
+import { capture, featureEnabled, telemetryUser, withTelemetry } from '../_shared/telemetry.ts';
 
 // Database webhook only. Never accept a recipient or notification text from a client.
 // shortcut: failed webhooks need manual replay; add a durable outbox when automatic retries are needed.
@@ -24,6 +25,8 @@ export async function handleNotification(req: Request) {
       return json({ skipped: true });
     }
     const kind = notification.kind as PushKind;
+    telemetryUser(notification.user_id);
+    if (!await featureEnabled('push-delivery-enabled')) return json({ skipped: true });
     const { data: member, error: memberError } = await supabase.from('group_members')
       .select('user_id').eq('group_id', notification.group_id).eq('user_id', notification.user_id).maybeSingle();
     if (memberError) throw memberError;
@@ -52,6 +55,7 @@ export async function handleNotification(req: Request) {
     const result = await response.json();
     if (!response.ok) throw new Error(`OneSignal HTTP ${response.status}`);
     if (!result.id) throw new Error('OneSignal did not accept a notification; check recipient subscriptions');
+    capture('push_sent', { kind });
     return json({ id: result.id });
   } catch (error) {
     if (error instanceof HttpError) return json({ error: error.message }, error.status);
@@ -60,4 +64,4 @@ export async function handleNotification(req: Request) {
   }
 }
 
-if (import.meta.main) Deno.serve(handleNotification);
+if (import.meta.main) Deno.serve(withTelemetry('send-notification', handleNotification));

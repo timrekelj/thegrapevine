@@ -28,6 +28,7 @@ class StoryState(private val api: Api) : ViewModel() {
 
     /** Uploads already accepted by storage, so a retry resumes instead of re-uploading. */
     private val uploaded = mutableListOf<String>()
+    private var trackedStoryId: String? = null
 
     suspend fun load(storyId: String) {
         if (isLoading) return
@@ -37,6 +38,10 @@ class StoryState(private val api: Api) : ViewModel() {
             val loaded = api.getOne<Story>("rest/v1/stories", listOf("id" to "eq.$storyId"))
                 ?: throw ApiError.Network("This story is no longer available.")
             story = loaded
+            if (trackedStoryId != storyId) {
+                Telemetry.capture("story_opened")
+                trackedStoryId = storyId
+            }
             sources = api.getMany("rest/v1/sources", listOf("story_id" to "eq.$storyId", "order" to "created_at.desc"))
             messages = api.getMany(
                 "rest/v1/messages",
@@ -119,6 +124,7 @@ class StoryState(private val api: Api) : ViewModel() {
             }
 
             pendingMessageId = null
+            Telemetry.capture("message_sent", mapOf("is_reply" to (replyTo != null), "attachment_count" to attachments.size))
             uploaded.clear()
             load(current.id)
             true
@@ -149,6 +155,7 @@ class StoryState(private val api: Api) : ViewModel() {
     suspend fun report(target: String, note: String): Boolean {
         val current = story ?: return false
         return try {
+            if (!Telemetry.correctionsEnabled()) throw ApiError.Network("Corrections are temporarily unavailable.")
             api.postObject<ReportResponse>(
                 "functions/v1/report-story",
                 encodeBody(ReportBody(story_id = current.id, target = target, note = note.trim().ifEmpty { null })),

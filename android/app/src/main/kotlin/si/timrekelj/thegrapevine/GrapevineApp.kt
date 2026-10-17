@@ -9,6 +9,7 @@ class GrapevineApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        Telemetry.initialize(this)
         OneSignalManager.initialize(this)
     }
 }

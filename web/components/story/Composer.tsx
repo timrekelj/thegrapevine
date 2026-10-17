@@ -3,6 +3,7 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { validateAttachments, type Message, type Story } from './queries'
+import { capture, captureError } from '@/lib/telemetry'
 
 type Gif = { id: string; title: string; url: string; still: string }
 export default function Composer({ story, userId, reply, clearReply, refresh, gifsEnabled }: { story: Story; userId: string; reply: Message | null; clearReply: () => void; refresh: () => Promise<void>; gifsEnabled: boolean }) {
@@ -70,11 +71,12 @@ export default function Composer({ story, userId, reply, clearReply, refresh, gi
         }
       }
       pending.current = null
+      capture('message_sent', { is_reply: reply != null, attachment_count: media.length })
       setDraftLocked(false)
       setBody(''); setFiles([]); setGif(null); clearReply()
       if (input.current) input.current.value = ''
       await refresh()
-    } catch (error) { setError(`${error instanceof Error ? error.message : 'Message could not be saved.'} Your draft is kept; retry Send.`) }
+    } catch (error) { captureError(error, 'message_send_failed'); setError(`${error instanceof Error ? error.message : 'Message could not be saved.'} Your draft is kept; retry Send.`) }
     finally { setBusy(false) }
   }
 

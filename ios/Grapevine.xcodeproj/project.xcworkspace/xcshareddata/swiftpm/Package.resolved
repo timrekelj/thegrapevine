@@ -1,5 +1,5 @@
 {
-  "originHash" : "fe10aafbaf409842f476e8822e8d586ae13fa97ca251345350315549123c6d78",
+  "originHash" : "f7be40a87b71f6d82b88c7fea0b68a43faec8416d2d668f93b76ce9337b5a3e1",
   "pins" : [
     {
       "identity" : "onesignal-xcframework",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "55b0a4f1ff1435d692088e682ce12daf151a3312",
         "version" : "5.5.1"
+      }
+    },
+    {
+      "identity" : "posthog-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/PostHog/posthog-ios.git",
+      "state" : {
+        "revision" : "835f624c2618d72d73650d0ed0029325232f5b0a",
+        "version" : "3.92.0"
       }
     }
   ],

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
 import { connection } from 'next/server'
+import { captureServer } from '@/lib/telemetry-server'
 
 export default async function NewGroupPage({ searchParams }: PageProps<'/group/new'>) {
   await connection() // fully dynamic: session + database
@@ -36,6 +37,7 @@ export default async function NewGroupPage({ searchParams }: PageProps<'/group/n
       query.set('error', 'Your paper was created, but membership could not be saved. Try again to finish joining it.')
       redirect(`/group/new?${query}`)
     }
+    if (!error) await captureServer(user.id, 'paper_created')
     redirect('/')
   }
 

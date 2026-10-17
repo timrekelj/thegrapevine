@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { safeRedirect } from '@/lib/auth'
 import { connection } from 'next/server'
+import { captureServer } from '@/lib/telemetry-server'
 
 const inputStyle = { padding: 12, font: 'inherit', color: 'var(--ink)', background: 'var(--raised)', border: '1px solid var(--rule)' }
 
@@ -37,6 +38,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
       redirect(`/login?${query}`)
     }
     const { data: memberships, error: membershipError } = await supabase.from('group_members').select('group_id').eq('user_id', data.user.id).limit(1)
+    await captureServer(data.user.id, 'signed_in')
     redirect(membershipError || memberships?.length ? destination : `/onboarding?${new URLSearchParams({ redirect: destination })}`)
   }
 

@@ -6,6 +6,7 @@ struct GrapevineApp: App {
     @State private var paper = PaperStore()
 
     init() {
+        Telemetry.initialize()
         OneSignalManager.shared.initialize()
     }
 

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
 import { connection } from 'next/server'
+import { captureServer } from '@/lib/telemetry-server'
 
 export default async function InvitePage({ searchParams }: PageProps<'/invite'>) {
   await connection() // fully dynamic: session + database
@@ -13,9 +14,10 @@ export default async function InvitePage({ searchParams }: PageProps<'/invite'>)
 
   async function join() {
     'use server'
-    const { supabase } = await requireUser(path)
+    const { supabase, user } = await requireUser(path)
     const { error } = await supabase.rpc('join_group_with_invite', { code })
     if (error) redirect(`${path}&${new URLSearchParams({ error: error.message })}`)
+    await captureServer(user.id, 'paper_joined')
     redirect('/')
   }
 

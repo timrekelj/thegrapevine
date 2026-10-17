@@ -6,8 +6,10 @@ final class AppState {
     var session: Session? {
         didSet {
             if let session {
+                Telemetry.identify(session.userId)
                 OneSignalManager.shared.login(externalId: session.userId.uuidString.lowercased())
             } else {
+                Telemetry.reset()
                 OneSignalManager.shared.logout()
             }
         }
@@ -35,6 +37,7 @@ final class AppState {
         guard let data = Keychain.load(),
               let stored = try? JSONDecoder.supabase.decode(Session.self, from: data) else {
             OneSignalManager.shared.logout()
+            Telemetry.reset()
             checked = true
             return
         }
@@ -74,6 +77,7 @@ final class AppState {
         try save(session)
         self.session = session
         API.session = session
+        Telemetry.capture("signed_in")
         await loadProfileAndGroup()
     }
 
@@ -135,6 +139,7 @@ final class AppState {
         try await API.postVoid(path: "rest/v1/group_members",
             body: NewMemberBody(group_id: created.id, user_id: session.userId))
         group = created
+        Telemetry.capture("paper_created")
         await loadProfileAndGroup()
     }
 
@@ -145,6 +150,7 @@ final class AppState {
         let code = URLComponents(string: code.trimmed)?.queryItems?.first(where: { $0.name == "code" })?.value ?? code.trimmed
         let joined: UUID = try await API.rpc(UUID.self, name: "join_group_with_invite",
             body: JoinBody(code: code.trimmed.lowercased()))
+        Telemetry.capture("paper_joined")
         group = try await API.getOne(Group.self, path: "rest/v1/groups",
             query: [URLQueryItem(name: "id", value: "eq.\(joined)")])
         await loadProfileAndGroup()

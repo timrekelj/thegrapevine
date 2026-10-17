@@ -96,6 +96,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.onesignal)
+    implementation(libs.posthog)
 
 
     debugImplementation(libs.androidx.compose.ui.tooling)

@@ -2,10 +2,10 @@ import Foundation
 import OneSignalFramework
 
 /// The only place the app talks to the OneSignal SDK.
-final class OneSignalManager {
+final class OneSignalManager: NSObject, OSNotificationClickListener {
     static let shared = OneSignalManager()
 
-    private init() {}
+    private override init() { super.init() }
 
     func initialize(appId: String = Config.oneSignalAppId) {
         #if DEBUG
@@ -13,6 +13,11 @@ final class OneSignalManager {
         #endif
         // The SwiftUI lifecycle has no launch options.
         OneSignal.initialize(appId, withLaunchOptions: nil)
+        OneSignal.Notifications.addClickListener(self)
+    }
+
+    func onClick(event: OSNotificationClickEvent) {
+        Telemetry.capture("notification_opened")
     }
 
     // MARK: - Identity

@@ -13,6 +13,7 @@ final class StoryStore {
     var notice: String?
     var pendingMessageId: UUID?
     private var uploaded: [String] = []
+    private var trackedStoryId: UUID?
 
     @MainActor
     func load(storyId: UUID) async {
@@ -23,6 +24,10 @@ final class StoryStore {
             story = try await API.getOne(Story.self, path: "rest/v1/stories",
                 query: [URLQueryItem(name: "id", value: "eq.\(storyId)")])
             guard story != nil else { throw APIError.network("This story is no longer available.") }
+            if trackedStoryId != storyId {
+                Telemetry.capture("story_opened")
+                trackedStoryId = storyId
+            }
             sources = try await API.getMany(Source.self, path: "rest/v1/sources", query: [
                 URLQueryItem(name: "story_id", value: "eq.\(storyId)"),
                 URLQueryItem(name: "order", value: "created_at.desc"),
@@ -79,6 +84,7 @@ final class StoryStore {
                 try await API.postVoid(path: "rest/v1/message_media", body: NewMedia(message_id: id, kind: attachments[index].kind, url: path, position: index, alt_text: "Shared \(attachments[index].kind)"))
             }
             pendingMessageId = nil
+            Telemetry.capture("message_sent", ["is_reply": replyTo != nil, "attachment_count": attachments.count])
             uploaded = []
             await load(storyId: story.id)
             return true
@@ -114,6 +120,7 @@ final class StoryStore {
     func report(target: String, note: String) async -> Bool {
         guard let story else { return false }
         do {
+            guard Telemetry.correctionsEnabled() else { throw APIError.network("Corrections are temporarily unavailable.") }
             let _: ReportResponse = try await API.postObject(ReportResponse.self, path: "functions/v1/report-story",
                 body: ReportBody(story_id: story.id, target: target, note: note.trimmed.isEmpty ? nil : note.trimmed))
             notice = "Correction checked and saved."

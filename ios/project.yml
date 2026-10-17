@@ -10,6 +10,9 @@ settings:
   MARKETING_VERSION: 0.1.0
   CURRENT_PROJECT_VERSION: "1"
 packages:
+  PostHog:
+    url: https://github.com/PostHog/posthog-ios.git
+    exactVersion: 3.92.0
   OneSignal:
     url: https://github.com/OneSignal/OneSignal-XCFramework
     exactVersion: 5.5.1
@@ -41,6 +44,7 @@ targets:
         aps-environment: development
         com.apple.security.application-groups: [group.si.timrekelj.thegrapevine.onesignal]
     dependencies:
+      - package: PostHog
       - target: OneSignalNotificationServiceExtension
       - package: OneSignal
         product: OneSignalFramework
@@ -50,6 +54,18 @@ targets:
       PRODUCT_BUNDLE_IDENTIFIER: si.timrekelj.thegrapevine
       TARGETED_DEVICE_FAMILY: "1"
       GENERATE_INFOPLIST_FILE: true
+      ENABLE_USER_SCRIPT_SANDBOXING: false
+    postBuildScripts:
+      - name: Upload PostHog symbols
+        script: |
+          if [ "$CONFIGURATION" = "Release" ] && [ -n "$POSTHOG_CLI_API_KEY" ]; then
+            export POSTHOG_CLI_HOST=https://eu.posthog.com
+            export POSTHOG_CLI_PROJECT_ID=310029
+            "${BUILD_DIR%/Build/*}/SourcePackages/checkouts/posthog-ios/build-tools/upload-symbols.sh"
+          fi
+        inputFiles:
+          - $(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)/Contents/Resources/DWARF/$(EXECUTABLE_NAME)
+        runOnlyWhenInstalling: true
     scheme:
       testTargets: [GrapevineTests]
   OneSignalNotificationServiceExtension:

@@ -12,10 +12,10 @@ A private newspaper curated by friends. The full product direction and decisions
 
 ## Local development
 
-Prerequisites: Docker, Supabase CLI (`brew install supabase/tap/supabase`), Node 20+.
+Prerequisites: macOS 14+ on Apple silicon (or supported Linux), Supabase CLI 2.121.0+ (`brew install supabase/tap/supabase`), Node 20+. Local Supabase uses the experimental native runtime; Docker is not required.
 
     cp .env.example .env    # add MISTRAL_API_KEY, OPENAI_API_KEY, and optional GIPHY_API_KEY
-    supabase start          # local Supabase: Postgres, Auth, Storage, Studio
+    supabase start --runtime native  # local Supabase: Postgres, Auth, Storage, Studio
     supabase db reset       # applies migrations and seed; deletes existing local data
 
 - Supabase Studio: http://localhost:55323
@@ -23,6 +23,8 @@ Prerequisites: Docker, Supabase CLI (`brew install supabase/tap/supabase`), Node
 - API gateway: http://localhost:55321
 
 (The Grapevine uses ports 5532x because another local Supabase project occupies the default 5432x range.)
+
+The experimental stack keeps separate data per Git branch. Use `supabase status` for current URLs and keys and `supabase stop` to stop it. Native projects share host resources; fixed ports here support these two checkouts, not simultaneous worktrees of the same app.
 
 `.env` is gitignored — never commit keys.
 
@@ -47,9 +49,9 @@ Tests:
 
 The pilot includes the paper, sources/history/correction reports, chronological conversation, quoted replies, reactions, private image/video uploads, group creation/joining, invite sharing, and Keychain session refresh. Images are limited to 10 per selection; each attachment is capped at 20 MB. Visible stories refresh every 10 seconds and support pull-to-refresh.
 
-The membership-permission regression can be run against seeded local data:
+The membership-permission regression can be run against seeded local data with `psql` (`brew install libpq`):
 
-    docker exec -i supabase_db_grapevine psql -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/membership_update.sql
+    "$(brew --prefix libpq)/bin/psql" postgresql://postgres:postgres@127.0.0.1:55322/postgres -v ON_ERROR_STOP=1 -f supabase/tests/membership_update.sql
 
 Local-only configuration lives in `ios/Grapevine/Config.swift`. `localhost` works on the simulator, not a physical phone; invitation links and demo images also use localhost. Configure reachable URLs and a hosted Supabase project before distribution. No AI secret is bundled in the app.
 

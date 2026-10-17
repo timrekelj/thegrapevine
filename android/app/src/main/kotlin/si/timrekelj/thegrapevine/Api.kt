@@ -97,6 +97,7 @@ class Api(private val http: HttpClient = defaultHttpClient()) {
         val text = response.bodyAsText()
         val status = response.status.value
         if (status == 401) throw ApiError.Unauthorized
+        if (status >= 500) Telemetry.httpError(status)
         if (status !in 200..299) throw ApiError.Http(status, text)
         return text
     }

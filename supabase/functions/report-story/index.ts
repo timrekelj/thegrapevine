@@ -3,8 +3,9 @@ import { caller, requireMember, supabase } from '../_shared/supabase.ts';
 import { generate } from '../_shared/editorial.ts';
 import { embed } from '../_shared/mistral.ts';
 import { storyText } from '../_shared/clustering.ts';
+import { capture, featureEnabled, withTelemetry } from '../_shared/telemetry.ts';
 
-Deno.serve(async req => {
+Deno.serve(withTelemetry('report-story', async req => {
   if (req.method === 'OPTIONS') return json({});
   if (req.method !== 'POST') return json({ error: 'POST required' }, 405);
   try {
@@ -16,6 +17,7 @@ Deno.serve(async req => {
     if (storyError) throw storyError;
     if (!story) throw new HttpError(404, 'Story unavailable');
     await requireMember(story.group_id, user.id);
+    if (!await featureEnabled('story-corrections-enabled')) throw new HttpError(503, 'Corrections are temporarily unavailable.');
     const { data: report, error: reportError } = await supabase.from('reports').insert({
       story_id: story.id, reporter_id: user.id, target: input.target, note,
     }).select('id').single();
@@ -36,6 +38,7 @@ Deno.serve(async req => {
     const { data, error: updateError } = await supabase.from('stories').update({ ...updated, embedding,
       flagged: !!open?.length, last_activity_at: new Date().toISOString() }).eq('id', story.id).select('*').single();
     if (updateError) throw updateError;
+    capture('story_reported', { target: input.target });
     return json(data);
   } catch (error) { return errorResponse(error); }
-});
+}));

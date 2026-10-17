@@ -43,6 +43,7 @@ class AppState(
         viewModelScope.launch {
             val stored = store.load()
             if (stored == null) {
+                Telemetry.reset()
                 OneSignalManager.logout()
                 checked = true
                 return@launch
@@ -90,10 +91,12 @@ class AppState(
         val verified = api.verifyOtp(email, code)
         store.save(verified)
         adopt(verified)
+        Telemetry.capture("signed_in")
         loadProfileAndGroup()
     }
 
     fun signOut() {
+        Telemetry.reset()
         OneSignalManager.logout()
         store.delete()
         session = null
@@ -159,6 +162,7 @@ class AppState(
             encodeBody(NewMemberBody(group_id = created.id, user_id = current.userId)),
         )
         group = created
+        Telemetry.capture("paper_created")
         loadProfileAndGroup()
     }
 
@@ -167,11 +171,13 @@ class AppState(
             "join_group_with_invite",
             encodeBody(JoinBody(code = DeepLink.inviteCode(code))),
         )
+        Telemetry.capture("paper_joined")
         group = api.getOne<Group>("rest/v1/groups", listOf("id" to "eq.$joined"))
         loadProfileAndGroup()
     }
 
     private fun adopt(value: Session) {
+        Telemetry.identify(value.userId)
         OneSignalManager.login(value.userId.lowercase())
         session = value
         api.session = value

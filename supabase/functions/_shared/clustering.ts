@@ -1,3 +1,5 @@
+import { observeAI } from './telemetry.ts';
+
 export function vector(value: string | number[]): number[] {
   return typeof value === 'string' ? JSON.parse(value) : value;
 }
@@ -16,6 +18,7 @@ export const sourceText = (source: { source_title: string; excerpt: string | nul
 // probabilities instead of generated text, $0.10/M input tokens, output free.
 export async function decide(state: string, similarity: number) {
   try {
+    return await observeAI('openai', 'gpt-6-luna', 'clustering', async () => {
     const response = await fetch('https://api.openai.com/v1/decisions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${Deno.env.get('OPENAI_API_KEY')}` },
@@ -41,7 +44,8 @@ export async function decide(state: string, similarity: number) {
       throw new Error('Invalid decision response');
     }
     console.info('decision', JSON.stringify({ similarity: Number(similarity.toFixed(3)), same_event: same.probability, conflict: conflict.probability }));
-    return { same_event: same.probability >= 0.5, conflict: conflict.probability >= 0.5 };
+    return { same_event: same.probability >= 0.5, conflict: conflict.probability >= 0.5, usage: data.usage };
+    });
   } catch {
     console.warn('Decision model unavailable; using conservative cosine fallback (0.88).');
     return { same_event: similarity >= 0.88, conflict: false };
