@@ -3,7 +3,15 @@ import SwiftUI
 
 @Observable
 final class AppState {
-    var session: Session?
+    var session: Session? {
+        didSet {
+            if let session {
+                OneSignalManager.shared.login(externalId: session.userId.uuidString.lowercased())
+            } else {
+                OneSignalManager.shared.logout()
+            }
+        }
+    }
     var profile: Profile?
     var group: Group?
     var members: [Member] = []
@@ -26,6 +34,7 @@ final class AppState {
     func restoreSession() async {
         guard let data = Keychain.load(),
               let stored = try? JSONDecoder.supabase.decode(Session.self, from: data) else {
+            OneSignalManager.shared.logout()
             checked = true
             return
         }
@@ -33,7 +42,7 @@ final class AppState {
         if JWT.isExpired(session.accessToken) {
             do { session = try await API.refreshSession(refreshToken: session.refreshToken) }
             catch {
-                if case APIError.unauthorized = error { Keychain.delete() }
+                if case APIError.unauthorized = error { signOut() }
                 else {
                     self.session = session
                     API.session = session

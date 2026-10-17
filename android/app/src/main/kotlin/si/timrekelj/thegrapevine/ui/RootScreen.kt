@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -16,21 +15,16 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.window.DialogProperties
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.launch
 import si.timrekelj.thegrapevine.AppState
 import si.timrekelj.thegrapevine.OneSignalManager
 import si.timrekelj.thegrapevine.PaperState
@@ -46,35 +40,10 @@ fun RootScreen(app: AppState) {
             else -> MainTabs(app)
         }
     }
-    PushIntegrationDialog()
-}
-
-/**
- * OneSignal integration check: shown once the device has a server-assigned push
- * subscription. "Got it" is the only place push permission is requested.
- */
-@Composable
-private fun PushIntegrationDialog() {
-    val visible by OneSignalManager.integrationDialogVisible.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
-    if (!visible) return
-    AlertDialog(
-        onDismissRequest = {},
-        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
-        title = { Text("Your OneSignal SDK integration is complete!") },
-        text = {
-            Text("You can now send Push Notifications & In-App Messages through OneSignal. Tap below to enable push notifications.")
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                OneSignalManager.dismissIntegrationDialog()
-                scope.launch { OneSignalManager.requestPushPermission() }
-            }) { Text("Got it", color = Grape.ink) }
-        },
-        containerColor = Grape.raised,
-        titleContentColor = Grape.ink,
-        textContentColor = Grape.ink2,
-    )
+    val signedIn = app.checked && app.session != null
+    LaunchedEffect(signedIn) {
+        if (signedIn) OneSignalManager.requestPushPermission()
+    }
 }
 
 @Composable

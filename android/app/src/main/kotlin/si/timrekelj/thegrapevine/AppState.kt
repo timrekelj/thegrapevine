@@ -43,6 +43,7 @@ class AppState(
         viewModelScope.launch {
             val stored = store.load()
             if (stored == null) {
+                OneSignalManager.logout()
                 checked = true
                 return@launch
             }
@@ -50,7 +51,7 @@ class AppState(
                 val refreshed = try {
                     api.refreshSession(stored.refreshToken)
                 } catch (e: ApiError.Unauthorized) {
-                    store.delete()
+                    signOut()
                     checked = true
                     return@launch
                 } catch (e: Exception) {
@@ -93,6 +94,7 @@ class AppState(
     }
 
     fun signOut() {
+        OneSignalManager.logout()
         store.delete()
         session = null
         profile = null
@@ -170,6 +172,7 @@ class AppState(
     }
 
     private fun adopt(value: Session) {
+        OneSignalManager.login(value.userId.lowercase())
         session = value
         api.session = value
     }
