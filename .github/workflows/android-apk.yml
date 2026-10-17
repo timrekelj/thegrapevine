@@ -8,6 +8,7 @@ name: Android APK
 #   ANDROID_STORE_PASSWORD  keystore password
 #   ANDROID_KEY_ALIAS       key alias
 #   ANDROID_KEY_PASSWORD    key password
+#   NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY  web build config
 #
 # Optional:
 #   ANDROID_KEYSTORE_PATH   override the decoded keystore location (default: ./release.keystore)
@@ -45,6 +46,10 @@ jobs:
 
       - name: Install Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # v3's default is 'tools platform-tools'; the legacy 'tools' package
+          # was removed, so sdkmanager fails. Install what the build needs.
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
 
       - name: Decode release keystore
         working-directory: web/android
@@ -60,7 +65,7 @@ jobs:
       - name: Build web app
         working-directory: web
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
           NEXT_PUBLIC_SITE_URL: https://thegrapevine.si
         run: npm ci && npm run build
