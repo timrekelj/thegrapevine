@@ -18,6 +18,8 @@ targets:
         CFBundleDisplayName: The Grapevine
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Only standard HTTPS encryption, so no export-compliance documents are needed.
+        ITSAppUsesNonExemptEncryption: false
         UILaunchScreen: {}
         UIAppFonts: [Gloock-Regular.ttf]
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
