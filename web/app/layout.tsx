@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import NativeBridge from "@/components/native-bridge";
 
 export const metadata: Metadata = {
   title: "The Grapevine",
@@ -17,10 +16,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en">
-      <body>
-        <NativeBridge />
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

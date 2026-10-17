@@ -20,3 +20,6 @@ __pycache__/
 # supabase local
 supabase/.branches/
 supabase/.temp/
+
+# editors
+.idea/

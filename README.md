@@ -7,7 +7,7 @@ A private newspaper curated by friends. The full product direction and decisions
 - **Backend:** Supabase only — Postgres, Auth (magic links), Realtime, Storage, Edge Functions. No separate app server.
 - **Web:** Next.js (`web/`)
 - **iOS:** SwiftUI with native Liquid Glass navigation and tabs (`ios/`, local pilot)
-- **Android:** Capacitor shell around the web app (`web/android/`, sideload APK via GitHub Releases); a native Jetpack Compose app remains the long-term plan
+- **Android:** Kotlin + Jetpack Compose (`android/`, sideload APK via GitHub Releases)
 - **AI:** Mistral API (titles, summaries, categories, embeddings); OpenAI Decisions API `gpt-6-luna` (same-event/conflict decisions). A self-hosted alternative (Strands Decider 2B, `model-server/`) exists but is not wired in.
 
 ## Local development
@@ -55,11 +55,21 @@ Local-only configuration lives in `ios/Grapevine/Config.swift`. `localhost` work
 
 Still required before release: GIPHY search credentials, push notifications, discussion-triggered AI summary updates, and cleanup/atomic finalization for abandoned media uploads. AI text currently regenerates on source submissions and correction reports, not new messages. Current GIF attachments render, but GIF search is unavailable without a GIPHY key. Test large videos, Dynamic Type, VoiceOver, and auth/network failure recovery on real hardware before release.
 
-## Android app (sideload APK)
+## Android app
 
-The Android app is a [Capacitor](https://capacitorjs.com) shell around the deployed site (`web/android/`, configured in `web/capacitor.config.ts`). Every merge to `master` runs `.github/workflows/android-apk.yml`, which builds a signed release APK and publishes it as a [GitHub Release](https://github.com/timrekelj/thegrapevine/releases) asset (`grapevine.apk`). The app intercepts the `grapevine://` scheme so magic-link sign-in and invite links open back inside the app; external articles open in the system browser.
+A native Kotlin + Jetpack Compose port of the iOS app (`android/`): the same screens, the same Supabase REST calls, and the same one-ink plates. Sessions are stored encrypted (Android Keystore), and `grapevine://auth/callback` magic links and `https://thegrapevine.si/invite?code=…` links open the app.
 
-Install: download `grapevine.apk` from the latest release, allow *Install unknown apps* for your browser/file manager in Android settings, then open the APK. Because the repo is private, you must be signed in to GitHub with access to download it.
+Requires JDK 21 and the Android SDK with platform 37 (Android Studio installs both). Start Supabase as above, then forward the local ports to the emulator or a USB device — API 37 blocks apps from LAN addresses like `10.0.2.2`, so debug builds use `localhost`:
+
+    adb reverse tcp:55321 tcp:55321    # Supabase
+    adb reverse tcp:3000 tcp:3000      # demo images (`cd web && npm run dev`)
+    cd android
+    ./gradlew installDebug             # or open android/ in Android Studio and Run
+    ./gradlew testDebugUnitTest        # ranking, dates, magic links, attachments, plates
+
+Sign in with `tim@example.com`, open the Mailpit link in the emulator's browser, and the app picks up the session. Release builds point at the hosted project.
+
+Every merge to `master` runs `.github/workflows/android-apk.yml`, which runs the unit tests, builds a signed release APK, and publishes it as a [GitHub Release](https://github.com/timrekelj/thegrapevine/releases) asset (`grapevine.apk`). Install: download `grapevine.apk`, allow *Install unknown apps* for your browser/file manager, then open it. Because the repo is private, you must be signed in to GitHub with access to download it.
 
 First-time setup (one-off, maintainer):
 
@@ -74,20 +84,12 @@ First-time setup (one-off, maintainer):
     #    ANDROID_KEY_PASSWORD   = key password
     # 3. Allow the app scheme in Supabase: Authentication → URL Configuration,
     #    add grapevine://auth/callback to Redirect URLs.
-    # 4. Set Vercel env vars for the web build:
-    #    NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-    #    NEXT_PUBLIC_SITE_URL=https://thegrapevine.si
 
-Local development:
+When a Google Play account is available, switch the workflow from `assembleRelease` to `bundleRelease` and upload the AAB with `r0adkll/upload-google-play`.
 
-    cd web && npm run dev          # web, as usual
-    npm run android:sync           # refresh the native project after web changes
-    npm run android:apk            # local release build (needs ANDROID_* env vars)
-    npm run android:open           # open in Android Studio
+## Web deployment
 
-Unit tests for the deep-link mapping: `cd web/android && ./gradlew testDebugUnitTest`.
-
-When a Google Play account is available, switch the workflow from `assembleRelease` to `bundleRelease` and upload the AAB with `google-github-actions/release-please` or `r0adkll/upload-google-play`.
+The hosted web app (Vercel) needs `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `NEXT_PUBLIC_SITE_URL=https://thegrapevine.si`.
 
 ## Edge Functions
 

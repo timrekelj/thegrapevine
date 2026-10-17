@@ -1,17 +1,16 @@
 name: Android APK
 
-# Builds a signed, installable APK from the Capacitor shell around the web app
-# and publishes it as a GitHub Release asset on every merge to master.
+# Builds a signed, installable APK of the native Android app (android/) and
+# publishes it as a GitHub Release asset on every merge to master.
 #
 # Required repository secrets (Settings > Secrets and variables > Actions):
-#   ANDROID_KEYSTORE_B64    base64 of the release .keystore (never commit it)
+#   ANDROID_KEYSTORE_B64    base64 of the release keystore (never commit it)
 #   ANDROID_STORE_PASSWORD  keystore password
 #   ANDROID_KEY_ALIAS       key alias
 #   ANDROID_KEY_PASSWORD    key password
-#   NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY  web build config
 #
-# Optional:
-#   ANDROID_KEYSTORE_PATH   override the decoded keystore location (default: ./release.keystore)
+# The hosted Supabase URL and publishable key are compiled in by the release
+# build type (android/app/build.gradle.kts), like the iOS Release config.
 
 on:
   push:
@@ -29,30 +28,26 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      ANDROID_VERSION_NAME: "0.1.0"
+      ANDROID_VERSION_NAME: "0.2.0"
+    defaults:
+      run:
+        working-directory: android
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
+          cache: gradle
 
       - name: Install Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
         with:
-          # v3's default is 'tools platform-tools'; the legacy 'tools' package
-          # was removed, so sdkmanager fails. Install what the build needs.
-          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+          # compileSdk 37 and AGP 9.4's default build tools (also used by apksigner below).
+          packages: 'platform-tools platforms;android-37.0 build-tools;36.0.0'
 
       - name: Decode release keystore
-        working-directory: web/android
         env:
           ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
         run: |
@@ -60,24 +55,14 @@ jobs:
             echo "::error::ANDROID_KEYSTORE_B64 secret is not set. Generate a release keystore and add it as a repository secret."
             exit 1
           fi
-          echo "$ANDROID_KEYSTORE_B64" | base64 -d > "${ANDROID_KEYSTORE_PATH:-./release.keystore}"
+          echo "$ANDROID_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
 
-      - name: Build web app
-        working-directory: web
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
-          NEXT_PUBLIC_SITE_URL: https://thegrapevine.si
-        run: npm ci && npm run build
-
-      - name: Sync Capacitor
-        working-directory: web
-        run: npx cap sync android
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest --no-daemon
 
       - name: Build release APK
-        working-directory: web/android
         env:
-          ANDROID_KEYSTORE_PATH: ./release.keystore
           ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -85,29 +70,28 @@ jobs:
         run: ./gradlew assembleRelease --no-daemon
 
       - name: Verify APK signature
-        working-directory: web/android
         run: |
-          APK=$(ls app/build/outputs/apk/release/*.apk)
+          APK=app/build/outputs/apk/release/app-release.apk
           "$ANDROID_SDK_ROOT/build-tools/36.0.0/apksigner" verify --print-certs "$APK" >/dev/null \
             || { echo "::error::APK is not signed correctly"; exit 1; }
-          cp "$APK" /tmp/grapevine.apk
+          cp "$APK" "$RUNNER_TEMP/grapevine.apk"
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: android-v${{ env.ANDROID_VERSION_NAME }}-${{ github.run_number }}-${{ github.sha }}
           name: The Grapevine for Android · ${{ env.ANDROID_VERSION_NAME }} (build ${{ github.run_number }})
           body: |
-            Installable Android APK of The Grapevine (sideload build).
+            Installable Android APK of The Grapevine (native app, sideload build).
 
             **Install:** download `grapevine.apk`, then on your phone enable *Settings → Apps → Special app access → Install unknown apps* for your file manager/browser, and open the APK.
             Android will refuse to install updates signed with a different key — keep the release keystore safe.
-          files: /tmp/grapevine.apk
+          files: ${{ runner.temp }}/grapevine.apk
           fail_on_unmatched_files: true
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: grapevine-apk
-          path: /tmp/grapevine.apk
+          path: ${{ runner.temp }}/grapevine.apk
           retention-days: 30

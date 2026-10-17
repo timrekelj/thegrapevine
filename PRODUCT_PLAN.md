@@ -130,13 +130,13 @@ Mocked-up screens: mobile front page (masthead "The Grapevine", lead story, edit
 
 The front page does not reshuffle while you read; when ranking changes, a line appears between two pink rules ("Later edition · N stories moved") and tapping it reprints the page.
 
-On iOS the navigation uses native Liquid Glass navigation, tabs, and sheets. Android will use its native navigation. Design priority — mobile home, mobile story, web home — is complete as mockups; web and the native iOS local pilot are now implemented.
+On iOS the navigation uses native Liquid Glass navigation, tabs, and sheets. Android will use its native navigation. Design priority — mobile home, mobile story, web home — is complete as mockups; web, the native iOS local pilot, and the native Android app are now implemented.
 
 ### Local implementation status — 13 October 2026
 
 The iOS pilot builds and runs on iPhone 17. Simulator checks covered magic-link callback, Keychain persistence across relaunches, paper/story loading, messages, quoted replies, reaction toggling, duplicate rejection, and private photo uploads with signed-URL display. Five native regression tests cover ranking, auth callback parsing, session serialization, Supabase timestamps, and attachment limits. A rolled-back SQL regression checks that members can mark their own membership seen but cannot change roles or group IDs.
 
-Visible iOS conversations currently poll every 10 seconds rather than subscribing to Realtime. GIPHY search needs a key; Android, push notifications, discussion-triggered AI summary updates, hosted configuration, media cleanup, and real-device/accessibility testing remain before launch. AI text currently regenerates on source submissions and reports, not new messages. Native group onboarding, correction reports, and video support are implemented but need additional end-to-end coverage.
+Visible iOS conversations currently poll every 10 seconds rather than subscribing to Realtime. GIPHY search needs a key; push notifications, discussion-triggered AI summary updates, hosted configuration, media cleanup, and real-device/accessibility testing remain before launch. AI text currently regenerates on source submissions and reports, not new messages. Native group onboarding, correction reports, and video support are implemented but need additional end-to-end coverage.
 
 All mockup stories, publishers, people, timestamps, and counts are fictional sample content (paper name "The Grapevine"; members You, Luka, Nika, Jure, Maja). Source images were Unsplash stand-ins; in production they are the sources' own preview images. Final branding, complete navigation, native platform conventions, and production behavior remain to be developed.
 
