@@ -19,7 +19,7 @@ export async function proxy(request: NextRequest) {
   )
   const { data: { user } } = await supabase.auth.getUser()
   const path = request.nextUrl.pathname
-  const isPublic = ['/login', '/invite', '/auth/callback', '/favicon.ico'].includes(path)
+  const isPublic = ['/login', '/invite', '/favicon.ico'].includes(path)
     || path === '/seed' || path.startsWith('/seed/') || path.startsWith('/_next/')
   if (!user && !isPublic) {
     const login = new URL('/login', request.url)

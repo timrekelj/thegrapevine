@@ -40,23 +40,20 @@ final class AppState {
     }
 
     @MainActor
-    func handleCallback(_ url: URL) async {
-        guard url.scheme == "grapevine", url.host == "auth", url.path == "/callback" else { return }
-        guard let session = API.session(fromCallback: url) else {
-            error = "This sign-in link is invalid or expired. Request a new one."
-            return
-        }
-        do { try save(session) }
-        catch { self.error = error.localizedDescription; return }
-        self.session = session
-        API.session = session
-        await loadProfileAndGroup()
-    }
-
-    @MainActor
     func signIn(email: String) async throws {
         error = nil
         try await API.signInWithOtp(email: email)
+    }
+
+    /// Signs in with the code from the email.
+    @MainActor
+    func verifyCode(email: String, code: String) async throws {
+        error = nil
+        let session = try await API.verifyOtp(email: email, code: code)
+        try save(session)
+        self.session = session
+        API.session = session
+        await loadProfileAndGroup()
     }
 
     @MainActor

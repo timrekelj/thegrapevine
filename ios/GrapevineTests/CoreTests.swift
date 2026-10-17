@@ -37,16 +37,16 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(stored.userId, session.userId)
     }
 
-    @MainActor
-    func testMagicLinkOnlyAcceptsAuthCallback() throws {
-        let id = UUID()
-        let payload = try JSONSerialization.data(withJSONObject: ["sub": id.uuidString, "email": "tim@example.com", "exp": Date().timeIntervalSince1970 + 3600])
+    func testJWTExpiryUsesTheExpClaim() throws {
+        let payload = try JSONSerialization.data(withJSONObject: ["sub": UUID().uuidString, "exp": Date().timeIntervalSince1970 + 3600])
         let encoded = payload.base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
-        let token = "header.\(encoded).signature"
-        let fragment = "#access_token=\(token)&refresh_token=refresh"
-        XCTAssertEqual(API.session(fromCallback: URL(string: "grapevine://auth/callback\(fragment)")!)?.userId, id)
-        XCTAssertNil(API.session(fromCallback: URL(string: "grapevine://other/callback\(fragment)")!))
-        XCTAssertFalse(JWT.isExpired(token))
+        XCTAssertFalse(JWT.isExpired("header.\(encoded).signature"))
         XCTAssertTrue(JWT.isExpired("broken"))
+    }
+
+    @MainActor
+    func testVerifyBodySendsEmailType() throws {
+        let body = try JSONSerialization.jsonObject(with: JSONEncoder().encode(API.VerifyBody(email: "tim@example.com", token: "123456"))) as? [String: String]
+        XCTAssertEqual(body, ["email": "tim@example.com", "token": "123456", "type": "email"])
     }
 }

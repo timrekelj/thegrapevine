@@ -11,7 +11,6 @@ struct GrapevineApp: App {
                 .environment(app)
                 .environment(paper)
                 .task { await app.restoreSession() }
-                .onOpenURL { url in Task { await app.handleCallback(url) } }
         }
     }
 }

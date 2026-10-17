@@ -13,5 +13,4 @@ enum Config {
     static let supabasePublishableKey = "sb_publishable_oT-H6EAfuoNp8dcVdTHJow_l1-Skd1C"
     static let webURL = URL(string: "https://thegrapevine.si")!
     #endif
-    static let authCallbackURL = URL(string: "grapevine://auth/callback")!
 }

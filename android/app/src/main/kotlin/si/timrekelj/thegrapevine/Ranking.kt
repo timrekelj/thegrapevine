@@ -1,6 +1,5 @@
 package si.timrekelj.thegrapevine
 
-import kotlinx.serialization.json.jsonPrimitive
 import java.net.URI
 import kotlin.math.pow
 import java.time.Instant
@@ -26,21 +25,8 @@ object Ranking {
     }
 }
 
-/** Deep links: the magic-link callback and invitation codes. */
+/** Deep links: invitation codes. */
 object DeepLink {
-    /** Build a session from the callback fragment (implicit magic-link flow). */
-    fun sessionFromCallback(uri: String): Session? {
-        val parsed = runCatching { URI(uri) }.getOrNull() ?: return null
-        if (parsed.scheme != "grapevine" || parsed.host != "auth" || parsed.path != "/callback") return null
-        val fragment = parsed.fragment ?: return null
-        val params = queryParams(fragment)
-        val accessToken = params["access_token"] ?: return null
-        val refreshToken = params["refresh_token"] ?: return null
-        val claims = Jwt.decode(accessToken) ?: return null
-        val sub = claims["sub"]?.jsonPrimitive?.content ?: return null
-        return Session(accessToken, refreshToken, sub, claims["email"]?.jsonPrimitive?.content.orEmpty())
-    }
-
     /**
      * Invitation links carry the code as a query param; a bare code is accepted
      * too, which is what the Onboarding screen passes.

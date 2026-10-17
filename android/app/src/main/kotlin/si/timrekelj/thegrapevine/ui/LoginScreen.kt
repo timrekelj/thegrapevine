@@ -2,6 +2,7 @@ package si.timrekelj.thegrapevine.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -28,8 +29,21 @@ import si.timrekelj.thegrapevine.AppState
 fun LoginScreen(app: AppState) {
     var email by rememberSaveable { mutableStateOf("") }
     var sent by rememberSaveable { mutableStateOf(false) }
+    var code by rememberSaveable { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+
+    fun run(action: suspend () -> Unit) {
+        scope.launch {
+            busy = true
+            try {
+                action()
+            } catch (e: Exception) {
+                app.error = e.message
+            }
+            busy = false
+        }
+    }
 
     Column(
         Modifier.fillMaxSize().safeDrawingPadding().padding(20.dp),
@@ -46,25 +60,29 @@ fun LoginScreen(app: AppState) {
         )
         if (sent) {
             Text(
-                "Check your email for a sign-in link.",
+                "We emailed a sign-in code to ${email.trim()}.",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Grape.ink,
                 textAlign = TextAlign.Center,
             )
-            TextButton(onClick = { sent = false }) { Text("Request another link", color = Grape.ink) }
+            // Supabase codes are 6 digits by default and up to 10 if the project is configured so.
+            PaperField(code, { code = it.filter(Char::isDigit).take(10) }, "Code", keyboardType = KeyboardType.Number)
+            InkButton(if (busy) "Signing in…" else "Sign in", enabled = !busy && code.length >= 6) {
+                run { app.verifyCode(email, code) }
+            }
+            Row {
+                TextButton(onClick = { run { app.signIn(email) } }, enabled = !busy) { Text("Send a new code", color = Grape.ink) }
+                TextButton(onClick = { sent = false; code = ""; app.error = null }, enabled = !busy) {
+                    Text("Use a different email", color = Grape.ink)
+                }
+            }
         } else {
             PaperField(email, { email = it }, "Your email", keyboardType = KeyboardType.Email)
-            InkButton(if (busy) "Sending…" else "Send a sign-in link", enabled = !busy && email.isNotBlank()) {
-                scope.launch {
-                    busy = true
-                    try {
-                        app.signIn(email)
-                        sent = true
-                    } catch (e: Exception) {
-                        app.error = e.message
-                    }
-                    busy = false
+            InkButton(if (busy) "Sending…" else "Email me a code", enabled = !busy && email.isNotBlank()) {
+                run {
+                    app.signIn(email)
+                    sent = true
                 }
             }
         }

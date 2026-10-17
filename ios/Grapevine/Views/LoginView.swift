@@ -3,6 +3,7 @@ import SwiftUI
 struct LoginView: View {
     @Environment(AppState.self) private var app
     @State private var email = ""
+    @State private var code = ""
     @State private var sent = false
     @State private var busy = false
 
@@ -15,10 +16,31 @@ struct LoginView: View {
                 .font(.system(size: 15)).foregroundColor(Theme.ink2)
                 .multilineTextAlignment(.center)
             if sent {
-                Text("Check your email for a sign-in link.")
+                Text("We emailed a sign-in code to \(email.trimmed).")
                     .font(.system(size: 15, weight: .semibold))
                     .multilineTextAlignment(.center)
-                Button("Request another link") { sent = false }
+                TextField("Code", text: $code)
+                    .keyboardType(.numberPad)
+                    .textContentType(.oneTimeCode)
+                    .padding()
+                    .background(Theme.raised)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    // Supabase codes are 6 digits by default and up to 10 if the project is configured so.
+                    .onChange(of: code) { code = String(code.filter(\.isNumber).prefix(10)) }
+                Button { Task { await run { try await app.verifyCode(email: email, code: code) } } } label: {
+                    Text(busy ? "Signing in…" : "Sign in")
+                        .frame(maxWidth: .infinity).frame(height: 48)
+                }
+                .buttonStyle(.plain)
+                .background(Theme.ink)
+                .foregroundColor(Theme.paper)
+                .clipShape(RoundedRectangle(cornerRadius: 24))
+                .disabled(busy || code.count < 6)
+                HStack {
+                    Button("Send a new code") { Task { await run { try await app.signIn(email: email) } } }
+                    Button("Use a different email") { sent = false; code = ""; app.error = nil }
+                }
+                .disabled(busy)
             } else {
                 TextField("Your email", text: $email)
                     .keyboardType(.emailAddress)
@@ -27,8 +49,8 @@ struct LoginView: View {
                     .padding()
                     .background(Theme.raised)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
-                Button { Task { await send() } } label: {
-                    Text(busy ? "Sending…" : "Send a sign-in link")
+                Button { Task { await run { try await app.signIn(email: email); sent = true } } } label: {
+                    Text(busy ? "Sending…" : "Email me a code")
                         .frame(maxWidth: .infinity).frame(height: 48)
                 }
                 .buttonStyle(.plain)
@@ -45,15 +67,11 @@ struct LoginView: View {
         .padding(20)
     }
 
-    private func send() async {
+    private func run(_ action: () async throws -> Void) async {
         busy = true
         app.error = nil
-        do {
-            try await app.signIn(email: email)
-            sent = true
-        } catch {
-            app.error = error.localizedDescription
-        }
+        do { try await action() }
+        catch { app.error = error.localizedDescription }
         busy = false
     }
 }

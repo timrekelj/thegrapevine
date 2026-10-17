@@ -244,6 +244,11 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# Sign-in is by one-time code. On the hosted project, the Magic Link and Confirm
+# signup templates use supabase/templates/sign_in_code.html. The experimental
+# local stack can't serve custom templates, so get local codes with
+# supabase/scripts/sign-in-code.sh.
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"

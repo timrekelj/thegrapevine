@@ -4,7 +4,7 @@ A private newspaper curated by friends. The full product direction and decisions
 
 ## Stack
 
-- **Backend:** Supabase only — Postgres, Auth (magic links), Realtime, Storage, Edge Functions. No separate app server.
+- **Backend:** Supabase only — Postgres, Auth (email one-time codes), Realtime, Storage, Edge Functions. No separate app server.
 - **Web:** Next.js (`web/`)
 - **iOS:** SwiftUI with native Liquid Glass navigation and tabs (`ios/`, local pilot)
 - **Android:** Kotlin + Jetpack Compose (`android/`, sideload APK via GitHub Releases)
@@ -19,7 +19,7 @@ Prerequisites: Docker, Supabase CLI (`brew install supabase/tap/supabase`), Node
     supabase db reset       # applies migrations and seed; deletes existing local data
 
 - Supabase Studio: http://localhost:55323
-- Magic-link emails: http://localhost:55324 (Mailpit)
+- Auth emails: http://localhost:55324 (Mailpit). The local stack's email doesn't include the sign-in code; print one with `supabase/scripts/sign-in-code.sh tim@example.com`.
 - API gateway: http://localhost:55321
 
 (The Grapevine uses ports 5532x because another local Supabase project occupies the default 5432x range.)
@@ -28,7 +28,7 @@ Prerequisites: Docker, Supabase CLI (`brew install supabase/tap/supabase`), Node
 
 ## Demo data
 
-`supabase db reset` also loads `supabase/seed.sql`: the fictional paper "The Grapevine" from the design mockups — five members (tim@, luka@, nika@, jure@, maja@example.com), five stories with sources, messages and reactions. Log in as any of them via magic link; the email lands in Mailpit (http://localhost:55324). The group's invite code is `grapevinedemo`. Demo images live in `web/public/seed/`; run the web dev server to serve them.
+`supabase db reset` also loads `supabase/seed.sql`: the fictional paper "The Grapevine" from the design mockups — five members (tim@, luka@, nika@, jure@, maja@example.com), five stories with sources, messages and reactions. Sign in as any of them with a code from `supabase/scripts/sign-in-code.sh`. The group's invite code is `grapevinedemo`. Demo images live in `web/public/seed/`; run the web dev server to serve them.
 
 ## iOS simulator
 
@@ -39,7 +39,7 @@ From `ios/`:
     xcodegen generate
     open Grapevine.xcodeproj
 
-Choose the Grapevine scheme and an iPhone simulator, then Run. Use normal simulator signing: unsigned builds cannot reliably save Keychain sessions. Sign in with `tim@example.com`, open its Mailpit magic link in simulator Safari, and approve opening The Grapevine.
+Choose the Grapevine scheme and an iPhone simulator, then Run. Use normal simulator signing: unsigned builds cannot reliably save Keychain sessions. Sign in with `tim@example.com` and the code from `supabase/scripts/sign-in-code.sh tim@example.com`.
 
 Tests:
 
@@ -57,7 +57,7 @@ Still required before release: GIPHY search credentials, push notifications, dis
 
 ## Android app
 
-A native Kotlin + Jetpack Compose port of the iOS app (`android/`): the same screens, the same Supabase REST calls, and the same one-ink plates. Sessions are stored encrypted (Android Keystore), and `grapevine://auth/callback` magic links and `https://thegrapevine.si/invite?code=…` links open the app.
+A native Kotlin + Jetpack Compose port of the iOS app (`android/`): the same screens, the same Supabase REST calls, and the same one-ink plates. Sessions are stored encrypted (Android Keystore), and `https://thegrapevine.si/invite?code=…` links open the app.
 
 Requires JDK 21 and the Android SDK with platform 37 (Android Studio installs both). Start Supabase as above, then forward the local ports to the emulator or a USB device — API 37 blocks apps from LAN addresses like `10.0.2.2`, so debug builds use `localhost`:
 
@@ -65,9 +65,9 @@ Requires JDK 21 and the Android SDK with platform 37 (Android Studio installs bo
     adb reverse tcp:3000 tcp:3000      # demo images (`cd web && npm run dev`)
     cd android
     ./gradlew installDebug             # or open android/ in Android Studio and Run
-    ./gradlew testDebugUnitTest        # ranking, dates, magic links, attachments, plates
+    ./gradlew testDebugUnitTest        # ranking, dates, JWTs, attachments, plates
 
-Sign in with `tim@example.com`, open the Mailpit link in the emulator's browser, and the app picks up the session. Release builds point at the hosted project.
+Sign in with `tim@example.com` and the code from `supabase/scripts/sign-in-code.sh tim@example.com`. Release builds point at the hosted project.
 
 Every merge to `master` runs `.github/workflows/android-apk.yml`, which runs the unit tests, builds a signed release APK, and publishes it as a [GitHub Release](https://github.com/timrekelj/thegrapevine/releases) asset (`grapevine.apk`). Install: download `grapevine.apk`, allow *Install unknown apps* for your browser/file manager, then open it. Because the repo is private, you must be signed in to GitHub with access to download it.
 
@@ -82,14 +82,14 @@ First-time setup (one-off, maintainer):
     #    ANDROID_STORE_PASSWORD = keystore password
     #    ANDROID_KEY_ALIAS      = grapevine
     #    ANDROID_KEY_PASSWORD   = key password
-    # 3. Allow the app scheme in Supabase: Authentication → URL Configuration,
-    #    add grapevine://auth/callback to Redirect URLs.
 
 When a Google Play account is available, switch the workflow from `assembleRelease` to `bundleRelease` and upload the AAB with `r0adkll/upload-google-play`.
 
-## Web deployment
+## Hosted setup
 
 The hosted web app (Vercel) needs `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `NEXT_PUBLIC_SITE_URL=https://thegrapevine.si`.
+
+Every app signs in with an emailed one-time code, so in the hosted project (Authentication → Emails) both the **Magic Link** and **Confirm signup** templates must show the code: paste `supabase/templates/sign_in_code.html` into each.
 
 ## Edge Functions
 

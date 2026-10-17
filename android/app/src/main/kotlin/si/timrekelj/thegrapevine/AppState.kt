@@ -66,29 +66,23 @@ class AppState(
         }
     }
 
-    /** A `grapevine://auth/callback` magic link, or an invitation link. */
+    /** An invitation link, kept until onboarding. */
     fun handleDeepLink(uri: String) {
-        if (uri.startsWith("grapevine://auth/callback")) {
-            val restored = DeepLink.sessionFromCallback(uri)
-            if (restored == null) {
-                error = "This sign-in link is invalid or expired. Request a new one."
-                checked = true
-                return
-            }
-            store.save(restored)
-            adopt(restored)
-            viewModelScope.launch {
-                loadProfileAndGroup()
-                checked = true
-            }
-            return
-        }
         if (uri.contains("/invite")) pendingInviteCode = DeepLink.inviteCode(uri)
     }
 
     suspend fun signIn(email: String) {
         error = null
         api.signInWithOtp(email)
+    }
+
+    /** Signs in with the code from the email. */
+    suspend fun verifyCode(email: String, code: String) {
+        error = null
+        val verified = api.verifyOtp(email, code)
+        store.save(verified)
+        adopt(verified)
+        loadProfileAndGroup()
     }
 
     fun signOut() {

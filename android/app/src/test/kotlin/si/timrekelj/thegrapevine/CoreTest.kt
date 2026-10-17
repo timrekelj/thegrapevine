@@ -1,11 +1,11 @@
 package si.timrekelj.thegrapevine
 
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
@@ -57,17 +57,21 @@ class CoreTest {
     }
 
     @Test
-    fun magicLinkOnlyAcceptsAuthCallback() {
-        val id = UUID.randomUUID().toString()
+    fun jwtExpiryUsesTheExpClaim() {
         val exp = Instant.now().epochSecond + 3600
-        val payload = """{"sub":"$id","email":"tim@example.com","exp":$exp.5}"""
-        val encoded = Base64.getUrlEncoder().withoutPadding().encodeToString(payload.toByteArray())
-        val token = "header.$encoded.signature"
-        val fragment = "#access_token=$token&refresh_token=refresh"
-        assertEquals(id, DeepLink.sessionFromCallback("grapevine://auth/callback$fragment")?.userId)
-        assertNull(DeepLink.sessionFromCallback("grapevine://other/callback$fragment"))
+        val payload = """{"sub":"${UUID.randomUUID()}","exp":$exp.5}"""
+        val token = "header.${Base64.getUrlEncoder().withoutPadding().encodeToString(payload.toByteArray())}.signature"
         assertFalse(Jwt.isExpired(token))
         assertTrue(Jwt.isExpired("broken"))
+    }
+
+    @Serializable
+    private data class WithDefault(val role: String = "owner", val note: String? = null)
+
+    @Test
+    fun requestBodiesSendDefaultsButOmitNulls() {
+        // Swift's Encodable sends `role = "owner"` and omits nil; Supabase relies on both.
+        assertEquals("""{"role":"owner"}""", SupabaseJson.encodeToString(WithDefault()))
     }
 
     @Test

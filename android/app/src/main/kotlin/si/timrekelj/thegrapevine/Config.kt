@@ -15,6 +15,4 @@ object Config {
     val supabasePublishableKey: String = BuildConfig.SUPABASE_PUBLISHABLE_KEY
 
     val webURL: String = BuildConfig.WEB_URL
-
-    const val authCallback = "grapevine://auth/callback"
 }

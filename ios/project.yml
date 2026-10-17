@@ -19,9 +19,6 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
-        CFBundleURLTypes:
-          - CFBundleURLName: si.timrekelj.grapevine
-            CFBundleURLSchemes: [grapevine]
         UIAppFonts: [Gloock-Regular.ttf]
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         NSAppTransportSecurity:
