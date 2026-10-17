@@ -16,7 +16,9 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
       query.set('error', 'Enter a valid email address.')
       redirect(`/login?${query}`)
     }
-    const callback = new URL('http://localhost:3000/auth/callback')
+    // Production sign-in links land on the hosted site; the native app also
+    // accepts grapevine://auth/callback, which is allow-listed in Supabase auth.
+    const callback = new URL('/auth/callback', process.env.NEXT_PUBLIC_SITE_URL || 'https://thegrapevine.si')
     callback.searchParams.set('redirect', destination)
     const supabase = await createClient()
     const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: callback.toString() } })
@@ -30,7 +32,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
       <hr style={{ border: 0, borderTop: '1px solid var(--rule)', margin: '24px 0 48px' }} />
       <h1 className="display" style={{ fontSize: 42 }}>A paper between friends.</h1>
       <p className="summary" style={{ margin: '24px 0' }}>Sign in with your email. No password, no public feed.</p>
-      {params.sent === '1' ? <p role="status">Check your email for a sign-in link. You can close this tab and open the link in the same browser.</p> : (
+      {params.sent === '1' ? <p role="status">Check your email for a sign-in link. Open it on this device to sign in.</p> : (
         <form action={sendLink} style={{ display: 'grid', gap: 16 }}>
           <label htmlFor="email" className="meta">Your email</label>
           <input id="email" name="email" type="email" autoComplete="email" required maxLength={254} style={{ padding: 12, font: 'inherit', color: 'var(--ink)', background: 'var(--raised)', border: '1px solid var(--rule)' }} />
