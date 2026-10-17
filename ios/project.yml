@@ -6,6 +6,13 @@ options:
     iOS: "26.0"
 settings:
   SWIFT_VERSION: "5.10"
+  # Shared so the push extension's version always matches the app's.
+  MARKETING_VERSION: 0.1.0
+  CURRENT_PROJECT_VERSION: "1"
+packages:
+  OneSignal:
+    url: https://github.com/OneSignal/OneSignal-XCFramework
+    exactVersion: 5.5.1
 targets:
   Grapevine:
     type: application
@@ -23,6 +30,7 @@ targets:
         UILaunchScreen: {}
         UIAppFonts: [Gloock-Regular.ttf]
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIBackgroundModes: [remote-notification]
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
     entitlements:
@@ -30,14 +38,46 @@ targets:
       properties:
         # https://thegrapevine.si links open the app; the site serves the matching apple-app-site-association.
         com.apple.developer.associated-domains: [applinks:thegrapevine.si]
+        aps-environment: development
+        com.apple.security.application-groups: [group.si.timrekelj.thegrapevine.onesignal]
+    dependencies:
+      - target: OneSignalNotificationServiceExtension
+      - package: OneSignal
+        product: OneSignalFramework
+      - package: OneSignal
+        product: OneSignalInAppMessages
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: si.timrekelj.thegrapevine
       TARGETED_DEVICE_FAMILY: "1"
-      MARKETING_VERSION: 0.1.0
-      CURRENT_PROJECT_VERSION: "1"
       GENERATE_INFOPLIST_FILE: true
     scheme:
       testTargets: [GrapevineTests]
+  OneSignalNotificationServiceExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: OneSignalNotificationServiceExtension
+    info:
+      path: OneSignalNotificationServiceExtension/Info.plist
+      properties:
+        CFBundleDisplayName: OneSignalNotificationServiceExtension
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.usernotifications.service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).NotificationService
+    entitlements:
+      path: OneSignalNotificationServiceExtension/OneSignalNotificationServiceExtension.entitlements
+      properties:
+        # Must match the app's App Group exactly, or Confirmed Delivery and badges silently fail.
+        com.apple.security.application-groups: [group.si.timrekelj.thegrapevine.onesignal]
+    dependencies:
+      - package: OneSignal
+        product: OneSignalExtension
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: si.timrekelj.thegrapevine.OneSignalNotificationServiceExtension
+      TARGETED_DEVICE_FAMILY: "1"
+      GENERATE_INFOPLIST_FILE: true
   GrapevineTests:
     type: bundle.unit-test
     platform: iOS

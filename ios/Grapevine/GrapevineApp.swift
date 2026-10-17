@@ -5,6 +5,10 @@ struct GrapevineApp: App {
     @State private var app = AppState()
     @State private var paper = PaperStore()
 
+    init() {
+        OneSignalManager.shared.initialize()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()
@@ -19,6 +23,9 @@ struct GrapevineApp: App {
 struct ContentView: View {
     @Environment(AppState.self) private var app
     @State private var tab = 0
+    @State private var showPushReady = false
+    /// Kept alive here: OneSignal holds push subscription observers weakly.
+    @State private var pushObserver: AnyObject?
 
     var body: some View {
         SwiftUI.Group {
@@ -40,5 +47,16 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.paper.ignoresSafeArea())
         .foregroundColor(Theme.ink)
+        // OneSignal integration check: shown once the device has a server-assigned
+        // push subscription; this is the only place push permission is requested.
+        .onAppear {
+            guard pushObserver == nil else { return }
+            pushObserver = OneSignalManager.shared.observePushRegistration { showPushReady = true }
+        }
+        .alert("Your OneSignal SDK integration is complete!", isPresented: $showPushReady) {
+            Button("Got it") { OneSignalManager.shared.requestPushPermission() }
+        } message: {
+            Text("You can now send Push Notifications & In-App Messages through OneSignal. Tap below to enable push notifications.")
+        }
     }
 }
