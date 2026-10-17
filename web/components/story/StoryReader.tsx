@@ -106,9 +106,16 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
   const lead = [...details.sources].reverse().find(source => source.image_url) || details.sources[0]
   const openHistory = () => historyDialog.current?.showModal()
   const openReport = (target: string) => { setTarget(target); reportDialog.current?.showModal() }
+  // Story links open the app on phones that have it, and this page everywhere else.
+  async function shareStory() {
+    const url = `${window.location.origin}/story/${story.id}`
+    if (navigator.share) { try { await navigator.share({ title: story.title, url }); return } catch { return } }
+    await navigator.clipboard.writeText(url)
+    setToast('Link copied')
+  }
 
   return <main className="story-reader">
-    <nav className="story-back"><Link href="/">← Back to the paper</Link></nav>
+    <nav className="story-back"><Link href="/">← Back to the paper</Link> · <button className="story-text-button" onClick={() => void shareStory()}>Share story</button></nav>
     <header>
       <Plate url={lead?.image_url} label={lead ? publisher(lead) : 'The paper'} className="story-hero" />
       <div className="story-kicker"><span className="label">{story.category || 'Unfiled'}</span><span className="meta">Updated {time(details.history[0]?.created_at || story.last_activity_at)}</span></div>

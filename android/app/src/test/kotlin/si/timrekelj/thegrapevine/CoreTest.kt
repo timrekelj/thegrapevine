@@ -81,6 +81,16 @@ class CoreTest {
     }
 
     @Test
+    fun appLinksRouteInvitesAndStories() {
+        val id = "8f02e116-450a-4808-82e4-42098cb7b393"
+        assertEquals(DeepLink.Route.Invite("grapevinedemo"), DeepLink.route("https://thegrapevine.si/invite?code=GrapevineDemo"))
+        assertEquals(DeepLink.Route.Story(id), DeepLink.route("https://thegrapevine.si/story/${id.uppercase()}/"))
+        assertEquals(null, DeepLink.route("https://thegrapevine.si/story/not-a-uuid"))
+        assertEquals(null, DeepLink.route("https://thegrapevine.si/invite"))
+        assertEquals(null, DeepLink.route("https://thegrapevine.si/login"))
+    }
+
+    @Test
     fun plateMapsBlackToInkAndWhiteToPaper() {
         // Black prints as grape ink and white as paper, as in Plate.swift.
         assertArrayEquals(intArrayOf(74, 33, 96), Plate.toInk(0, 0, 0))

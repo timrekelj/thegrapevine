@@ -91,6 +91,8 @@ The hosted web app (Vercel) needs `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPAB
 
 Every app signs in with an emailed one-time code, so in the hosted project (Authentication → Emails) both the **Magic Link** and **Confirm signup** templates must show the code: paste `supabase/templates/sign_in_code.html` into each.
 
+App links: `https://thegrapevine.si/invite?code=…` and `/story/<id>` open the iOS and Android apps when installed, and the website otherwise. The sites' verification files are in `web/public/.well-known/`: `assetlinks.json` holds the Android release keystore's SHA-256 fingerprint, and `apple-app-site-association` holds Apple team `6JCT56CM9H`. Update them if either changes, or links fall back to the browser.
+
 ## Edge Functions
 
 `supabase functions serve --env-file supabase/.env.local` runs the AI pipeline locally (submit-source, report-story). Create `supabase/.env.local` (gitignored) with MISTRAL_API_KEY and OPENAI_API_KEY (copy both from the repo-root `.env`). See `supabase/.env.example`.

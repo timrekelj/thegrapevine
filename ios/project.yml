@@ -23,6 +23,11 @@ targets:
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+    entitlements:
+      path: Grapevine/Grapevine.entitlements
+      properties:
+        # https://thegrapevine.si links open the app; the site serves the matching apple-app-site-association.
+        com.apple.developer.associated-domains: [applinks:thegrapevine.si]
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: si.timrekelj.thegrapevine
       TARGETED_DEVICE_FAMILY: "1"

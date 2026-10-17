@@ -9,6 +9,18 @@ final class AppState {
     var members: [Member] = []
     var checked = false
     var error: String?
+    /// An invitation link that arrived before onboarding.
+    var pendingInviteCode: String?
+    /// A story link, opened once the paper is showing.
+    var pendingStoryId: UUID?
+
+    func handleLink(_ url: URL) {
+        switch AppLink(url) {
+        case .invite(let code): pendingInviteCode = code
+        case .story(let id): pendingStoryId = id
+        case nil: break
+        }
+    }
 
     @MainActor
     func restoreSession() async {
@@ -131,5 +143,25 @@ final class AppState {
 
     private func save(_ session: Session) throws {
         try Keychain.save(JSONEncoder().encode(session))
+    }
+}
+
+/// Where an incoming https://thegrapevine.si link should go.
+enum AppLink: Equatable {
+    case invite(String)
+    case story(UUID)
+
+    init?(_ url: URL) {
+        guard ["https", "http"].contains(url.scheme ?? "") else { return nil }
+        let parts = url.pathComponents.filter { $0 != "/" }
+        if parts == ["invite"],
+           let code = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "code" })?.value?.trimmed,
+           !code.isEmpty {
+            self = .invite(code.lowercased())
+        } else if parts.count == 2, parts[0] == "story", let id = UUID(uuidString: parts[1]) {
+            self = .story(id)
+        } else {
+            return nil
+        }
     }
 }

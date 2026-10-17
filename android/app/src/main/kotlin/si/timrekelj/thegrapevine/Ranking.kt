@@ -25,8 +25,27 @@ object Ranking {
     }
 }
 
-/** Deep links: invitation codes. */
+/** Deep links: https://thegrapevine.si invitations and stories. */
 object DeepLink {
+    sealed interface Route {
+        data class Invite(val code: String) : Route
+        data class Story(val id: String) : Route
+    }
+
+    private val UUID_PATTERN = Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+
+    /** Where an incoming link should go, or null for links the app doesn't handle. */
+    fun route(uri: String): Route? {
+        val parsed = runCatching { URI(uri) }.getOrNull() ?: return null
+        if (parsed.scheme != "https" && parsed.scheme != "http") return null
+        val path = parsed.path.orEmpty().trimEnd('/')
+        return when {
+            path == "/invite" -> queryParams(parsed.rawQuery.orEmpty())["code"]?.let { Route.Invite(it.trim().lowercase()) }
+            path.startsWith("/story/") -> path.removePrefix("/story/").takeIf(UUID_PATTERN::matches)?.let { Route.Story(it.lowercase()) }
+            else -> null
+        }
+    }
+
     /**
      * Invitation links carry the code as a query param; a bare code is accepted
      * too, which is what the Onboarding screen passes.

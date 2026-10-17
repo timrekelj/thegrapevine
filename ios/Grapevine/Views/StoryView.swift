@@ -118,6 +118,15 @@ struct StoryView: View {
         .scrollDismissesKeyboard(.interactively)
         .toolbar(.hidden, for: .tabBar)
         .toolbarVisibility(.visible, for: .navigationBar)
+        .toolbar {
+            // Story links open the app on phones that have it, and the website everywhere else.
+            ToolbarItem(placement: .topBarTrailing) {
+                ShareLink(item: Config.webURL.appending(path: "story/\(storyId.uuidString.lowercased())")) {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .accessibilityLabel("Share story")
+            }
+        }
         .refreshable { await store.load(storyId: storyId) }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 8) {

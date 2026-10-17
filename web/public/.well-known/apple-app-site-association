@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["6JCT56CM9H.si.timrekelj.thegrapevine"],
+        "components": [
+          { "/": "/invite" },
+          { "/": "/story/*" }
+        ]
+      }
+    ]
+  }
+}

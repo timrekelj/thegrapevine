@@ -10,7 +10,7 @@ export default async function StoryPage({ params }: { params: Promise<{ id: stri
   const { id } = await params
   const client = await createClient()
   const { data: { user } } = await client.auth.getUser()
-  if (!user) redirect(`/login?next=${encodeURIComponent(`/story/${id}`)}`)
+  if (!user) redirect(`/login?${new URLSearchParams({ redirect: `/story/${id}` })}`)
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) notFound()
   const { data, error } = await client.from('stories').select('*').eq('id', id).maybeSingle()
   if (error) throw new Error('Could not load this story. Please try again.')

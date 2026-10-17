@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "si.timrekelj.thegrapevine",
+      "sha256_cert_fingerprints": ["B1:D8:53:C7:C7:C3:7D:88:97:AB:CD:39:31:0E:F2:E8:39:DF:F6:46:42:3B:8F:74:0F:14:3B:C0:DF:96:5B:AA"]
+    }
+  }
+]

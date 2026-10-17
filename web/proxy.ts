@@ -31,4 +31,5 @@ export async function proxy(request: NextRequest) {
   return response
 }
 
-export const config = { matcher: ['/((?!_next/|favicon\\.ico$|seed/).*)'] }
+// .well-known holds the app-link verification files, which Apple and Google fetch signed out.
+export const config = { matcher: ['/((?!_next/|favicon\\.ico$|seed/|\\.well-known/).*)'] }

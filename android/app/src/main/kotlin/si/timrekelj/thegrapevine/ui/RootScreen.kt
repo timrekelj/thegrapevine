@@ -16,6 +16,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +47,12 @@ private fun MainTabs(app: AppState) {
     val paper: PaperState = viewModel { PaperState(api) }
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var openStory by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(app.pendingStoryId) {
+        app.pendingStoryId?.let {
+            openStory = it
+            app.pendingStoryId = null
+        }
+    }
 
     val storyId = openStory
     if (storyId != null) {

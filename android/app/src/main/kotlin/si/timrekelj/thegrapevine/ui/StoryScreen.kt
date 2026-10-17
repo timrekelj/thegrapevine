@@ -1,6 +1,7 @@
 package si.timrekelj.thegrapevine.ui
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
@@ -36,6 +37,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -79,6 +81,7 @@ import kotlinx.coroutines.withContext
 import si.timrekelj.thegrapevine.ApiError
 import si.timrekelj.thegrapevine.AppState
 import si.timrekelj.thegrapevine.Attachment
+import si.timrekelj.thegrapevine.Config
 import si.timrekelj.thegrapevine.Media
 import si.timrekelj.thegrapevine.Message
 import si.timrekelj.thegrapevine.Source
@@ -153,6 +156,14 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit) {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Grape.ink)
                     }
+                },
+                actions = {
+                    // Story links open the app on phones that have it, and the website everywhere else.
+                    IconButton(onClick = {
+                        val link = "${Config.webURL}/story/$storyId"
+                        val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, link)
+                        context.startActivity(Intent.createChooser(send, "Share story"))
+                    }) { Icon(Icons.Filled.Share, contentDescription = "Share story", tint = Grape.ink) }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Grape.paper),
             )

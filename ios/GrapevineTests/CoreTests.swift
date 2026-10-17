@@ -44,6 +44,15 @@ final class CoreTests: XCTestCase {
         XCTAssertTrue(JWT.isExpired("broken"))
     }
 
+    func testAppLinksRouteInvitesAndStories() {
+        let id = UUID()
+        XCTAssertEqual(AppLink(URL(string: "https://thegrapevine.si/invite?code=GrapevineDemo")!), .invite("grapevinedemo"))
+        XCTAssertEqual(AppLink(URL(string: "https://thegrapevine.si/story/\(id.uuidString.lowercased())")!), .story(id))
+        XCTAssertNil(AppLink(URL(string: "https://thegrapevine.si/story/not-a-uuid")!))
+        XCTAssertNil(AppLink(URL(string: "https://thegrapevine.si/invite")!))
+        XCTAssertNil(AppLink(URL(string: "https://thegrapevine.si/login")!))
+    }
+
     @MainActor
     func testVerifyBodySendsEmailType() throws {
         let body = try JSONSerialization.jsonObject(with: JSONEncoder().encode(API.VerifyBody(email: "tim@example.com", token: "123456"))) as? [String: String]

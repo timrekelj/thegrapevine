@@ -28,6 +28,9 @@ class AppState(
     /** An invitation link that arrived before sign-in/onboarding finished. */
     var pendingInviteCode by mutableStateOf<String?>(null)
 
+    /** A story link, opened once the paper is showing. */
+    var pendingStoryId by mutableStateOf<String?>(null)
+
     init {
         api.onSessionChanged = { refreshed ->
             store.save(refreshed)
@@ -66,9 +69,13 @@ class AppState(
         }
     }
 
-    /** An invitation link, kept until onboarding. */
+    /** An invitation or story link; both wait until the app can show them. */
     fun handleDeepLink(uri: String) {
-        if (uri.contains("/invite")) pendingInviteCode = DeepLink.inviteCode(uri)
+        when (val route = DeepLink.route(uri)) {
+            is DeepLink.Route.Invite -> pendingInviteCode = route.code
+            is DeepLink.Route.Story -> pendingStoryId = route.id
+            null -> Unit
+        }
     }
 
     suspend fun signIn(email: String) {

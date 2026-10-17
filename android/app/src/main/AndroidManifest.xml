@@ -24,12 +24,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Invitation links: https://thegrapevine.si/invite?code=… -->
+            <!-- Invitations and stories: https://thegrapevine.si/invite?code=…, /story/<id> -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="thegrapevine.si" android:pathPrefix="/invite" />
+                <data android:pathPrefix="/story/" />
             </intent-filter>
         </activity>
     </application>
