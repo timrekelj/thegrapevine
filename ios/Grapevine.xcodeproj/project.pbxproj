@@ -25,6 +25,7 @@
 		67B2B1F2B1649827E76CB863 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6AD76F6620CD0DDC4317B9A /* LoginView.swift */; };
 		8B5F1A99429DE5C2656349D7 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDB6677CAC2B83257AAA8859 /* Theme.swift */; };
 		8BDBAE67E758BF565921FE70 /* StoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8807C25BF3BBA7FC0BB51B29 /* StoryView.swift */; };
+		9B3E0A843CBCFABDED5B21C7 /* OAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8376AD3BE96F7395FA08B687 /* OAuth.swift */; };
 		9D7FBC9925CD74FE5FB0897C /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B4DFCD625ACB4825F91D34E /* Models.swift */; };
 		B8DC0C8725384657B80F2889 /* Gloock-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5A1823B98EA48168BE05A4CC /* Gloock-Regular.ttf */; };
 		B9C89D3372A5D7799F84985E /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 090A32009737A8ACB7374B07 /* Config.swift */; };
@@ -86,6 +87,7 @@
 		5A1823B98EA48168BE05A4CC /* Gloock-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Gloock-Regular.ttf"; sourceTree = "<group>"; };
 		6B4DFCD625ACB4825F91D34E /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		7DB8EDC53C4F0E03749B0418 /* Grapevine.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Grapevine.entitlements; sourceTree = "<group>"; };
+		8376AD3BE96F7395FA08B687 /* OAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OAuth.swift; sourceTree = "<group>"; };
 		8807C25BF3BBA7FC0BB51B29 /* StoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryView.swift; sourceTree = "<group>"; };
 		8AA540084F673BB60FCCF1DE /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		9CB4D3D864AF68A30B38FC16 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
@@ -199,6 +201,7 @@
 				0DA69381B67C37C52E985388 /* Info.plist */,
 				DBB8C71D3A341CFCF812FCAD /* Keychain.swift */,
 				6B4DFCD625ACB4825F91D34E /* Models.swift */,
+				8376AD3BE96F7395FA08B687 /* OAuth.swift */,
 				244E2C8E874BA72854FA3E53 /* OneSignalManager.swift */,
 				DC5017F8EDAF37D202FA6CC4 /* PaperStore.swift */,
 				566E3CACEF666CB5432F2983 /* StoryStore.swift */,
@@ -378,6 +381,7 @@
 				67B2B1F2B1649827E76CB863 /* LoginView.swift in Sources */,
 				EA64CB4A55954FFA68BA31FE /* MessageMediaView.swift in Sources */,
 				9D7FBC9925CD74FE5FB0897C /* Models.swift in Sources */,
+				9B3E0A843CBCFABDED5B21C7 /* OAuth.swift in Sources */,
 				3B908FDDB93741F7F7F3523B /* OnboardingView.swift in Sources */,
 				29BB4D258C2FD61DE0CA320E /* OneSignalManager.swift in Sources */,
 				D72E631354033995BAD0D993 /* PaperStore.swift in Sources */,

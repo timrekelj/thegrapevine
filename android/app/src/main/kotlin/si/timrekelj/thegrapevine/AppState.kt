@@ -73,6 +73,17 @@ class AppState(
 
     /** An invitation or story link; both wait until the app can show them. */
     fun handleDeepLink(uri: String) {
+        if (OAuth.isCallback(uri)) {
+            val verifier = store.takeOAuthVerifier() ?: return
+            viewModelScope.launch {
+                try {
+                    finishSignIn(api.exchangeCode(OAuth.code(uri), verifier))
+                } catch (e: Exception) {
+                    error = e.message
+                }
+            }
+            return
+        }
         when (val route = DeepLink.route(uri)) {
             is DeepLink.Route.Invite -> pendingInviteCode = route.code
             is DeepLink.Route.Story -> pendingStoryId = route.id
@@ -88,7 +99,18 @@ class AppState(
     /** Signs in with the code from the email. */
     suspend fun verifyCode(email: String, code: String) {
         error = null
-        val verified = api.verifyOtp(email, code)
+        finishSignIn(api.verifyOtp(email, code))
+    }
+
+    fun startOAuth(provider: AuthProvider): String {
+        error = null
+        val verifier = OAuth.verifier()
+        store.saveOAuthVerifier(verifier)
+        return OAuth.authorizeURL(Config.supabaseURL, provider, verifier)
+    }
+
+    private suspend fun finishSignIn(verified: Session) {
+        error = null
         store.save(verified)
         adopt(verified)
         Telemetry.capture("signed_in")

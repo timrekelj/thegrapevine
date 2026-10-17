@@ -1,5 +1,9 @@
 package si.timrekelj.thegrapevine.ui
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +21,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -24,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import si.timrekelj.thegrapevine.AppState
+import si.timrekelj.thegrapevine.AuthProvider
 
 @Composable
 fun LoginScreen(app: AppState) {
@@ -32,6 +38,7 @@ fun LoginScreen(app: AppState) {
     var code by rememberSaveable { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     fun run(action: suspend () -> Unit) {
         scope.launch {
@@ -46,14 +53,14 @@ fun LoginScreen(app: AppState) {
     }
 
     Column(
-        Modifier.fillMaxSize().safeDrawingPadding().padding(20.dp),
+        Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text("The Grapevine", style = display(28))
         Text("A paper between friends.", style = display(17))
         Text(
-            "Sign in with your email. No password, no public feed.",
+            "Sign in to your private paper. No password, no public feed.",
             fontSize = 15.sp,
             color = Grape.ink2,
             textAlign = TextAlign.Center,
@@ -78,6 +85,14 @@ fun LoginScreen(app: AppState) {
                 }
             }
         } else {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                AuthProvider.entries.forEach { provider ->
+                    InkButton(provider.title, enabled = !busy) {
+                        run { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(app.startOAuth(provider)))) }
+                    }
+                }
+                Text("or use your email", fontSize = 13.sp, color = Grape.ink2)
+            }
             PaperField(email, { email = it }, "Your email", keyboardType = KeyboardType.Email)
             InkButton(if (busy) "Sending…" else "Email me a code", enabled = !busy && email.isNotBlank()) {
                 run {

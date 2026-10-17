@@ -12,6 +12,23 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
   const destination = safeRedirect(params.redirect)
   const sentTo = typeof params.email === 'string' ? params.email : ''
 
+  async function signInWithProvider(formData: FormData) {
+    'use server'
+    const provider = formData.get('provider')
+    if (provider !== 'google' && provider !== 'apple' && provider !== 'x') return
+    const callback = new URL('/auth/callback', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000')
+    callback.searchParams.set('redirect', destination)
+    const supabase = await createClient()
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: callback.toString() },
+    })
+    if (error || !data.url) {
+      redirect(`/login?${new URLSearchParams({ redirect: destination, error: error?.message ?? 'Could not start sign-in. Please try again.' })}`)
+    }
+    redirect(data.url)
+  }
+
   async function sendCode(formData: FormData) {
     'use server'
     const email = String(formData.get('email') ?? '').trim()
@@ -47,7 +64,13 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
       <p className="masthead">The Grapevine</p>
       <hr style={{ border: 0, borderTop: '1px solid var(--rule)', margin: '24px 0 48px' }} />
       <h1 className="display" style={{ fontSize: 42 }}>A paper between friends.</h1>
-      <p className="summary" style={{ margin: '24px 0' }}>Sign in with your email. No password, no public feed.</p>
+      <p className="summary" style={{ margin: '24px 0' }}>Sign in to your private paper. No password, no public feed.</p>
+      {!sentTo && <form action={signInWithProvider} style={{ display: 'grid', gap: 12, marginBottom: 24 }}>
+        <button className="btn" name="provider" value="google">Continue with Google</button>
+        <button className="btn" name="provider" value="apple">Sign in with Apple</button>
+        <button className="btn" name="provider" value="x">Continue with X</button>
+        <p className="meta" style={{ textAlign: 'center' }}>or use your email</p>
+      </form>}
       {sentTo ? <>
         <form action={verifyCode} style={{ display: 'grid', gap: 16 }}>
           <p role="status">We emailed a sign-in code to {sentTo}.</p>
@@ -70,6 +93,10 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
         </form>
       )}
       {typeof params.error === 'string' && <p role="alert">{params.error}</p>}
+      <p className="meta" style={{ marginTop: 24 }}>
+        By signing in, you agree to the <a href="/terms">Terms of Service</a>.
+        {' '}Read how we handle your information in our <a href="/privacy">Privacy Policy</a>.
+      </p>
     </main>
   )
 }

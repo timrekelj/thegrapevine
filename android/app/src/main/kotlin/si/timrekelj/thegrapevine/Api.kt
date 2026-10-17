@@ -198,6 +198,18 @@ class Api(private val http: HttpClient = defaultHttpClient()) {
     private data class RefreshBody(val refresh_token: String)
 
     @Serializable
+    private data class PKCEBody(val auth_code: String, val code_verifier: String)
+
+    suspend fun exchangeCode(code: String, verifier: String): Session = session(
+        request(
+            path = "auth/v1/token",
+            method = HttpMethod.Post,
+            query = listOf("grant_type" to "pkce"),
+            body = encodeBody(PKCEBody(code, verifier)),
+        ),
+    )
+
+    @Serializable
     private data class TokenResponse(val access_token: String, val refresh_token: String, val user: UserPayload)
 
     @Serializable

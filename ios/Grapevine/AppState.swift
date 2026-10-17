@@ -73,7 +73,17 @@ final class AppState {
     @MainActor
     func verifyCode(email: String, code: String) async throws {
         error = nil
-        let session = try await API.verifyOtp(email: email, code: code)
+        try await finishSignIn(try await API.verifyOtp(email: email, code: code))
+    }
+
+    @MainActor
+    func signIn(callback: URL, verifier: String) async throws {
+        error = nil
+        try await finishSignIn(try await API.exchangeCode(OAuth.code(from: callback), verifier: verifier))
+    }
+
+    @MainActor
+    private func finishSignIn(_ session: Session) async throws {
         try save(session)
         self.session = session
         API.session = session

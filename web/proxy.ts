@@ -2,6 +2,9 @@ import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function proxy(request: NextRequest) {
+  const path = request.nextUrl.pathname
+  // Legal notices must remain available without an account or a working auth service.
+  if (path === '/terms' || path === '/privacy') return NextResponse.next()
   let response = NextResponse.next({ request })
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,8 +21,7 @@ export async function proxy(request: NextRequest) {
     },
   )
   const { data: { user } } = await supabase.auth.getUser()
-  const path = request.nextUrl.pathname
-  const isPublic = ['/login', '/invite', '/favicon.ico'].includes(path)
+  const isPublic = ['/login', '/invite', '/favicon.ico', '/auth/callback'].includes(path)
     || path === '/seed' || path.startsWith('/seed/') || path.startsWith('/_next/')
   if (!user && !isPublic) {
     const login = new URL('/login', request.url)

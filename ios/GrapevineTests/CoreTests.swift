@@ -2,6 +2,21 @@ import XCTest
 @testable import Grapevine
 
 final class CoreTests: XCTestCase {
+    func testOAuthPKCEAndCallbackValidation() throws {
+        let verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+        XCTAssertEqual(OAuth.challenge(verifier), "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM")
+        XCTAssertEqual(OAuth.verifier().count, 64)
+        for provider in AuthProvider.allCases {
+            let items = URLComponents(url: OAuth.authorizeURL(provider: provider, verifier: verifier), resolvingAgainstBaseURL: false)!.queryItems!
+            XCTAssertTrue(items.contains(URLQueryItem(name: "provider", value: provider.rawValue)))
+            XCTAssertTrue(items.contains(URLQueryItem(name: "code_challenge_method", value: "s256")))
+        }
+        XCTAssertEqual(try OAuth.code(from: URL(string: "grapevine://auth/callback?code=abc")!), "abc")
+        for url in ["https://evil.example/callback?code=abc", "grapevine://auth/wrong?code=abc", "grapevine://auth/callback?code=", "grapevine://auth/callback?error=access_denied&code=abc"] {
+            XCTAssertThrowsError(try OAuth.code(from: URL(string: url)!))
+        }
+    }
+
     func testLeadIsNewestThenDiscussionRanksTheRest() {
         let now = Date()
         func row(age: TimeInterval, count: Int) -> StoryRow {

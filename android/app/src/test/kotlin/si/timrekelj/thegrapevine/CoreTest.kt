@@ -14,6 +14,26 @@ import java.util.UUID
 
 /** Ports of `ios/GrapevineTests/CoreTests.swift`. */
 class CoreTest {
+    @Test
+    fun oauthPKCEAndCallbacks() {
+        val verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+        assertEquals("E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", OAuth.challenge(verifier))
+        assertEquals(43, OAuth.verifier().length)
+        AuthProvider.entries.forEach {
+            val url = OAuth.authorizeURL("https://example.supabase.co/", it, verifier)
+            assertTrue(url.contains("provider=${it.value}"))
+            assertTrue(url.contains("code_challenge_method=s256"))
+            assertFalse(url.contains(verifier))
+        }
+        assertEquals("abc", OAuth.code("grapevine://auth/callback?code=abc"))
+        listOf(
+            "https://evil.example/callback?code=abc",
+            "grapevine://auth/wrong?code=abc",
+            "grapevine://auth/callback?code=",
+            "grapevine://auth/callback?error=access_denied&code=abc",
+        ).forEach { url -> assertThrows { OAuth.code(url) } }
+    }
+
 
     @Test
     fun leadIsNewestThenDiscussionRanksTheRest() {

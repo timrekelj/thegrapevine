@@ -153,6 +153,13 @@ enum API {
         let refresh_token: String
     }
 
+    struct PKCEBody: Encodable { let auth_code: String; let code_verifier: String }
+
+    static func exchangeCode(_ code: String, verifier: String) async throws -> Session {
+        session(from: try decode(TokenResponse.self,
+            try await request(path: "auth/v1/token", method: "POST", query: [URLQueryItem(name: "grant_type", value: "pkce")], body: PKCEBody(auth_code: code, code_verifier: verifier))))
+    }
+
     struct TokenResponse: Codable {
         let access_token: String
         let refresh_token: String

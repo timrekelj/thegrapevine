@@ -4,7 +4,7 @@ A private newspaper curated by friends. The full product direction and decisions
 
 ## Stack
 
-- **Backend:** Supabase only — Postgres, Auth (email one-time codes), Realtime, Storage, Edge Functions. No separate app server.
+- **Backend:** Supabase only — Postgres, Auth (email one-time codes, Google, Apple, X), Realtime, Storage, Edge Functions. No separate app server.
 - **Web:** Next.js (`web/`)
 - **iOS:** SwiftUI with native Liquid Glass navigation and tabs (`ios/`, local pilot)
 - **Android:** Kotlin + Jetpack Compose (`android/`, sideload APK via GitHub Releases)
@@ -91,9 +91,25 @@ When a Google Play account is available, switch the workflow from `assembleRelea
 
 The hosted web app (Vercel) needs `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `NEXT_PUBLIC_SITE_URL=https://thegrapevine.si`.
 
-Every app signs in with an emailed one-time code, so in the hosted project (Authentication → Emails) both the **Magic Link** and **Confirm signup** templates must show the code: paste `supabase/templates/sign_in_code.html` into each.
+Every app supports emailed one-time codes alongside Google, Apple, and X. In the hosted project (Authentication → Emails) both the **Magic Link** and **Confirm signup** templates must show the code: paste `supabase/templates/sign_in_code.html` into each.
 
 App links: `https://thegrapevine.si/invite?code=…` and `/story/<id>` open the iOS and Android apps when installed, and the website otherwise. The sites' verification files are in `web/public/.well-known/`: `assetlinks.json` holds the Android release keystore's SHA-256 fingerprint, and `apple-app-site-association` holds Apple team `6JCT56CM9H`. Update them if either changes, or links fall back to the browser.
+
+### Social sign-in setup
+
+All three clients use Supabase OAuth with PKCE. iOS uses the system authentication browser; Android uses the external browser and stores its pending verifier encrypted so the callback survives process recreation. Email codes remain available. No provider secret belongs in the website or mobile binaries.
+
+1. In Supabase **Authentication → URL Configuration**, set Site URL to `https://thegrapevine.si` and allow `https://thegrapevine.si/auth/callback` (including its redirect query, e.g. `https://thegrapevine.si/auth/callback?**`) and `grapevine://auth/callback`. The web callback preserves the requested invitation/story destination and routes new users through onboarding.
+2. Each provider's authorized callback/return URL is **`https://ivjaenrmhsqnsvzemoez.supabase.co/auth/v1/callback`**, not the website callback or mobile scheme.
+3. **Google:** create a Web application OAuth client in Google Cloud, configure its consent screen/test users and authorized callback, then enter its client ID and secret under Supabase **Sign In / Providers → Google** and enable it.
+4. **Apple:** enable Sign in with Apple for the Apple Developer App ID; create a Services ID linked to it, register `ivjaenrmhsqnsvzemoez.supabase.co` as its domain and the Supabase callback as its return URL. Create a Sign in with Apple signing key, securely retain the `.p8`, and generate a client-secret JWT. Enable Apple in Supabase with the **Services ID** as client ID and that JWT as secret. This implementation uses Apple's browser OAuth on all clients, so the Services ID (not the iOS bundle ID) is used. **Rotate the Apple secret before it expires (at most six months).** Collect the display name in the existing onboarding form; Apple browser OAuth does not return it.
+5. **X:** configure an OAuth 2.0 Web App with the Supabase callback, website, privacy policy and terms URLs; enable **Request email from users**. Enter the OAuth 2.0 client ID/secret under Supabase **X / Twitter (OAuth 2.0)** and enable it. The app uses provider `x`, not legacy `twitter`.
+
+For local Google/X testing, add `http://localhost:55321/auth/v1/callback` to the provider, populate the root `.env` variables from `.env.example`, enable the corresponding `[auth.external.*]` blocks in `supabase/config.toml`, and restart Supabase. Local callback URLs, including destination queries, are already allow-listed. Apple requires HTTPS and a registered domain; test Apple against a configured hosted environment rather than localhost. Do not disable nonce checks. Local providers stay disabled by default so email-only development needs no OAuth credentials.
+
+Before release, test each provider on web, iOS and Android: new and returning users, cancellation/retry, app return, session restoration, and signing in from an invitation/story link. Supabase can link verified matching-email identities automatically; Apple's Hide My Email can create a separate account, and this change does not add manual account merging.
+
+Provider references: [Google](https://supabase.com/docs/guides/auth/social-login/auth-google), [Apple](https://supabase.com/docs/guides/auth/social-login/auth-apple), [X](https://supabase.com/docs/guides/auth/social-login/auth-twitter).
 
 ## Edge Functions
 
