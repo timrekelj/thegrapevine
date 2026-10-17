@@ -6,4 +6,9 @@ import android.app.Application
 class GrapevineApp : Application() {
     val api: Api by lazy { Api() }
     val sessionStore: SessionStore by lazy { SessionStore(this) }
+
+    override fun onCreate() {
+        super.onCreate()
+        OneSignalManager.initialize(this)
+    }
 }

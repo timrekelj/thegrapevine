@@ -15,4 +15,7 @@ object Config {
     val supabasePublishableKey: String = BuildConfig.SUPABASE_PUBLISHABLE_KEY
 
     val webURL: String = BuildConfig.WEB_URL
+
+    /** OneSignal App ID — public, like the Supabase publishable key. */
+    const val oneSignalAppId = "70ec7f59-3568-4f44-951e-2858742a02b8"
 }

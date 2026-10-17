@@ -95,6 +95,7 @@ dependencies {
     implementation(libs.ktor.client.okhttp)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.onesignal)
 
 
     debugImplementation(libs.androidx.compose.ui.tooling)
