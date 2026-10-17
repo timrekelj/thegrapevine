@@ -1,0 +1,93 @@
+package si.timrekelj.thegrapevine.ui
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import si.timrekelj.thegrapevine.AppState
+import si.timrekelj.thegrapevine.Story
+import si.timrekelj.thegrapevine.encodeBody
+
+@Serializable
+private data class SubmitBody(val group_id: String, val url: String, val comment: String?)
+
+@Serializable
+private data class SubmitResult(val status: String, val story_id: String? = null)
+
+/** Mirrors `ShareView.swift`. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ShareSheet(app: AppState, onDismiss: () -> Unit) {
+    val api = LocalApi.current
+    val scope = rememberCoroutineScope()
+    var url by remember { mutableStateOf("") }
+    var comment by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    var result by remember { mutableStateOf<String?>(null) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = Grape.paper,
+    ) {
+        Column(
+            Modifier.fillMaxWidth().imePadding().padding(horizontal = 20.dp).padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Text("Share a link", style = display(24))
+            Text("LINK", style = LabelStyle)
+            PaperField(url, { url = it }, "https://…", keyboardType = KeyboardType.Uri)
+            Text("YOUR COMMENT", style = LabelStyle)
+            PaperField(comment, { comment = it }, "Optional", singleLine = false)
+            result?.let { Text(it, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Grape.ink) }
+            InkButton(if (busy) "Posting…" else "Post", enabled = !busy && url.isNotBlank()) {
+                val group = app.group ?: return@InkButton
+                scope.launch {
+                    busy = true
+                    result = null
+                    result = try {
+                        val submitted: SubmitResult = api.postObject(
+                            "functions/v1/submit-source",
+                            encodeBody(SubmitBody(group.id, url.trim(), comment.trim().ifEmpty { null })),
+                        )
+                        val story = submitted.story_id?.let { id ->
+                            runCatching { api.getOne<Story>("rest/v1/stories", listOf("id" to "eq.$id")) }.getOrNull()
+                        }
+                        val title = story?.title ?: "the story"
+                        when (submitted.status) {
+                            "duplicate" -> "Your contribution was not added because it was a duplicate."
+                            "joined" -> "Filed under $title."
+                            "new_story" -> "New story: $title."
+                            else -> "Posted."
+                        }
+                    } catch (e: Exception) {
+                        e.message
+                    }
+                    busy = false
+                }
+            }
+            if (result != null) {
+                TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Done", color = Grape.ink) }
+            }
+        }
+    }
+}
