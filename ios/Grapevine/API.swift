@@ -10,7 +10,7 @@ enum APIError: Error, LocalizedError {
         switch self {
         case .http(let code, let body):
             if let data = body.data(using: .utf8), let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let message = (object["message"] ?? object["error_description"] ?? object["error"]) as? String { return message }
+               let message = (object["message"] ?? object["msg"] ?? object["error_description"] ?? object["error"]) as? String { return message }
             return "Server error (\(code))"
         case .network(let message): return message
         case .decoding(let message): return "Could not read the response: \(message)"
@@ -61,6 +61,7 @@ enum API {
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw APIError.network("No response from the server") }
         if http.statusCode == 401 { throw APIError.unauthorized }
+        if http.statusCode >= 500 { Telemetry.httpError(http.statusCode) }
         guard (200..<300).contains(http.statusCode) else {
             throw APIError.http(http.statusCode, String(data: data, encoding: .utf8) ?? "")
         }
@@ -135,19 +136,28 @@ enum API {
     // MARK: - Auth
 
     struct OtpBody: Encodable { let email: String }
+    struct VerifyBody: Encodable { let email: String; let token: String; let type = "email" }
 
-    /// Magic link: redirect_to travels as a query param — the same shape supabase-js sends.
+    /// Emails a one-time sign-in code (the email template shows only the code).
     static func signInWithOtp(email: String) async throws {
-        _ = try await request(
-            path: "auth/v1/otp",
-            method: "POST",
-            query: [URLQueryItem(name: "redirect_to", value: Config.authCallbackURL.absoluteString)],
-            body: OtpBody(email: email.trimmed)
-        )
+        _ = try await request(path: "auth/v1/otp", method: "POST", body: OtpBody(email: email.trimmed))
+    }
+
+    /// Exchanges the emailed code for a session.
+    static func verifyOtp(email: String, code: String) async throws -> Session {
+        session(from: try decode(TokenResponse.self,
+            try await request(path: "auth/v1/verify", method: "POST", body: VerifyBody(email: email.trimmed, token: code.trimmed))))
     }
 
     struct RefreshBody: Encodable {
         let refresh_token: String
+    }
+
+    struct PKCEBody: Encodable { let auth_code: String; let code_verifier: String }
+
+    static func exchangeCode(_ code: String, verifier: String) async throws -> Session {
+        session(from: try decode(TokenResponse.self,
+            try await request(path: "auth/v1/token", method: "POST", query: [URLQueryItem(name: "grant_type", value: "pkce")], body: PKCEBody(auth_code: code, code_verifier: verifier))))
     }
 
     struct TokenResponse: Codable {
@@ -162,27 +172,13 @@ enum API {
     }
 
     static func refreshSession(refreshToken: String) async throws -> Session {
-        let response: TokenResponse = try decode(TokenResponse.self,
-            try await request(path: "auth/v1/token", method: "POST", query: [URLQueryItem(name: "grant_type", value: "refresh_token")], body: RefreshBody(refresh_token: refreshToken)))
-        return Session(accessToken: response.access_token, refreshToken: response.refresh_token,
-                       userId: response.user.id, email: response.user.email ?? "")
+        session(from: try decode(TokenResponse.self,
+            try await request(path: "auth/v1/token", method: "POST", query: [URLQueryItem(name: "grant_type", value: "refresh_token")], body: RefreshBody(refresh_token: refreshToken))))
     }
 
-    /// Build a session from the deep-link callback fragment (implicit magic-link flow).
-    static func session(fromCallback url: URL) -> Session? {
-        guard url.scheme == "grapevine", url.host == "auth", url.path == "/callback" else { return nil }
-        guard let fragment = url.fragment else { return nil }
-        var params: [String: String] = [:]
-        for pair in fragment.split(separator: "&") {
-            let parts = pair.split(separator: "=", maxSplits: 1)
-            guard parts.count == 2 else { continue }
-            params[String(parts[0])] = String(parts[1])
-        }
-        guard let accessToken = params["access_token"], let refreshToken = params["refresh_token"],
-              let claims = JWT.decode(accessToken),
-              let sub = claims["sub"] as? String, let userId = UUID(uuidString: sub) else { return nil }
-        return Session(accessToken: accessToken, refreshToken: refreshToken, userId: userId,
-                       email: claims["email"] as? String ?? "")
+    private static func session(from response: TokenResponse) -> Session {
+        Session(accessToken: response.access_token, refreshToken: response.refresh_token,
+                userId: response.user.id, email: response.user.email ?? "")
     }
 }
 

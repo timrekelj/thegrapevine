@@ -24,7 +24,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        if (savedInstanceState == null) intent?.data?.let { appState.handleDeepLink(it.toString()) }
+        intent?.data?.toString()?.let { uri ->
+            if (savedInstanceState == null || OAuth.isCallback(uri)) appState.handleDeepLink(uri)
+        }
         setContent {
             GrapevineTheme {
                 CompositionLocalProvider(LocalApi provides grapevine.api) {

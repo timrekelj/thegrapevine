@@ -1,6 +1,5 @@
 package si.timrekelj.thegrapevine
 
-import kotlinx.serialization.json.jsonPrimitive
 import java.net.URI
 import kotlin.math.pow
 import java.time.Instant
@@ -26,19 +25,25 @@ object Ranking {
     }
 }
 
-/** Deep links: the magic-link callback and invitation codes. */
+/** Deep links: https://thegrapevine.si invitations and stories. */
 object DeepLink {
-    /** Build a session from the callback fragment (implicit magic-link flow). */
-    fun sessionFromCallback(uri: String): Session? {
+    sealed interface Route {
+        data class Invite(val code: String) : Route
+        data class Story(val id: String) : Route
+    }
+
+    private val UUID_PATTERN = Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
+
+    /** Where an incoming link should go, or null for links the app doesn't handle. */
+    fun route(uri: String): Route? {
         val parsed = runCatching { URI(uri) }.getOrNull() ?: return null
-        if (parsed.scheme != "grapevine" || parsed.host != "auth" || parsed.path != "/callback") return null
-        val fragment = parsed.fragment ?: return null
-        val params = queryParams(fragment)
-        val accessToken = params["access_token"] ?: return null
-        val refreshToken = params["refresh_token"] ?: return null
-        val claims = Jwt.decode(accessToken) ?: return null
-        val sub = claims["sub"]?.jsonPrimitive?.content ?: return null
-        return Session(accessToken, refreshToken, sub, claims["email"]?.jsonPrimitive?.content.orEmpty())
+        if (parsed.scheme != "https" && parsed.scheme != "http") return null
+        val path = parsed.path.orEmpty().trimEnd('/')
+        return when {
+            path == "/invite" -> queryParams(parsed.rawQuery.orEmpty())["code"]?.let { Route.Invite(it.trim().lowercase()) }
+            path.startsWith("/story/") -> path.removePrefix("/story/").takeIf(UUID_PATTERN::matches)?.let { Route.Story(it.lowercase()) }
+            else -> null
+        }
     }
 
     /**

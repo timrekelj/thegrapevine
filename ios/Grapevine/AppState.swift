@@ -3,17 +3,41 @@ import SwiftUI
 
 @Observable
 final class AppState {
-    var session: Session?
+    var session: Session? {
+        didSet {
+            if let session {
+                Telemetry.identify(session.userId)
+                OneSignalManager.shared.login(externalId: session.userId.uuidString.lowercased())
+            } else {
+                Telemetry.reset()
+                OneSignalManager.shared.logout()
+            }
+        }
+    }
     var profile: Profile?
     var group: Group?
     var members: [Member] = []
     var checked = false
     var error: String?
+    /// An invitation link that arrived before onboarding.
+    var pendingInviteCode: String?
+    /// A story link, opened once the paper is showing.
+    var pendingStoryId: UUID?
+
+    func handleLink(_ url: URL) {
+        switch AppLink(url) {
+        case .invite(let code): pendingInviteCode = code
+        case .story(let id): pendingStoryId = id
+        case nil: break
+        }
+    }
 
     @MainActor
     func restoreSession() async {
         guard let data = Keychain.load(),
               let stored = try? JSONDecoder.supabase.decode(Session.self, from: data) else {
+            OneSignalManager.shared.logout()
+            Telemetry.reset()
             checked = true
             return
         }
@@ -21,7 +45,7 @@ final class AppState {
         if JWT.isExpired(session.accessToken) {
             do { session = try await API.refreshSession(refreshToken: session.refreshToken) }
             catch {
-                if case APIError.unauthorized = error { Keychain.delete() }
+                if case APIError.unauthorized = error { signOut() }
                 else {
                     self.session = session
                     API.session = session
@@ -40,23 +64,31 @@ final class AppState {
     }
 
     @MainActor
-    func handleCallback(_ url: URL) async {
-        guard url.scheme == "grapevine", url.host == "auth", url.path == "/callback" else { return }
-        guard let session = API.session(fromCallback: url) else {
-            error = "This sign-in link is invalid or expired. Request a new one."
-            return
-        }
-        do { try save(session) }
-        catch { self.error = error.localizedDescription; return }
-        self.session = session
-        API.session = session
-        await loadProfileAndGroup()
-    }
-
-    @MainActor
     func signIn(email: String) async throws {
         error = nil
         try await API.signInWithOtp(email: email)
+    }
+
+    /// Signs in with the code from the email.
+    @MainActor
+    func verifyCode(email: String, code: String) async throws {
+        error = nil
+        try await finishSignIn(try await API.verifyOtp(email: email, code: code))
+    }
+
+    @MainActor
+    func signIn(callback: URL, verifier: String) async throws {
+        error = nil
+        try await finishSignIn(try await API.exchangeCode(OAuth.code(from: callback), verifier: verifier))
+    }
+
+    @MainActor
+    private func finishSignIn(_ session: Session) async throws {
+        try save(session)
+        self.session = session
+        API.session = session
+        Telemetry.capture("signed_in")
+        await loadProfileAndGroup()
     }
 
     @MainActor
@@ -117,6 +149,7 @@ final class AppState {
         try await API.postVoid(path: "rest/v1/group_members",
             body: NewMemberBody(group_id: created.id, user_id: session.userId))
         group = created
+        Telemetry.capture("paper_created")
         await loadProfileAndGroup()
     }
 
@@ -127,6 +160,7 @@ final class AppState {
         let code = URLComponents(string: code.trimmed)?.queryItems?.first(where: { $0.name == "code" })?.value ?? code.trimmed
         let joined: UUID = try await API.rpc(UUID.self, name: "join_group_with_invite",
             body: JoinBody(code: code.trimmed.lowercased()))
+        Telemetry.capture("paper_joined")
         group = try await API.getOne(Group.self, path: "rest/v1/groups",
             query: [URLQueryItem(name: "id", value: "eq.\(joined)")])
         await loadProfileAndGroup()
@@ -134,5 +168,25 @@ final class AppState {
 
     private func save(_ session: Session) throws {
         try Keychain.save(JSONEncoder().encode(session))
+    }
+}
+
+/// Where an incoming https://thegrapevine.si link should go.
+enum AppLink: Equatable {
+    case invite(String)
+    case story(UUID)
+
+    init?(_ url: URL) {
+        guard ["https", "http"].contains(url.scheme ?? "") else { return nil }
+        let parts = url.pathComponents.filter { $0 != "/" }
+        if parts == ["invite"],
+           let code = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "code" })?.value?.trimmed,
+           !code.isEmpty {
+            self = .invite(code.lowercased())
+        } else if parts.count == 2, parts[0] == "story", let id = UUID(uuidString: parts[1]) {
+            self = .story(id)
+        } else {
+            return nil
+        }
     }
 }

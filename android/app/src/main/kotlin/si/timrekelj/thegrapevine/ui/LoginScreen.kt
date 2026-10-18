@@ -1,7 +1,12 @@
 package si.timrekelj.thegrapevine.ui
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -16,6 +21,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -23,48 +29,75 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import si.timrekelj.thegrapevine.AppState
+import si.timrekelj.thegrapevine.AuthProvider
 
 @Composable
 fun LoginScreen(app: AppState) {
     var email by rememberSaveable { mutableStateOf("") }
     var sent by rememberSaveable { mutableStateOf(false) }
+    var code by rememberSaveable { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    fun run(action: suspend () -> Unit) {
+        scope.launch {
+            busy = true
+            try {
+                action()
+            } catch (e: Exception) {
+                app.error = e.message
+            }
+            busy = false
+        }
+    }
 
     Column(
-        Modifier.fillMaxSize().safeDrawingPadding().padding(20.dp),
+        Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text("The Grapevine", style = display(28))
         Text("A paper between friends.", style = display(17))
         Text(
-            "Sign in with your email. No password, no public feed.",
+            "Sign in to your private paper. No password, no public feed.",
             fontSize = 15.sp,
             color = Grape.ink2,
             textAlign = TextAlign.Center,
         )
         if (sent) {
             Text(
-                "Check your email for a sign-in link.",
+                "We emailed a sign-in code to ${email.trim()}.",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Grape.ink,
                 textAlign = TextAlign.Center,
             )
-            TextButton(onClick = { sent = false }) { Text("Request another link", color = Grape.ink) }
+            // Supabase codes are 6 digits by default and up to 10 if the project is configured so.
+            PaperField(code, { code = it.filter(Char::isDigit).take(10) }, "Code", keyboardType = KeyboardType.Number)
+            InkButton(if (busy) "Signing in…" else "Sign in", enabled = !busy && code.length >= 6) {
+                run { app.verifyCode(email, code) }
+            }
+            Row {
+                TextButton(onClick = { run { app.signIn(email) } }, enabled = !busy) { Text("Send a new code", color = Grape.ink) }
+                TextButton(onClick = { sent = false; code = ""; app.error = null }, enabled = !busy) {
+                    Text("Use a different email", color = Grape.ink)
+                }
+            }
         } else {
-            PaperField(email, { email = it }, "Your email", keyboardType = KeyboardType.Email)
-            InkButton(if (busy) "Sending…" else "Send a sign-in link", enabled = !busy && email.isNotBlank()) {
-                scope.launch {
-                    busy = true
-                    try {
-                        app.signIn(email)
-                        sent = true
-                    } catch (e: Exception) {
-                        app.error = e.message
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                AuthProvider.entries.forEach { provider ->
+                    InkButton(provider.title, enabled = !busy) {
+                        run { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(app.startOAuth(provider)))) }
                     }
-                    busy = false
+                }
+                Text("or use your email", fontSize = 13.sp, color = Grape.ink2)
+            }
+            PaperField(email, { email = it }, "Your email", keyboardType = KeyboardType.Email)
+            InkButton(if (busy) "Sending…" else "Email me a code", enabled = !busy && email.isNotBlank()) {
+                run {
+                    app.signIn(email)
+                    sent = true
                 }
             }
         }

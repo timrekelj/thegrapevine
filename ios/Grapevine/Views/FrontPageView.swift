@@ -60,6 +60,9 @@ struct FrontPageView: View {
             .sheet(isPresented: $share, onDismiss: { Task { await paper.load(app: app) } }) { ShareView() }
             .refreshable { await paper.load(app: app) }
             .task(id: app.group?.id) { await paper.load(app: app) }
+            .onChange(of: app.pendingStoryId, initial: true) {
+                if let id = app.pendingStoryId { path = [id]; app.pendingStoryId = nil }
+            }
         }
         .overlay {
             if path.isEmpty {

@@ -70,4 +70,4 @@ cd model-server
 
 The smoke script actually invokes curl, asserts same/different-event and a three-option choice, and prints first/warm end-to-end latency. Test headlines are synthetic, not verified news. See `VALIDATION.md` for this machine's measured results and limitations.
 
-Local Supabase Edge Functions run inside Docker: their `localhost` is not the host Mac. A host-loopback-only service is not automatically reachable at `host.docker.internal`; use an explicit local forwarding arrangement if needed. Do not expose this unauthenticated endpoint to the internet.
+With the native Supabase runtime, Edge Functions run on the host and can reach this service over localhost. With Docker, their localhost is the container instead; use an explicit local forwarding arrangement if needed. Do not expose this unauthenticated endpoint to the internet.

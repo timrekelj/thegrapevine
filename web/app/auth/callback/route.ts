@@ -1,23 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { safeRedirect } from '@/lib/auth'
+import { captureServer } from '@/lib/telemetry-server'
 
-export async function GET(request: NextRequest) {
-  const params = request.nextUrl.searchParams
-  const invite = params.get('invite')
-  const destination = safeRedirect(params.get('redirect') || (invite ? `/invite?${new URLSearchParams({ code: invite })}` : '/'))
+export async function GET(request: Request) {
+  const params = new URL(request.url).searchParams
+  const destination = safeRedirect(params.get('redirect'))
   const code = params.get('code')
-  const supabase = await createClient()
-  if (code) {
+  if (code && !params.has('error')) {
+    const supabase = await createClient()
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error && data.user) {
       const { data: memberships, error: membershipError } = await supabase.from('group_members').select('group_id').eq('user_id', data.user.id).limit(1)
-      if (!membershipError) {
-        const path = memberships?.length ? destination : `/onboarding?${new URLSearchParams({ redirect: destination })}`
-        return NextResponse.redirect(new URL(path, request.url))
-      }
+      await captureServer(data.user.id, 'signed_in')
+      redirect(membershipError || memberships?.length ? destination : `/onboarding?${new URLSearchParams({ redirect: destination })}`)
     }
   }
-  const query = new URLSearchParams({ redirect: destination, error: 'This sign-in link could not be used. Please request a fresh link.' })
-  return NextResponse.redirect(new URL(`/login?${query}`, request.url))
+  redirect(`/login?${new URLSearchParams({ redirect: destination, error: 'Sign-in was cancelled or could not be completed. Please try again.' })}`)
 }

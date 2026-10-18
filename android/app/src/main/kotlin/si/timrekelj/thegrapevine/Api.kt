@@ -28,11 +28,11 @@ sealed class ApiError(message: String) : Exception(message) {
     object Unauthorized : ApiError("Your session has expired. Please sign in again.")
 }
 
-/** Supabase reports failures as `{"message"|"error_description"|"error": "…"}`. */
+/** Supabase reports failures as `{"message"|"msg"|"error_description"|"error": "…"}` (Auth uses `msg`). */
 private fun httpMessage(code: Int, body: String): String {
     val fromBody = runCatching {
         val obj = SupabaseJson.parseToJsonElement(body).jsonObject
-        (obj["message"] ?: obj["error_description"] ?: obj["error"])?.jsonPrimitive?.content
+        (obj["message"] ?: obj["msg"] ?: obj["error_description"] ?: obj["error"])?.jsonPrimitive?.content
     }.getOrNull()
     return fromBody ?: "Server error ($code)"
 }
@@ -97,6 +97,7 @@ class Api(private val http: HttpClient = defaultHttpClient()) {
         val text = response.bodyAsText()
         val status = response.status.value
         if (status == 401) throw ApiError.Unauthorized
+        if (status >= 500) Telemetry.httpError(status)
         if (status !in 200..299) throw ApiError.Http(status, text)
         return text
     }
@@ -172,24 +173,41 @@ class Api(private val http: HttpClient = defaultHttpClient()) {
     @Serializable
     private data class SignedUrl(val signedURL: String)
 
-    /**
-     * Magic link: `redirect_to` travels as a query param — the same shape
-     * supabase-js sends.
-     */
+    /** Emails a one-time sign-in code (the email template shows only the code). */
     suspend fun signInWithOtp(email: String) {
-        request(
-            path = "auth/v1/otp",
-            method = HttpMethod.Post,
-            query = listOf("redirect_to" to Config.authCallback),
-            body = encodeBody(OtpBody(email.trim())),
-        )
+        request(path = "auth/v1/otp", method = HttpMethod.Post, body = encodeBody(OtpBody(email.trim())))
     }
+
+    /** Exchanges the emailed code for a session. */
+    suspend fun verifyOtp(email: String, code: String): Session =
+        session(
+            request(
+                path = "auth/v1/verify",
+                method = HttpMethod.Post,
+                body = encodeBody(VerifyBody(email = email.trim(), token = code.trim())),
+            ),
+        )
 
     @Serializable
     private data class OtpBody(val email: String)
 
     @Serializable
+    private data class VerifyBody(val email: String, val token: String, val type: String = "email")
+
+    @Serializable
     private data class RefreshBody(val refresh_token: String)
+
+    @Serializable
+    private data class PKCEBody(val auth_code: String, val code_verifier: String)
+
+    suspend fun exchangeCode(code: String, verifier: String): Session = session(
+        request(
+            path = "auth/v1/token",
+            method = HttpMethod.Post,
+            query = listOf("grant_type" to "pkce"),
+            body = encodeBody(PKCEBody(code, verifier)),
+        ),
+    )
 
     @Serializable
     private data class TokenResponse(val access_token: String, val refresh_token: String, val user: UserPayload)
@@ -197,8 +215,8 @@ class Api(private val http: HttpClient = defaultHttpClient()) {
     @Serializable
     private data class UserPayload(val id: String, val email: String? = null)
 
-    suspend fun refreshSession(refreshToken: String): Session {
-        val response: TokenResponse = SupabaseJson.decodeFromString(
+    suspend fun refreshSession(refreshToken: String): Session =
+        session(
             request(
                 path = "auth/v1/token",
                 method = HttpMethod.Post,
@@ -206,6 +224,9 @@ class Api(private val http: HttpClient = defaultHttpClient()) {
                 body = encodeBody(RefreshBody(refreshToken)),
             ),
         )
+
+    private fun session(tokenJson: String): Session {
+        val response: TokenResponse = SupabaseJson.decodeFromString(tokenJson)
         return Session(
             accessToken = response.access_token,
             refreshToken = response.refresh_token,

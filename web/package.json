@@ -6,11 +6,15 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs"
   },
   "dependencies": {
+    "@posthog/nextjs-config": "1.11.3",
     "@supabase/ssr": "^0.12.7",
     "next": "16.4.0",
+    "posthog-js": "1.438.12",
+    "posthog-node": "5.56.2",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },

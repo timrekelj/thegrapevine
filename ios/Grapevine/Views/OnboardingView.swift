@@ -47,6 +47,9 @@ struct OnboardingView: View {
             }
             .padding(20)
         }
+        .onChange(of: app.pendingInviteCode, initial: true) {
+            if let code = app.pendingInviteCode { inviteCode = code }
+        }
     }
 
     private func create() async {

@@ -146,7 +146,8 @@ max_catalogs = 2
 
 # Store vector embeddings in S3 for large and durable datasets
 [storage.vector]
-enabled = true
+# The experimental local stack does not support vector buckets.
+enabled = false
 max_buckets = 10
 max_indexes = 5
 
@@ -161,7 +162,7 @@ site_url = "http://localhost:3000"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://localhost:3000", "http://localhost:3000/auth/callback", "http://127.0.0.1:3000", "http://127.0.0.1:3000/auth/callback", "https://thegrapevine.si", "https://thegrapevine.si/auth/callback", "grapevine://auth/callback"]
+additional_redirect_urls = ["http://localhost:3000", "http://localhost:3000/auth/callback", "http://localhost:3000/auth/callback?**", "http://127.0.0.1:3000", "http://127.0.0.1:3000/auth/callback", "http://127.0.0.1:3000/auth/callback?**", "https://thegrapevine.si", "https://thegrapevine.si/auth/callback", "https://thegrapevine.si/auth/callback?**", "grapevine://auth/callback"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -244,6 +245,11 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
+# Sign-in is by one-time code. On the hosted project, the Magic Link and Confirm
+# signup templates use supabase/templates/sign_in_code.html. The experimental
+# local stack can't serve custom templates, so get local codes with
+# supabase/scripts/sign-in-code.sh.
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"
@@ -321,8 +327,9 @@ max_frequency = "5s"
 # `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin_oidc`, `notion`, `twitch`,
 # `twitter`, `x`, `slack`, `spotify`, `workos`, `zoom`.
 [auth.external.apple]
+# Enable after filling the corresponding variables in the root .env.
 enabled = false
-client_id = ""
+client_id = "env(SUPABASE_AUTH_EXTERNAL_APPLE_CLIENT_ID)"
 # DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
 secret = "env(SUPABASE_AUTH_EXTERNAL_APPLE_SECRET)"
 # Overrides the default auth callback URL derived from auth.external_url.
@@ -334,6 +341,18 @@ url = ""
 skip_nonce_check = false
 # If enabled, it will allow the user to successfully authenticate when the provider does not return an email address.
 email_optional = false
+
+[auth.external.google]
+enabled = false
+client_id = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET)"
+skip_nonce_check = false
+
+# X OAuth 2.0, not the legacy Twitter OAuth 1.0a provider.
+[auth.external.x]
+enabled = false
+client_id = "env(SUPABASE_AUTH_EXTERNAL_X_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_EXTERNAL_X_SECRET)"
 
 # Allow Solana wallet holders to sign in to your project via the Sign in with Solana (SIWS, EIP-4361) standard.
 # You can configure "web3" rate limit in the [auth.rate_limit] section and set up [auth.captcha] if self-hosting.
@@ -378,10 +397,7 @@ enabled = true
 # `per_worker` (default) — enables hot reload during local development.
 # `oneshot` — fallback mode if hot reload causes issues (e.g. in large repos or with symlinks).
 policy = "per_worker"
-# Port to attach the Chrome inspector for debugging edge functions.
-inspector_port = 8083
-# The Deno major version to use.
-deno_version = 2
+# Let each local stack allocate its own debugger port.
 
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
@@ -394,6 +410,7 @@ backend = "postgres"
 
 # Experimental features may be deprecated any time
 [experimental]
+stack = true
 # Configures S3 bucket URL, eg. <bucket_name>.s3-<region>.amazonaws.com
 s3_host = "env(S3_HOST)"
 # Configures S3 bucket region, eg. us-east-1

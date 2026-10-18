@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { HttpError } from './cors.ts';
+import { telemetryUser } from './telemetry.ts';
 
 export const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
@@ -15,6 +16,7 @@ export async function caller(req: Request) {
   });
   const { data, error } = await client.auth.getUser();
   if (error || !data.user) throw new HttpError(401, 'Invalid session');
+  telemetryUser(data.user.id);
   return data.user;
 }
 

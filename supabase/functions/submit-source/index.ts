@@ -4,8 +4,9 @@ import { fetchSource, normalizeUrl } from '../_shared/fetch-source.ts';
 import { cosineSimilarity, decide, sourceText, storyText, vector } from '../_shared/clustering.ts';
 import { embed } from '../_shared/mistral.ts';
 import { generate } from '../_shared/editorial.ts';
+import { capture, featureEnabled, withTelemetry } from '../_shared/telemetry.ts';
 
-Deno.serve(async req => {
+Deno.serve(withTelemetry('submit-source', async req => {
   if (req.method === 'OPTIONS') return json({});
   if (req.method !== 'POST') return json({ error: 'POST required' }, 405);
   let placeholderId: string | undefined;
@@ -23,7 +24,10 @@ Deno.serve(async req => {
       return data;
     };
     const existing = await duplicate();
-    if (existing) return json({ status: 'duplicate', story_id: existing.story_id, source_id: existing.id });
+    if (existing) {
+      capture('source_submitted', { result: 'duplicate' });
+      return json({ status: 'duplicate', story_id: existing.story_id, source_id: existing.id });
+    }
     const fetched = await fetchSource(url);
     // sources.story_id is required: preserve the card before any AI call, then discard this story if joined.
     const { data: placeholder, error: storyError } = await supabase.from('stories').insert({
@@ -61,7 +65,7 @@ Deno.serve(async req => {
       .eq('group_id', input.group_id).neq('id', placeholder.id).order('last_activity_at', { ascending: false }).limit(20);
     if (loadError) throw loadError;
     const candidates = [];
-    if (incoming) {
+    if (incoming && await featureEnabled('ai-clustering-enabled')) {
       for (const story of stories || []) {
         const embedding = story.embedding ? vector(story.embedding) : await embed(storyText(story));
         if (!story.embedding) {
@@ -107,8 +111,10 @@ Deno.serve(async req => {
     const { error: updateError } = await supabase.from('stories').update({ title, summary, category, embedding, flagged: false,
       last_activity_at: new Date().toISOString() }).eq('id', chosen.id);
     if (updateError) throw updateError;
+    capture('source_submitted', { result: joined ? 'joined' : 'new_story' });
     return json({ status: joined ? 'joined' : 'new_story', story_id: chosen.id, source_id: source.id });
   } catch (error) {
+    capture('source_submission_failed', { source_preserved: !!savedSource });
     if (savedSource) {
       console.error('AI organization failed after preserving source', error instanceof Error ? error.message : 'Database error');
       const { error: recoveryError } = await supabase.from('stories').update({ flagged: true, last_activity_at: new Date().toISOString() }).eq('id', savedSource.story_id);
@@ -119,4 +125,4 @@ Deno.serve(async req => {
     if (placeholderId) console.error('Unfinished placeholder story', placeholderId);
     return errorResponse(error);
   }
-});
+}));

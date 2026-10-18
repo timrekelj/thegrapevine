@@ -16,6 +16,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -25,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import si.timrekelj.thegrapevine.AppState
+import si.timrekelj.thegrapevine.OneSignalManager
 import si.timrekelj.thegrapevine.PaperState
 
 /** Mirrors `ContentView` in GrapevineApp.swift. */
@@ -38,6 +40,10 @@ fun RootScreen(app: AppState) {
             else -> MainTabs(app)
         }
     }
+    val signedIn = app.checked && app.session != null
+    LaunchedEffect(signedIn) {
+        if (signedIn) OneSignalManager.requestPushPermission()
+    }
 }
 
 @Composable
@@ -46,6 +52,12 @@ private fun MainTabs(app: AppState) {
     val paper: PaperState = viewModel { PaperState(api) }
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var openStory by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(app.pendingStoryId) {
+        app.pendingStoryId?.let {
+            openStory = it
+            app.pendingStoryId = null
+        }
+    }
 
     val storyId = openStory
     if (storyId != null) {

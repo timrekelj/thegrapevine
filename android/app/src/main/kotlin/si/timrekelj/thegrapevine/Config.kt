@@ -16,5 +16,6 @@ object Config {
 
     val webURL: String = BuildConfig.WEB_URL
 
-    const val authCallback = "grapevine://auth/callback"
+    /** OneSignal App ID — public, like the Supabase publishable key. */
+    const val oneSignalAppId = "70ec7f59-3568-4f44-951e-2858742a02b8"
 }

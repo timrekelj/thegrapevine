@@ -90,7 +90,7 @@ Research note (12 October 2026): Jev (TypeSafe AI, launched 15 September 2026) c
 
 ## Architecture
 
-- Backend is Supabase only: Postgres, Auth (magic links), Realtime, Storage, Edge Functions. All orchestration (submission, duplicate rejection, clustering, summaries, notification fan-out) runs in Edge Functions and database triggers; there is no separate app server.
+- Backend is Supabase only: Postgres, Auth (email one-time codes), Realtime, Storage, Edge Functions. All orchestration (submission, duplicate rejection, clustering, summaries, notification fan-out) runs in Edge Functions and database triggers; there is no separate app server.
 - All content tables have row level security; access is limited to group members.
 - The decision model is OpenAI's hosted Decisions API (`gpt-6-luna`), called from Edge Functions during clustering. A self-hosted alternative (Strands Decider 2B, `model-server/`) exists in the repo but is not wired in.
 - Web: Next.js. iOS: SwiftUI with the Liquid Glass navigation bar. Android: Jetpack Compose.
@@ -104,7 +104,7 @@ Later possibilities: public groups, richer discovery, and publication-style edit
 
 ## Confirmed at implementation start (12 October 2026)
 
-- Sign-in and invitation: email magic links (Supabase Auth OTP) + one-time invite codes per group.
+- Sign-in and invitation: emailed one-time codes (Supabase Auth OTP; switched from magic links on 17 October 2026) + one-time invite codes per group.
 - Backend: Supabase only — no separate app backend.
 - Stack: Next.js (web), SwiftUI with Liquid Glass navigation (iOS), Jetpack Compose (Android).
 - Development: local, via `supabase start` / `supabase db reset`.

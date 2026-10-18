@@ -2,6 +2,21 @@ import XCTest
 @testable import Grapevine
 
 final class CoreTests: XCTestCase {
+    func testOAuthPKCEAndCallbackValidation() throws {
+        let verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+        XCTAssertEqual(OAuth.challenge(verifier), "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM")
+        XCTAssertEqual(OAuth.verifier().count, 64)
+        for provider in AuthProvider.allCases {
+            let items = URLComponents(url: OAuth.authorizeURL(provider: provider, verifier: verifier), resolvingAgainstBaseURL: false)!.queryItems!
+            XCTAssertTrue(items.contains(URLQueryItem(name: "provider", value: provider.rawValue)))
+            XCTAssertTrue(items.contains(URLQueryItem(name: "code_challenge_method", value: "s256")))
+        }
+        XCTAssertEqual(try OAuth.code(from: URL(string: "grapevine://auth/callback?code=abc")!), "abc")
+        for url in ["https://evil.example/callback?code=abc", "grapevine://auth/wrong?code=abc", "grapevine://auth/callback?code=", "grapevine://auth/callback?error=access_denied&code=abc"] {
+            XCTAssertThrowsError(try OAuth.code(from: URL(string: url)!))
+        }
+    }
+
     func testLeadIsNewestThenDiscussionRanksTheRest() {
         let now = Date()
         func row(age: TimeInterval, count: Int) -> StoryRow {
@@ -37,16 +52,25 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(stored.userId, session.userId)
     }
 
-    @MainActor
-    func testMagicLinkOnlyAcceptsAuthCallback() throws {
-        let id = UUID()
-        let payload = try JSONSerialization.data(withJSONObject: ["sub": id.uuidString, "email": "tim@example.com", "exp": Date().timeIntervalSince1970 + 3600])
+    func testJWTExpiryUsesTheExpClaim() throws {
+        let payload = try JSONSerialization.data(withJSONObject: ["sub": UUID().uuidString, "exp": Date().timeIntervalSince1970 + 3600])
         let encoded = payload.base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
-        let token = "header.\(encoded).signature"
-        let fragment = "#access_token=\(token)&refresh_token=refresh"
-        XCTAssertEqual(API.session(fromCallback: URL(string: "grapevine://auth/callback\(fragment)")!)?.userId, id)
-        XCTAssertNil(API.session(fromCallback: URL(string: "grapevine://other/callback\(fragment)")!))
-        XCTAssertFalse(JWT.isExpired(token))
+        XCTAssertFalse(JWT.isExpired("header.\(encoded).signature"))
         XCTAssertTrue(JWT.isExpired("broken"))
+    }
+
+    func testAppLinksRouteInvitesAndStories() {
+        let id = UUID()
+        XCTAssertEqual(AppLink(URL(string: "https://thegrapevine.si/invite?code=GrapevineDemo")!), .invite("grapevinedemo"))
+        XCTAssertEqual(AppLink(URL(string: "https://thegrapevine.si/story/\(id.uuidString.lowercased())")!), .story(id))
+        XCTAssertNil(AppLink(URL(string: "https://thegrapevine.si/story/not-a-uuid")!))
+        XCTAssertNil(AppLink(URL(string: "https://thegrapevine.si/invite")!))
+        XCTAssertNil(AppLink(URL(string: "https://thegrapevine.si/login")!))
+    }
+
+    @MainActor
+    func testVerifyBodySendsEmailType() throws {
+        let body = try JSONSerialization.jsonObject(with: JSONEncoder().encode(API.VerifyBody(email: "tim@example.com", token: "123456"))) as? [String: String]
+        XCTAssertEqual(body, ["email": "tim@example.com", "token": "123456", "type": "email"])
     }
 }

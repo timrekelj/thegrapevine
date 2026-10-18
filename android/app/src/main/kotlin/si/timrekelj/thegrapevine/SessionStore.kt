@@ -32,7 +32,17 @@ class SessionStore(context: Context) {
     }
 
     fun delete() {
-        prefs.edit().remove(KEY).apply()
+        prefs.edit().remove(KEY).remove("oauth_verifier").apply()
+    }
+
+    fun saveOAuthVerifier(verifier: String) {
+        prefs.edit().putString("oauth_verifier", verifier).apply()
+    }
+
+    fun takeOAuthVerifier(): String? {
+        val verifier = prefs.getString("oauth_verifier", null)
+        prefs.edit().remove("oauth_verifier").apply()
+        return verifier
     }
 
     private companion object {

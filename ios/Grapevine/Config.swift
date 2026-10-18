@@ -13,5 +13,6 @@ enum Config {
     static let supabasePublishableKey = "sb_publishable_oT-H6EAfuoNp8dcVdTHJow_l1-Skd1C"
     static let webURL = URL(string: "https://thegrapevine.si")!
     #endif
-    static let authCallbackURL = URL(string: "grapevine://auth/callback")!
+    /// OneSignal App ID — public, like the Supabase publishable key.
+    static let oneSignalAppId = "70ec7f59-3568-4f44-951e-2858742a02b8"
 }

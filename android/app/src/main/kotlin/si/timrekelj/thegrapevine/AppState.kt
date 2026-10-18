@@ -28,6 +28,9 @@ class AppState(
     /** An invitation link that arrived before sign-in/onboarding finished. */
     var pendingInviteCode by mutableStateOf<String?>(null)
 
+    /** A story link, opened once the paper is showing. */
+    var pendingStoryId by mutableStateOf<String?>(null)
+
     init {
         api.onSessionChanged = { refreshed ->
             store.save(refreshed)
@@ -40,6 +43,8 @@ class AppState(
         viewModelScope.launch {
             val stored = store.load()
             if (stored == null) {
+                Telemetry.reset()
+                OneSignalManager.logout()
                 checked = true
                 return@launch
             }
@@ -47,7 +52,7 @@ class AppState(
                 val refreshed = try {
                     api.refreshSession(stored.refreshToken)
                 } catch (e: ApiError.Unauthorized) {
-                    store.delete()
+                    signOut()
                     checked = true
                     return@launch
                 } catch (e: Exception) {
@@ -66,24 +71,24 @@ class AppState(
         }
     }
 
-    /** A `grapevine://auth/callback` magic link, or an invitation link. */
+    /** An invitation or story link; both wait until the app can show them. */
     fun handleDeepLink(uri: String) {
-        if (uri.startsWith("grapevine://auth/callback")) {
-            val restored = DeepLink.sessionFromCallback(uri)
-            if (restored == null) {
-                error = "This sign-in link is invalid or expired. Request a new one."
-                checked = true
-                return
-            }
-            store.save(restored)
-            adopt(restored)
+        if (OAuth.isCallback(uri)) {
+            val verifier = store.takeOAuthVerifier() ?: return
             viewModelScope.launch {
-                loadProfileAndGroup()
-                checked = true
+                try {
+                    finishSignIn(api.exchangeCode(OAuth.code(uri), verifier))
+                } catch (e: Exception) {
+                    error = e.message
+                }
             }
             return
         }
-        if (uri.contains("/invite")) pendingInviteCode = DeepLink.inviteCode(uri)
+        when (val route = DeepLink.route(uri)) {
+            is DeepLink.Route.Invite -> pendingInviteCode = route.code
+            is DeepLink.Route.Story -> pendingStoryId = route.id
+            null -> Unit
+        }
     }
 
     suspend fun signIn(email: String) {
@@ -91,7 +96,30 @@ class AppState(
         api.signInWithOtp(email)
     }
 
+    /** Signs in with the code from the email. */
+    suspend fun verifyCode(email: String, code: String) {
+        error = null
+        finishSignIn(api.verifyOtp(email, code))
+    }
+
+    fun startOAuth(provider: AuthProvider): String {
+        error = null
+        val verifier = OAuth.verifier()
+        store.saveOAuthVerifier(verifier)
+        return OAuth.authorizeURL(Config.supabaseURL, provider, verifier)
+    }
+
+    private suspend fun finishSignIn(verified: Session) {
+        error = null
+        store.save(verified)
+        adopt(verified)
+        Telemetry.capture("signed_in")
+        loadProfileAndGroup()
+    }
+
     fun signOut() {
+        Telemetry.reset()
+        OneSignalManager.logout()
         store.delete()
         session = null
         profile = null
@@ -156,6 +184,7 @@ class AppState(
             encodeBody(NewMemberBody(group_id = created.id, user_id = current.userId)),
         )
         group = created
+        Telemetry.capture("paper_created")
         loadProfileAndGroup()
     }
 
@@ -164,11 +193,14 @@ class AppState(
             "join_group_with_invite",
             encodeBody(JoinBody(code = DeepLink.inviteCode(code))),
         )
+        Telemetry.capture("paper_joined")
         group = api.getOne<Group>("rest/v1/groups", listOf("id" to "eq.$joined"))
         loadProfileAndGroup()
     }
 
     private fun adopt(value: Session) {
+        Telemetry.identify(value.userId)
+        OneSignalManager.login(value.userId.lowercase())
         session = value
         api.session = value
     }

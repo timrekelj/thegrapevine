@@ -1,11 +1,11 @@
 package si.timrekelj.thegrapevine
 
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
@@ -14,6 +14,26 @@ import java.util.UUID
 
 /** Ports of `ios/GrapevineTests/CoreTests.swift`. */
 class CoreTest {
+    @Test
+    fun oauthPKCEAndCallbacks() {
+        val verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+        assertEquals("E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", OAuth.challenge(verifier))
+        assertEquals(43, OAuth.verifier().length)
+        AuthProvider.entries.forEach {
+            val url = OAuth.authorizeURL("https://example.supabase.co/", it, verifier)
+            assertTrue(url.contains("provider=${it.value}"))
+            assertTrue(url.contains("code_challenge_method=s256"))
+            assertFalse(url.contains(verifier))
+        }
+        assertEquals("abc", OAuth.code("grapevine://auth/callback?code=abc"))
+        listOf(
+            "https://evil.example/callback?code=abc",
+            "grapevine://auth/wrong?code=abc",
+            "grapevine://auth/callback?code=",
+            "grapevine://auth/callback?error=access_denied&code=abc",
+        ).forEach { url -> assertThrows { OAuth.code(url) } }
+    }
+
 
     @Test
     fun leadIsNewestThenDiscussionRanksTheRest() {
@@ -57,23 +77,37 @@ class CoreTest {
     }
 
     @Test
-    fun magicLinkOnlyAcceptsAuthCallback() {
-        val id = UUID.randomUUID().toString()
+    fun jwtExpiryUsesTheExpClaim() {
         val exp = Instant.now().epochSecond + 3600
-        val payload = """{"sub":"$id","email":"tim@example.com","exp":$exp.5}"""
-        val encoded = Base64.getUrlEncoder().withoutPadding().encodeToString(payload.toByteArray())
-        val token = "header.$encoded.signature"
-        val fragment = "#access_token=$token&refresh_token=refresh"
-        assertEquals(id, DeepLink.sessionFromCallback("grapevine://auth/callback$fragment")?.userId)
-        assertNull(DeepLink.sessionFromCallback("grapevine://other/callback$fragment"))
+        val payload = """{"sub":"${UUID.randomUUID()}","exp":$exp.5}"""
+        val token = "header.${Base64.getUrlEncoder().withoutPadding().encodeToString(payload.toByteArray())}.signature"
         assertFalse(Jwt.isExpired(token))
         assertTrue(Jwt.isExpired("broken"))
+    }
+
+    @Serializable
+    private data class WithDefault(val role: String = "owner", val note: String? = null)
+
+    @Test
+    fun requestBodiesSendDefaultsButOmitNulls() {
+        // Swift's Encodable sends `role = "owner"` and omits nil; Supabase relies on both.
+        assertEquals("""{"role":"owner"}""", SupabaseJson.encodeToString(WithDefault()))
     }
 
     @Test
     fun inviteCodeFromLinkOrBareCode() {
         assertEquals("grapevinedemo", DeepLink.inviteCode("https://thegrapevine.si/invite?code=GrapevineDemo"))
         assertEquals("grapevinedemo", DeepLink.inviteCode("  grapevinedemo "))
+    }
+
+    @Test
+    fun appLinksRouteInvitesAndStories() {
+        val id = "8f02e116-450a-4808-82e4-42098cb7b393"
+        assertEquals(DeepLink.Route.Invite("grapevinedemo"), DeepLink.route("https://thegrapevine.si/invite?code=GrapevineDemo"))
+        assertEquals(DeepLink.Route.Story(id), DeepLink.route("https://thegrapevine.si/story/${id.uppercase()}/"))
+        assertEquals(null, DeepLink.route("https://thegrapevine.si/story/not-a-uuid"))
+        assertEquals(null, DeepLink.route("https://thegrapevine.si/invite"))
+        assertEquals(null, DeepLink.route("https://thegrapevine.si/login"))
     }
 
     @Test
