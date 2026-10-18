@@ -14,13 +14,13 @@ import si.timrekelj.thegrapevine.R
 
 /** One grape ink on paper — the same tokens as `Theme.swift` and `globals.css`. */
 object Grape {
-    val paper = Color(0xFFEFEEE9)
-    val raised = Color(0xFFF8F7F3)
+    val paper = Color(0xFFF7F4EE)
+    val raised = Color(0xFFFFFDF9)
     val ink = Color(0xFF4A2160)
-    val ink2 = Color(0xFF6E5280)
+    val ink2 = Color(0xFF75657C)
     val pink = Color(0xFFFF6AA6)
     val onPink = Color(0xFF2E1340)
-    val rule = Color(0x4D4A2160)
+    val rule = Color(0x294A2160)
 }
 
 val Gloock = FontFamily(Font(R.font.gloock_regular))
@@ -57,7 +57,7 @@ fun GrapevineTheme(content: @Composable () -> Unit) {
             secondaryContainer = Grape.ink.copy(alpha = 0.12f),
             onSecondaryContainer = Grape.ink,
             outline = Grape.rule,
-            error = Grape.pink,
+            error = Color(0xFF9A3149),
         ),
         content = content,
     )

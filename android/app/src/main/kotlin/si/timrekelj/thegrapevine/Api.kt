@@ -76,6 +76,7 @@ class Api(private val http: HttpClient = defaultHttpClient()) {
         file: ByteArray? = null,
         fileContentType: String = "application/octet-stream",
         preferRepresentation: Boolean = false,
+        mergeDuplicates: Boolean = false,
     ): String {
         refreshIfNeeded(path)
 
@@ -84,7 +85,11 @@ class Api(private val http: HttpClient = defaultHttpClient()) {
             if (query.isNotEmpty()) url { query.forEach { (name, value) -> parameters.append(name, value) } }
             header("apikey", Config.supabasePublishableKey)
             session?.let { header("Authorization", "Bearer ${it.accessToken}") }
-            if (preferRepresentation) header("Prefer", "return=representation")
+            val preferences = listOfNotNull(
+                "return=representation".takeIf { preferRepresentation },
+                "resolution=merge-duplicates".takeIf { mergeDuplicates },
+            )
+            if (preferences.isNotEmpty()) header("Prefer", preferences.joinToString(","))
             if (body != null) {
                 setBody(body)
                 contentType(ContentType.Application.Json)
@@ -115,6 +120,11 @@ class Api(private val http: HttpClient = defaultHttpClient()) {
     suspend inline fun <reified T> postRow(path: String, body: String): T =
         SupabaseJson.decodeFromString<List<T>>(
             request(path = path, method = HttpMethod.Post, body = body, preferRepresentation = true),
+        ).firstOrNull() ?: throw ApiError.Decoding("No row returned")
+
+    suspend inline fun <reified T> upsertRow(path: String, body: String): T =
+        SupabaseJson.decodeFromString<List<T>>(
+            request(path = path, method = HttpMethod.Post, body = body, preferRepresentation = true, mergeDuplicates = true),
         ).firstOrNull() ?: throw ApiError.Decoding("No row returned")
 
     suspend inline fun <reified T> patchRow(path: String, query: List<Pair<String, String>>, body: String): T =

@@ -14,31 +14,40 @@ struct ShareView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Link") {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Found a good read?")
+                        .font(Theme.display(24)).fixedSize(horizontal: false, vertical: true)
+                    Text("Share it with your paper.")
+                        .font(.system(size: 15)).lineSpacing(3).foregroundColor(Theme.ink2)
+                    Text("LINK").font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2)
                     TextField("https://…", text: $url)
                         .focused($editing)
                         .keyboardType(.URL)
-                        .autocapitalization(.none)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
                         .textContentType(.URL)
-                }
-                Section("Your comment") {
-                    TextField("Optional", text: $comment)
-                        .focused($editing)
-                }
-                if let result {
-                    Section {
+                        .padding(16).background(Theme.raised, in: RoundedRectangle(cornerRadius: 14))
+                    Text("YOUR COMMENT").font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2)
+                    TextField("Add a thought (optional)", text: $comment, axis: .vertical)
+                        .focused($editing).lineLimit(2...4)
+                        .padding(16).background(Theme.raised, in: RoundedRectangle(cornerRadius: 14))
+                    if let result {
                         Text(result).font(.system(size: 15, weight: .semibold))
                     }
-                }
-                Section {
-                    Button(busy ? "Posting…" : "Post") { Task { await post() } }
-                        .disabled(busy || url.trimmed.isEmpty)
-                    if result != nil {
-                        Button("Done") { dismiss() }
+                    Button { Task { await post() } } label: {
+                        Text(busy ? "Posting…" : "Share with your paper")
+                            .font(.system(size: 16, weight: .semibold))
+                            .frame(maxWidth: .infinity, minHeight: 48)
                     }
+                    .buttonStyle(.plain)
+                    .background(Theme.ink, in: Capsule()).foregroundColor(Theme.paper)
+                    .opacity(busy || url.trimmed.isEmpty ? 0.4 : 1)
+                    .disabled(busy || url.trimmed.isEmpty)
+                    if result != nil { Button("Done") { dismiss() } }
                 }
+                .padding(24)
             }
+            .background(Theme.paper)
             .navigationTitle("Share a link")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -47,6 +56,8 @@ struct ShareView: View {
                 }
             }
         }
+        .presentationDetents([.height(580), .large])
+        .presentationDragIndicator(.visible)
     }
 
     private func post() async {

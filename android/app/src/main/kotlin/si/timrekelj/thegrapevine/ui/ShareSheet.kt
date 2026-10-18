@@ -53,13 +53,14 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit) {
             Modifier.fillMaxWidth().imePadding().padding(horizontal = 20.dp).padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text("Share a link", style = display(24))
+            Text("Share a link", style = display(28))
+            Text("Found something worth reading? Bring it to the table.", style = BodyStyle.copy(color = Grape.ink2))
             Text("LINK", style = LabelStyle)
             PaperField(url, { url = it }, "https://…", keyboardType = KeyboardType.Uri)
             Text("YOUR COMMENT", style = LabelStyle)
             PaperField(comment, { comment = it }, "Optional", singleLine = false)
             result?.let { Text(it, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Grape.ink) }
-            InkButton(if (busy) "Posting…" else "Post", enabled = !busy && url.isNotBlank()) {
+            InkButton(if (busy) "Posting…" else "Share with your paper", enabled = !busy && url.isNotBlank()) {
                 val group = app.group ?: return@InkButton
                 scope.launch {
                     busy = true

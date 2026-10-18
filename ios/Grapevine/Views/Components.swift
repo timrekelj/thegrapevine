@@ -20,8 +20,8 @@ struct Stamp: View {
             .font(.system(size: 13, weight: .semibold))
             .padding(.horizontal, 8).padding(.vertical, 3)
             .background(Theme.pink).foregroundColor(Theme.onPink)
-            .clipShape(RoundedRectangle(cornerRadius: 2))
-            .rotationEffect(.degrees(-2))
+            .clipShape(RoundedRectangle(cornerRadius: 5))
+
     }
 }
 
@@ -35,24 +35,29 @@ struct PlateView: View {
     @State private var failed = false
 
     var body: some View {
-        SwiftUI.Group {
-            if let image, !failed {
-                Image(uiImage: image)
-                    .resizable().scaledToFill()
-            } else {
-                Rectangle()
-                    .fill(Theme.ink.opacity(0.08))
-                    .overlay(
-                        Text(label)
-                            .font(Theme.display(13))
-                            .foregroundColor(Theme.ink)
-                            .multilineTextAlignment(.center)
-                            .padding(6)
-                    )
+        GeometryReader { geometry in
+            SwiftUI.Group {
+                if let image, !failed {
+                    Image(uiImage: image)
+                        .resizable().scaledToFill()
+                } else {
+                    Rectangle()
+                        .fill(Theme.ink.opacity(0.08))
+                        .overlay(
+                            Text(label)
+                                .font(Theme.display(13))
+                                .foregroundColor(Theme.ink)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2).minimumScaleFactor(0.75)
+                                .padding(6)
+                        )
+                }
             }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .clipped()
         }
         .frame(height: height)
-        .clipped()
+        .clipShape(RoundedRectangle(cornerRadius: 10))
         .task(id: url) { await load() }
     }
 

@@ -171,7 +171,7 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit) {
         bottomBar = {
             Surface(color = Grape.raised) {
                 Column(Modifier.navigationBarsPadding().imePadding().padding(horizontal = 12.dp, vertical = 8.dp)) {
-                    store.error?.let { Text(it, fontSize = 12.sp, color = Grape.pink, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) }
+                    store.error?.let { Text(it, fontSize = 12.sp, color = androidx.compose.material3.MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) }
                     if (attachments.isNotEmpty()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             MetaRow(plural(attachments.size, "attachment"), Modifier.padding(start = 8.dp))
@@ -228,14 +228,14 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit) {
             if (story != null) {
                 val readable = store.sources.count { it.extraction_status == "ok" }
                 item {
-                    PlateView(store.sources.firstOrNull { it.image_url != null }?.image_url, store.sources.firstOrNull()?.publisher ?: "The paper", 180.dp)
+                    PlateView(store.sources.firstOrNull { it.image_url != null }?.image_url, store.sources.firstOrNull()?.publisher ?: "The paper", 180.dp, Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 8.dp))
                     Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text((story.category ?: "News").uppercase(), style = LabelStyle, modifier = Modifier.weight(1f))
                             MetaRow("Updated ${timeAgo(story.last_activity_at)}")
                         }
                         Text(story.title, style = display(30))
-                        Text(story.summary, style = BodyStyle)
+                        Text(story.summary, style = BodyStyle.copy(color = Grape.ink2, lineHeight = 25.sp))
                         MetaRow(
                             "Summary from $readable of ${store.sources.size} sources, newest first · What changed",
                             Modifier.clickable { showHistory = true },
@@ -254,12 +254,11 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit) {
                         Modifier.padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("Something off?", fontSize = 13.sp, color = Grape.ink2, modifier = Modifier.padding(start = 8.dp))
-                        TextButton(onClick = { reportTarget = "summary" }) { Text("Report the summary", fontSize = 13.sp, color = Grape.ink, fontWeight = FontWeight.SemiBold) }
-                        Text("·", color = Grape.ink2)
-                        TextButton(onClick = { reportTarget = "category" }) { Text("wrong category", fontSize = 13.sp, color = Grape.ink, fontWeight = FontWeight.SemiBold) }
+                        TextButton(onClick = { reportTarget = "summary" }) { Text("Report summary", fontSize = 13.sp, color = Grape.ink, fontWeight = FontWeight.SemiBold) }
+                        TextButton(onClick = { reportTarget = "category" }) { Text("Wrong category", fontSize = 13.sp, color = Grape.ink, fontWeight = FontWeight.SemiBold) }
                     }
-                    Box(Modifier.padding(horizontal = 20.dp).fillMaxWidth().height(1.5.dp).background(Grape.ink))
+                    Box(Modifier.padding(horizontal = 20.dp).fillMaxWidth().height(0.5.dp).background(Grape.rule))
+                    Text("Around the table", style = display(24), modifier = Modifier.padding(start = 20.dp, top = 24.dp, bottom = 8.dp))
                 }
 
                 val timeline = (store.sources.map { Entry.FromSource(it) } + store.messages.map { Entry.FromMessage(it) })
@@ -333,7 +332,7 @@ private fun readAttachment(context: Context, uri: Uri): Attachment {
 @Composable
 private fun SourceClip(source: Source) {
     Column(
-        Modifier.width(150.dp).border(1.dp, Grape.ink, RoundedCornerShape(2.dp)).padding(8.dp),
+        Modifier.width(150.dp).background(Grape.raised, RoundedCornerShape(12.dp)).border(0.5.dp, Grape.rule, RoundedCornerShape(12.dp)).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         PlateView(source.image_url, source.publisher, 64.dp, Modifier.width(64.dp))
@@ -356,8 +355,8 @@ private fun SourceEntry(source: Source, store: StoryState, onOpen: (String) -> U
         source.submitter_comment?.takeIf { it.isNotEmpty() }?.let { Text(it, style = BodyStyle) }
         Column(
             Modifier.fillMaxWidth()
-                .background(Grape.raised, RoundedCornerShape(2.dp))
-                .border(1.dp, Grape.ink, RoundedCornerShape(2.dp))
+                .background(Grape.raised, RoundedCornerShape(12.dp))
+                .border(0.5.dp, Grape.rule, RoundedCornerShape(12.dp))
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -478,7 +477,7 @@ private fun ReportSheet(store: StoryState, initialTarget: String, onDismiss: () 
                     if (success) onDismiss()
                 }
             }
-            store.error?.let { Text(it, fontSize = 12.sp, color = Grape.pink) }
+            store.error?.let { Text(it, fontSize = 12.sp, color = androidx.compose.material3.MaterialTheme.colorScheme.error) }
         }
     }
 }

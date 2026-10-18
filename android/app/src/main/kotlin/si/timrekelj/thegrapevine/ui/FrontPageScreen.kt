@@ -16,11 +16,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.border
+import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -59,7 +61,7 @@ fun FrontPageScreen(app: AppState, paper: PaperState, onOpen: (String) -> Unit) 
             modifier = Modifier.fillMaxSize(),
         ) {
             LazyColumn(Modifier.fillMaxSize()) {
-                item { Masthead(app.group?.name ?: "The paper") }
+                item { Masthead(app.group?.name ?: "The paper", onShare = { sharing = true }) }
                 val error = paper.error
                 val stories = paper.stories
                 when {
@@ -77,6 +79,9 @@ fun FrontPageScreen(app: AppState, paper: PaperState, onOpen: (String) -> Unit) 
                     stories.isNotEmpty() -> {
                         item(key = stories.first().id) {
                             LeadStory(stories.first(), app.members, paper.seenAt, Modifier.clickable { onOpen(stories.first().id) })
+                        }
+                        if (stories.size > 1) item {
+                            Text("MORE FROM YOUR FRIENDS", style = LabelStyle, modifier = Modifier.padding(start = 24.dp, top = 28.dp, bottom = 4.dp))
                         }
                         items(stories.drop(1), key = { it.id }) { story ->
                             StoryLine(story, paper.seenAt, Modifier.clickable { onOpen(story.id) })
@@ -96,13 +101,6 @@ fun FrontPageScreen(app: AppState, paper: PaperState, onOpen: (String) -> Unit) 
                 }
             }
         }
-        FloatingActionButton(
-            onClick = { sharing = true },
-            containerColor = Grape.ink,
-            contentColor = Grape.paper,
-            shape = CircleShape,
-            modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
-        ) { Icon(Icons.Filled.Add, contentDescription = "Share a link") }
     }
 
     if (sharing) {
@@ -114,19 +112,23 @@ fun FrontPageScreen(app: AppState, paper: PaperState, onOpen: (String) -> Unit) 
 }
 
 @Composable
-private fun Masthead(name: String) {
+private fun Masthead(name: String, onShare: () -> Unit) {
     Column(
-        Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        Modifier.fillMaxWidth().padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        Text("YOUR PRIVATE PAPER", style = LabelStyle)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(name, style = display(32), modifier = Modifier.weight(1f))
+            IconButton(onClick = onShare, modifier = Modifier.size(48.dp).background(Grape.ink, CircleShape)) {
+                Icon(Icons.Filled.Add, contentDescription = "Share a link", tint = Grape.paper)
+            }
+        }
         Text(
-            DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.getDefault()).format(LocalDate.now()).uppercase(),
-            style = LabelStyle,
+            DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.getDefault()).format(LocalDate.now()),
+            style = MetaStyle,
         )
-        Text(name, style = display(28))
     }
-    Box(Modifier.padding(horizontal = 20.dp).fillMaxWidth().height(1.5.dp).background(Grape.ink))
 }
 
 private fun isNew(createdAt: Instant, seenAt: Instant?) = seenAt == null || seenAt.isBefore(createdAt)
@@ -147,21 +149,24 @@ private fun LeadStory(story: StoryRow, members: List<Member>, seenAt: Instant?, 
     val newMessages = story.messages.count { isNew(it.created_at, seenAt) }
     val submitters = members.filter { member -> story.sources.any { it.submitted_by == member.user_id } }.map { it.profiles }
 
-    Column(modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        PlateView(story.imageUrl(), story.sources.firstOrNull()?.publisher ?: "The paper", 200.dp)
+    Column(
+        modifier.fillMaxWidth().padding(horizontal = 20.dp)
+            .background(Grape.raised, RoundedCornerShape(18.dp))
+            .border(0.5.dp, Grape.rule, RoundedCornerShape(18.dp)).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        PlateView(story.imageUrl(), story.sources.firstOrNull()?.publisher ?: "The paper", 172.dp)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Text((story.category ?: "News").uppercase(), style = LabelStyle)
             if (newSources > 0) Stamp("+${plural(newSources, "source")}")
         }
-        Text(story.title.ifEmpty { "A link from the table" }, style = display(34))
+        Text(story.title.ifEmpty { "A link from the table" }, style = display(28))
         if (story.summary.isNotEmpty()) Text(story.summary, style = BodyStyle.copy(color = Grape.ink2))
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            MetaRow(plural(story.sources.size, "source"))
-            MetaRow(plural(story.messages.size, "message"))
-            if (newMessages > 0) NewDot(newMessages)
-            Spacer(Modifier.weight(1f))
-            submitters.take(4).forEach { Monogram(it, 24.dp) }
+            MetaRow("${plural(story.sources.size, "source")} · ${plural(story.messages.size, "message")}", Modifier.weight(1f))
+            submitters.take(2).forEach { Monogram(it, 24.dp) }
         }
+        if (newMessages > 0) NewDot(newMessages)
     }
 }
 
@@ -169,18 +174,17 @@ private fun LeadStory(story: StoryRow, members: List<Member>, seenAt: Instant?, 
 private fun StoryLine(story: StoryRow, seenAt: Instant?, modifier: Modifier) {
     val newCount = story.sources.count { isNew(it.created_at, seenAt) } + story.messages.count { isNew(it.created_at, seenAt) }
     Column(modifier) {
-        Row(Modifier.fillMaxWidth().padding(20.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text((story.category ?: "News").uppercase(), style = LabelStyle)
                 Text(story.title.ifEmpty { "A link from the table" }, style = display(21))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    MetaRow(plural(story.sources.size, "source"))
-                    MetaRow(plural(story.messages.size, "message"))
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    MetaRow("${plural(story.sources.size, "source")} · ${plural(story.messages.size, "message")}")
                     if (newCount > 0) NewDot(newCount)
                 }
             }
             PlateView(story.imageUrl(), story.sources.firstOrNull()?.publisher ?: "?", 72.dp, Modifier.width(72.dp))
         }
-        HorizontalDivider(color = Grape.rule, thickness = 0.5.dp)
+        HorizontalDivider(color = Grape.rule, thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 24.dp))
     }
 }

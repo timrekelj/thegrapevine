@@ -32,7 +32,7 @@ enum API {
         return components.url!
     }
 
-    private static func request(path: String, method: String, query: [URLQueryItem] = [], body: (any Encodable)? = nil, file: Data? = nil, contentType: String = "application/json", preferRepresentation: Bool = false) async throws -> Data {
+    private static func request(path: String, method: String, query: [URLQueryItem] = [], body: (any Encodable)? = nil, file: Data? = nil, contentType: String = "application/json", preferRepresentation: Bool = false, mergeDuplicates: Bool = false) async throws -> Data {
         if !path.hasPrefix("auth/"), let stored = session, JWT.isExpired(stored.accessToken) {
             if refreshTask == nil { refreshTask = Task { try await refreshSession(refreshToken: stored.refreshToken) } }
             defer { refreshTask = nil }
@@ -47,9 +47,9 @@ enum API {
         if let session {
             request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
         }
-        if preferRepresentation {
-            request.setValue("return=representation", forHTTPHeaderField: "Prefer")
-        }
+        let preferences = [preferRepresentation ? "return=representation" : nil,
+                           mergeDuplicates ? "resolution=merge-duplicates" : nil].compactMap { $0 }
+        if !preferences.isEmpty { request.setValue(preferences.joined(separator: ","), forHTTPHeaderField: "Prefer") }
         if let body {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = try JSONEncoder().encode(body)
@@ -88,6 +88,13 @@ enum API {
 
     static func postRow<T: Decodable>(_ type: T.Type, path: String, body: any Encodable) async throws -> T {
         let data = try await request(path: path, method: "POST", body: body, preferRepresentation: true)
+        let rows = try decode([T].self, data)
+        guard let row = rows.first else { throw APIError.decoding("No row returned") }
+        return row
+    }
+
+    static func upsertRow<T: Decodable>(_ type: T.Type, path: String, body: any Encodable) async throws -> T {
+        let data = try await request(path: path, method: "POST", body: body, preferRepresentation: true, mergeDuplicates: true)
         let rows = try decode([T].self, data)
         guard let row = rows.first else { throw APIError.decoding("No row returned") }
         return row
@@ -158,6 +165,18 @@ enum API {
     static func exchangeCode(_ code: String, verifier: String) async throws -> Session {
         session(from: try decode(TokenResponse.self,
             try await request(path: "auth/v1/token", method: "POST", query: [URLQueryItem(name: "grant_type", value: "pkce")], body: PKCEBody(auth_code: code, code_verifier: verifier))))
+    }
+
+    struct AppleTokenBody: Encodable {
+        let provider = "apple"
+        let id_token: String
+        let nonce: String
+    }
+
+    static func signInWithApple(idToken: String, nonce: String) async throws -> Session {
+        session(from: try decode(TokenResponse.self,
+            try await request(path: "auth/v1/token", method: "POST", query: [URLQueryItem(name: "grant_type", value: "id_token")],
+                              body: AppleTokenBody(id_token: idToken, nonce: nonce))))
     }
 
     struct TokenResponse: Codable {

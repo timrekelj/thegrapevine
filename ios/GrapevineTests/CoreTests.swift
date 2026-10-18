@@ -17,6 +17,26 @@ final class CoreTests: XCTestCase {
         }
     }
 
+    @MainActor
+    func testAppleNonceAndTokenBody() throws {
+        XCTAssertEqual(OAuth.nonceHash("abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
+        let body = try JSONEncoder().encode(API.AppleTokenBody(id_token: "apple-token", nonce: "raw-nonce"))
+        let object = try JSONSerialization.jsonObject(with: body) as? [String: String]
+        XCTAssertEqual(object, ["provider": "apple", "id_token": "apple-token", "nonce": "raw-nonce"])
+    }
+
+    func testOAuthPreservesProviderErrors() {
+        for suffix in ["?error=server_error&error_description=Apple%20rejected%20the%20request&code=ignored",
+                       "#error=server_error&error_description=Apple%20rejected%20the%20request"] {
+            XCTAssertThrowsError(try OAuth.code(from: URL(string: "grapevine://auth/callback" + suffix)!)) {
+                XCTAssertEqual($0.localizedDescription, "Apple rejected the request")
+            }
+        }
+        XCTAssertThrowsError(try OAuth.code(from: URL(string: "https://evil.example/callback?error=denied&error_description=Untrusted")!)) {
+            XCTAssertEqual($0.localizedDescription, "Sign-in could not be completed. Please try again.")
+        }
+    }
+
     func testLeadIsNewestThenDiscussionRanksTheRest() {
         let now = Date()
         func row(age: TimeInterval, count: Int) -> StoryRow {
@@ -43,6 +63,18 @@ final class CoreTests: XCTestCase {
         let fractional = try JSONDecoder.supabase.decode(Date.self, from: Data("\"2026-10-13T12:00:00.123456+00:00\"".utf8))
         let plain = try JSONDecoder.supabase.decode(Date.self, from: Data("\"2026-10-13T12:00:00Z\"".utf8))
         XCTAssertEqual(fractional.timeIntervalSince(plain), 0.123456, accuracy: 0.001)
+    }
+
+    func testNotificationPreferencesMatchServerDefaultsAndRoundTrip() throws {
+        var preferences = NotificationPreferences(user_id: UUID(), group_id: UUID())
+        XCTAssertTrue(preferences.new_stories && preferences.direct_replies && preferences.mentions)
+        XCTAssertFalse(preferences.muted)
+        preferences.new_stories = false
+        preferences.muted = true
+        let data = try JSONEncoder().encode(preferences)
+        XCTAssertEqual(try JSONDecoder().decode(NotificationPreferences.self, from: data), preferences)
+        let body = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        XCTAssertEqual(Set(body.keys), ["user_id", "group_id", "new_stories", "direct_replies", "mentions", "muted"])
     }
 
     func testSessionRoundTrip() throws {

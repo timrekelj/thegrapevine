@@ -83,6 +83,12 @@ final class AppState {
     }
 
     @MainActor
+    func signInWithApple(idToken: String, nonce: String) async throws {
+        error = nil
+        try await finishSignIn(try await API.signInWithApple(idToken: idToken, nonce: nonce))
+    }
+
+    @MainActor
     private func finishSignIn(_ session: Session) async throws {
         try save(session)
         self.session = session
@@ -136,6 +142,24 @@ final class AppState {
             query: [URLQueryItem(name: "id", value: "eq.\(session.userId)")],
             body: ["display_name": name, "monogram": String(name.prefix(1)).uppercased()])
         profile = updated
+        members = members.map { member in
+            member.user_id == updated.id ? Member(user_id: member.user_id, role: member.role, profiles: updated) : member
+        }
+    }
+
+    @MainActor
+    func loadNotificationPreferences() async throws -> NotificationPreferences {
+        guard let session, let group else { throw APIError.unauthorized }
+        return try await API.getOne(NotificationPreferences.self, path: "rest/v1/notification_preferences", query: [
+            URLQueryItem(name: "user_id", value: "eq.\(session.userId)"),
+            URLQueryItem(name: "group_id", value: "eq.\(group.id)"),
+        ]) ?? NotificationPreferences(user_id: session.userId, group_id: group.id)
+    }
+
+    @MainActor
+    func saveNotificationPreferences(_ preferences: NotificationPreferences) async throws -> NotificationPreferences {
+        guard preferences.user_id == session?.userId, preferences.group_id == group?.id else { throw APIError.unauthorized }
+        return try await API.upsertRow(NotificationPreferences.self, path: "rest/v1/notification_preferences", body: preferences)
     }
 
     struct NewGroupBody: Encodable { let name: String; let created_by: UUID }

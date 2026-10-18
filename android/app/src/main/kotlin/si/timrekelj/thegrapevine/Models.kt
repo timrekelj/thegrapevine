@@ -11,6 +11,16 @@ data class Profile(
 )
 
 @Serializable
+data class NotificationPreferences(
+    val user_id: String,
+    val group_id: String,
+    val new_stories: Boolean = true,
+    val direct_replies: Boolean = true,
+    val mentions: Boolean = true,
+    val muted: Boolean = false,
+)
+
+@Serializable
 data class Group(
     val id: String,
     val name: String,

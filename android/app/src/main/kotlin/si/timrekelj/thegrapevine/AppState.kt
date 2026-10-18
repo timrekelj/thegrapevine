@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.async
 
 /** Mirrors `AppState.swift`: who is signed in, and which paper they belong to. */
 class AppState(
@@ -99,7 +100,8 @@ class AppState(
     /** Signs in with the code from the email. */
     suspend fun verifyCode(email: String, code: String) {
         error = null
-        finishSignIn(api.verifyOtp(email, code))
+        // Finish account loading even after sign-in removes the login screen.
+        viewModelScope.async { finishSignIn(api.verifyOtp(email, code)) }.await()
     }
 
     fun startOAuth(provider: AuthProvider): String {
@@ -112,9 +114,12 @@ class AppState(
     private suspend fun finishSignIn(verified: Session) {
         error = null
         store.save(verified)
-        adopt(verified)
-        Telemetry.capture("signed_in")
-        loadProfileAndGroup()
+        checked = false
+        try {
+            adopt(verified)
+            Telemetry.capture("signed_in")
+            loadProfileAndGroup()
+        } finally { checked = true }
     }
 
     fun signOut() {
@@ -171,6 +176,21 @@ class AppState(
             encodeBody(DisplayNameBody(display_name = trimmed, monogram = trimmed.take(1).uppercase())),
         )
         profile = updated
+        members = members.map { if (it.user_id == updated.id) it.copy(profiles = updated) else it }
+    }
+
+    suspend fun loadNotificationPreferences(): NotificationPreferences {
+        val current = session ?: throw ApiError.Unauthorized
+        val paper = group ?: throw ApiError.Unauthorized
+        return api.getOne<NotificationPreferences>(
+            "rest/v1/notification_preferences",
+            listOf("user_id" to "eq.${current.userId}", "group_id" to "eq.${paper.id}"),
+        ) ?: NotificationPreferences(current.userId, paper.id)
+    }
+
+    suspend fun saveNotificationPreferences(preferences: NotificationPreferences): NotificationPreferences {
+        if (preferences.user_id != session?.userId || preferences.group_id != group?.id) throw ApiError.Unauthorized
+        return api.upsertRow("rest/v1/notification_preferences", encodeBody(preferences))
     }
 
     suspend fun createGroup(name: String) {

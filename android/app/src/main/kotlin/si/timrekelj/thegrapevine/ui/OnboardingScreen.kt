@@ -1,6 +1,10 @@
 package si.timrekelj.thegrapevine.ui
 
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -50,23 +54,38 @@ fun OnboardingScreen(app: AppState) {
     }
 
     Column(
-        Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        Modifier.fillMaxSize().safeDrawingPadding().imePadding().verticalScroll(rememberScrollState()).padding(24.dp).padding(top = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+        horizontalAlignment = Alignment.Start,
     ) {
-        Text("Welcome to the paper", style = display(24))
+        Text("MAKE YOURSELF AT HOME", style = LabelStyle)
+        Text("Your people.\nYour paper.", style = display(34))
+        Text("A small place to share what’s worth reading.", style = BodyStyle.copy(color = Grape.ink2))
+        Text("YOUR NAME", style = LabelStyle)
         PaperField(displayName, { displayName = it }, "Your name")
-        Text("Start a paper", style = display(17))
-        PaperField(groupName, { groupName = it }, "Name your paper")
-        InkButton(if (busy) "Starting…" else "Start the paper", enabled = !busy && groupName.isNotBlank()) {
-            run { app.createGroup(groupName.trim()) }
+        Column(
+            Modifier.fillMaxWidth().background(Grape.raised, RoundedCornerShape(18.dp)).padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text("Start a paper", style = display(23))
+            Text("Give your group a name. Invite friends next.", style = MetaStyle)
+            PaperField(groupName, { groupName = it }, "Name your paper")
+            InkButton(if (busy) "Starting…" else "Start the paper", enabled = !busy && groupName.isNotBlank()) {
+                run { app.createGroup(groupName.trim()) }
+            }
         }
-        Text("or join a friend's paper", fontSize = 13.sp, color = Grape.ink2)
-        PaperField(inviteCode, { inviteCode = it }, "Invite code")
-        InkButton("Join with a code", enabled = !busy && inviteCode.isNotBlank()) {
-            run { app.joinGroup(inviteCode) }
+        Text("ALREADY HAVE AN INVITATION?", style = LabelStyle)
+        Column(
+            Modifier.fillMaxWidth().background(Grape.raised, RoundedCornerShape(18.dp)).padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text("Join your friends", style = display(23))
+            PaperField(inviteCode, { inviteCode = it }, "Invite code")
+            InkButton("Join with a code", enabled = !busy && inviteCode.isNotBlank()) {
+                run { app.joinGroup(inviteCode) }
+            }
         }
-        localError?.let { Text(it, fontSize = 13.sp, color = Grape.pink) }
+        localError?.let { Text(it, fontSize = 13.sp, color = androidx.compose.material3.MaterialTheme.colorScheme.error) }
         app.error?.let { error ->
             Text(error, fontSize = 15.sp, color = Grape.ink)
             TextButton(onClick = { scope.launch { app.loadProfileAndGroup() } }) {
