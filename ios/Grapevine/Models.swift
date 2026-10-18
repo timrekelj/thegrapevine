@@ -8,6 +8,15 @@ struct Profile: Codable, Identifiable, Hashable {
     let monogram: String
 }
 
+struct NotificationPreferences: Codable, Equatable {
+    let user_id: UUID
+    let group_id: UUID
+    var new_stories = true
+    var direct_replies = true
+    var mentions = true
+    var muted = false
+}
+
 struct Group: Codable, Identifiable {
     let id: UUID
     let name: String

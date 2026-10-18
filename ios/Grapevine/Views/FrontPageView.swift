@@ -10,17 +10,29 @@ struct FrontPageView: View {
         NavigationStack(path: $path) {
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    VStack(spacing: 10) {
-                        Text(Date.now, format: .dateTime.weekday(.wide).day().month(.wide).year())
-                            .font(.system(size: 11, weight: .semibold))
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("YOUR PRIVATE PAPER")
+                            .font(.system(size: 10, weight: .bold)).tracking(2)
                             .foregroundColor(Theme.ink2)
-                            .textCase(.uppercase)
-                        Text(app.group?.name ?? "The paper")
-                            .font(Theme.display(28))
+                        HStack(alignment: .center, spacing: 16) {
+                            Text(app.group?.name ?? "The paper")
+                                .font(Theme.display(32))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Button { share = true } label: {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 20, weight: .medium))
+                                    .frame(width: 48, height: 48)
+                                    .background(Theme.ink, in: Circle())
+                                    .foregroundColor(Theme.paper)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Share a link")
+                        }
+                        Text(Date.now, format: .dateTime.weekday(.wide).day().month(.wide))
+                            .font(.system(size: 12)).foregroundColor(Theme.ink2)
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 20)
-                    Rectangle().fill(Theme.ink).frame(height: 1.5).padding(.horizontal, 20)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(24)
 
                     if let error = paper.error {
                         Text(error).font(.callout).padding()
@@ -32,6 +44,13 @@ struct FrontPageView: View {
                             LeadStoryView(story: lead, members: app.members, seenAt: paper.seenAt)
                         }
                         .buttonStyle(.plain)
+                        if paper.stories.count > 1 {
+                        Text("MORE FROM YOUR FRIENDS")
+                            .font(.system(size: 10, weight: .bold)).tracking(1.5)
+                            .foregroundColor(Theme.ink2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 24).padding(.top, 28).padding(.bottom, 4)
+                        }
                         ForEach(paper.stories.dropFirst()) { story in
                             NavigationLink(value: story.id) {
                                 StoryRowView(story: story, members: app.members, seenAt: paper.seenAt)
@@ -41,7 +60,7 @@ struct FrontPageView: View {
                     } else {
                         VStack(spacing: 12) {
                             Text("Share the first link to start the paper.")
-                                .font(Theme.display(21))
+                                .font(Theme.display(21)).fixedSize(horizontal: false, vertical: true)
                                 .multilineTextAlignment(.center)
                             Button("Share a link") { share = true }
                                 .buttonStyle(.plain)
@@ -62,29 +81,6 @@ struct FrontPageView: View {
             .task(id: app.group?.id) { await paper.load(app: app) }
             .onChange(of: app.pendingStoryId, initial: true) {
                 if let id = app.pendingStoryId { path = [id]; app.pendingStoryId = nil }
-            }
-        }
-        .overlay {
-            if path.isEmpty {
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        Button { share = true } label: {
-                            Image(systemName: "plus")
-                                .font(.system(size: 22, weight: .medium))
-                                .frame(width: 56, height: 56)
-                                .contentShape(Circle())
-                        }
-                        .buttonStyle(.plain)
-                        .glassEffect(.regular.interactive(), in: .circle)
-                        .tint(Theme.ink)
-                        .accessibilityLabel("Share a link")
-                    }
-                    .padding(.trailing, 20)
-                    .padding(.bottom, 24)
-                }
-                .ignoresSafeArea(.container, edges: .bottom)
             }
         }
     }
@@ -112,7 +108,7 @@ struct LeadStoryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            PlateView(url: imageURL, label: story.sources.first?.publisher ?? "The paper", height: 200)
+            PlateView(url: imageURL, label: story.sources.first?.publisher ?? "The paper", height: 172)
             HStack {
                 Text((story.category ?? "News").uppercased())
                     .font(.system(size: 11, weight: .semibold))
@@ -122,26 +118,30 @@ struct LeadStoryView: View {
                 }
             }
             Text(story.title.isEmpty ? "A link from the table" : story.title)
-                .font(Theme.display(34))
+                .font(Theme.display(28)).fixedSize(horizontal: false, vertical: true)
             if !story.summary.isEmpty {
                 Text(story.summary)
-                    .font(.subheadline)
+                    .font(.system(size: 15)).lineSpacing(4).fixedSize(horizontal: false, vertical: true)
                     .foregroundColor(Theme.ink2)
             }
             HStack(spacing: 12) {
-                MetaRow(text: "\(story.sources.count) source\(story.sources.count == 1 ? "" : "s")")
-                MetaRow(text: "\(story.messages.count) message\(story.messages.count == 1 ? "" : "s")")
-                if newMessages > 0 {
-                    HStack(spacing: 4) {
-                        Circle().fill(Theme.pink).frame(width: 8, height: 8)
-                        MetaRow(text: "\(newMessages) new")
-                    }
-                }
+                MetaRow(text: "\(story.sources.count) source\(story.sources.count == 1 ? "" : "s") · \(story.messages.count) message\(story.messages.count == 1 ? "" : "s")")
+                    .fixedSize(horizontal: false, vertical: true)
                 Spacer()
-                ForEach(submitters.prefix(4)) { Monogram(profile: $0, size: 24) }
+                ForEach(submitters.prefix(2)) { Monogram(profile: $0, size: 24) }
             }
+            if newMessages > 0 {
+                HStack(spacing: 4) {
+                    Circle().fill(Theme.pink).frame(width: 8, height: 8)
+                    MetaRow(text: "\(newMessages) new")
+                }
+            }
+
         }
-        .padding(20)
+        .padding(16)
+        .background(Theme.raised, in: RoundedRectangle(cornerRadius: 18))
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.rule, lineWidth: 0.5))
+        .padding(.horizontal, 20)
     }
 }
 
@@ -159,16 +159,16 @@ struct StoryRowView: View {
     }
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(alignment: .top, spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
                 Text((story.category ?? "News").uppercased())
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(Theme.ink2)
                 Text(story.title.isEmpty ? "A link from the table" : story.title)
-                    .font(Theme.display(21))
-                HStack(spacing: 10) {
-                    MetaRow(text: "\(story.sources.count) source\(story.sources.count == 1 ? "" : "s")")
-                    MetaRow(text: "\(story.messages.count) message\(story.messages.count == 1 ? "" : "s")")
+                    .font(Theme.display(21)).fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 6) {
+                    MetaRow(text: "\(story.sources.count) source\(story.sources.count == 1 ? "" : "s") · \(story.messages.count) message\(story.messages.count == 1 ? "" : "s")")
+                        .fixedSize(horizontal: false, vertical: true)
                     if newCount > 0 {
                         HStack(spacing: 4) {
                             Circle().fill(Theme.pink).frame(width: 8, height: 8)
@@ -181,7 +181,8 @@ struct StoryRowView: View {
             PlateView(url: imageURL, label: story.sources.first?.publisher ?? "?", height: 72)
                 .frame(width: 72)
         }
-        .padding(20)
-        .overlay(alignment: .bottom) { Rectangle().fill(Theme.rule).frame(height: 0.5) }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 20).padding(.horizontal, 24)
+        .overlay(alignment: .bottom) { Rectangle().fill(Theme.rule).frame(height: 0.5).padding(.horizontal, 24) }
     }
 }

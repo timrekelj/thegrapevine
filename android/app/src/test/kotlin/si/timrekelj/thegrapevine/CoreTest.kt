@@ -15,6 +15,18 @@ import java.util.UUID
 /** Ports of `ios/GrapevineTests/CoreTests.swift`. */
 class CoreTest {
     @Test
+    fun notificationPreferencesMatchServerDefaultsAndRoundTrip() {
+        val defaults = NotificationPreferences("user", "group")
+        assertTrue(defaults.new_stories && defaults.direct_replies && defaults.mentions)
+        assertFalse(defaults.muted)
+        val preferences = defaults.copy(new_stories = false, muted = true)
+        val json = encodeBody(preferences)
+        assertEquals(preferences, SupabaseJson.decodeFromString<NotificationPreferences>(json))
+        val body = SupabaseJson.decodeFromString<kotlinx.serialization.json.JsonObject>(json)
+        assertEquals(setOf("user_id", "group_id", "new_stories", "direct_replies", "mentions", "muted"), body.keys)
+    }
+
+    @Test
     fun oauthPKCEAndCallbacks() {
         val verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
         assertEquals("E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", OAuth.challenge(verifier))
@@ -114,7 +126,7 @@ class CoreTest {
     fun plateMapsBlackToInkAndWhiteToPaper() {
         // Black prints as grape ink and white as paper, as in Plate.swift.
         assertArrayEquals(intArrayOf(74, 33, 96), Plate.toInk(0, 0, 0))
-        assertArrayEquals(intArrayOf(239, 238, 233), Plate.toInk(255, 255, 255))
+        assertArrayEquals(intArrayOf(247, 244, 238), Plate.toInk(255, 255, 255))
     }
 
     private fun assertThrows(block: () -> Unit) {

@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -24,10 +24,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import si.timrekelj.thegrapevine.AppState
 import si.timrekelj.thegrapevine.OneSignalManager
 import si.timrekelj.thegrapevine.PaperState
+import si.timrekelj.thegrapevine.R
 
 /** Mirrors `ContentView` in GrapevineApp.swift. */
 @Composable
@@ -90,16 +92,26 @@ private fun MainTabs(app: AppState) {
                 NavigationBarItem(
                     selected = tab == 1,
                     onClick = { tab = 1 },
-                    icon = { Icon(Icons.Filled.Person, contentDescription = null) },
+                    icon = { Icon(painterResource(R.drawable.ic_friends), contentDescription = null) },
                     label = { Text("Friends") },
+                    colors = colors,
+                )
+                NavigationBarItem(
+                    selected = tab == 2,
+                    onClick = { tab = 2 },
+                    icon = { Icon(Icons.Filled.AccountCircle, contentDescription = null) },
+                    label = { Text("Profile") },
                     colors = colors,
                 )
             }
         },
     ) { padding ->
         Box(Modifier.padding(padding)) {
-            if (tab == 0) FrontPageScreen(app, paper, onOpen = { openStory = it })
-            else FriendsScreen(app, onSignOut = { paper.clear() })
+            when (tab) {
+                0 -> FrontPageScreen(app, paper, onOpen = { openStory = it })
+                1 -> FriendsScreen(app)
+                else -> ProfileScreen(app, onSignOut = { paper.clear() })
+            }
         }
     }
 }

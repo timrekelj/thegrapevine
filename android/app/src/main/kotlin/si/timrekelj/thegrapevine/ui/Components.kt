@@ -28,14 +28,13 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -71,8 +70,7 @@ fun Stamp(text: String) {
         fontWeight = FontWeight.SemiBold,
         color = Grape.onPink,
         modifier = Modifier
-            .rotate(-2f)
-            .background(Grape.pink, RoundedCornerShape(2.dp))
+            .background(Grape.pink, RoundedCornerShape(5.dp))
             .padding(horizontal = 8.dp, vertical = 3.dp),
     )
 }
@@ -106,9 +104,11 @@ fun PaperField(
     modifier: Modifier = Modifier.fillMaxWidth(),
     keyboardType: KeyboardType = KeyboardType.Text,
     singleLine: Boolean = true,
+    enabled: Boolean = true,
 ) {
     OutlinedTextField(
         value = value,
+        enabled = enabled,
         onValueChange = onValueChange,
         placeholder = { Text(placeholder, color = Grape.ink2) },
         singleLine = singleLine,
@@ -140,14 +140,14 @@ fun PlateView(url: String?, label: String, height: Dp, modifier: Modifier = Modi
         }
     }
     Box(
-        modifier.height(height).clipToBounds().background(Grape.ink.copy(alpha = 0.08f)),
+        modifier.height(height).clip(RoundedCornerShape(10.dp)).background(Grape.ink.copy(alpha = 0.08f)),
         contentAlignment = Alignment.Center,
     ) {
         val bitmap: ImageBitmap? = image
         if (bitmap != null) {
             Image(bitmap, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.matchParentSize())
         } else {
-            Text(label, style = display(13), textAlign = TextAlign.Center, modifier = Modifier.padding(6.dp))
+            Text(label, style = display(13), textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(6.dp))
         }
     }
 }

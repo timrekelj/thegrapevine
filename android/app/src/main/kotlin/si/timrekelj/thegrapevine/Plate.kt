@@ -20,9 +20,9 @@ object Plate {
     private const val INK_R = 74f
     private const val INK_G = 33f
     private const val INK_B = 96f
-    private const val PAPER_R = 239f
-    private const val PAPER_G = 238f
-    private const val PAPER_B = 233f
+    private const val PAPER_R = 247f
+    private const val PAPER_G = 244f
+    private const val PAPER_B = 238f
 
     /** 4x5 row-major, in Android's `ColorMatrixColorFilter` scale (translation 0..255). */
     val channels: FloatArray

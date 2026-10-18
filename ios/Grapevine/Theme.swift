@@ -3,13 +3,14 @@ import CoreImage
 import CoreImage.CIFilterBuiltins
 
 enum Theme {
-    static let paper = Color(hex: 0xEFEEE9)
-    static let raised = Color(hex: 0xF8F7F3)
+    static let paper = Color(hex: 0xF7F4EE)
+    static let raised = Color(hex: 0xFFFDF9)
     static let ink = Color(hex: 0x4A2160)
-    static let ink2 = Color(hex: 0x6E5280)
+    static let ink2 = Color(hex: 0x75657C)
     static let pink = Color(hex: 0xFF6AA6)
+    static let error = Color(hex: 0x9A3149)
     static let onPink = Color(hex: 0x2E1340)
-    static let rule = Color(hex: 0x4A2160).opacity(0.30)
+    static let rule = Color(hex: 0x4A2160).opacity(0.16)
 
     static func display(_ size: CGFloat) -> Font { .custom("Gloock", size: size) }
 }
@@ -33,7 +34,7 @@ enum Plate {
         let ink = CIFilter.falseColor()
         ink.inputImage = filter.outputImage
         ink.color0 = CIColor(red: 0x4A / 255, green: 0x21 / 255, blue: 0x60 / 255)
-        ink.color1 = CIColor(red: 0xEF / 255, green: 0xEE / 255, blue: 0xE9 / 255)
+        ink.color1 = CIColor(red: 0xF7 / 255, green: 0xF4 / 255, blue: 0xEE / 255)
         guard let output = ink.outputImage,
               let printed = CIContext().createCGImage(output, from: output.extent) else { return image }
         return UIImage(cgImage: printed)

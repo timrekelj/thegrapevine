@@ -53,6 +53,7 @@ struct StoryView: View {
             LazyVStack(alignment: .leading, spacing: 0) {
                 if let story = store.story {
                     PlateView(url: heroURL, label: store.sources.first?.publisher ?? "The paper", height: 180)
+                        .padding(.horizontal, 20).padding(.top, 8)
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
                             Text((story.category ?? "News").uppercased())
@@ -62,7 +63,7 @@ struct StoryView: View {
                             MetaRow(text: "Updated \(timeAgo(story.last_activity_at))")
                         }
                         Text(story.title).font(Theme.display(30))
-                        Text(story.summary).font(.subheadline)
+                        Text(story.summary).font(.system(size: 16)).lineSpacing(5).foregroundColor(Theme.ink2)
                         Button { showHistory = true } label: {
                             MetaRow(text: "Summary from \(readableSources) of \(store.sources.count) sources, newest first · What changed")
                         }
@@ -78,17 +79,17 @@ struct StoryView: View {
                     }
                     .padding(.vertical, 8)
 
-                    HStack(spacing: 8) {
-                        Text("Something off?").font(.system(size: 13)).foregroundColor(Theme.ink2)
-                        Button("Report the summary") { reportTarget = "summary"; showReport = true }
+                    HStack(spacing: 12) {
+                        Button("Report summary") { reportTarget = "summary"; showReport = true }
                             .font(.system(size: 13, weight: .semibold)).foregroundColor(Theme.ink)
-                        Text("·").foregroundColor(Theme.ink2)
-                        Button("wrong category") { reportTarget = "category"; showReport = true }
+                        Button("Wrong category") { reportTarget = "category"; showReport = true }
                             .font(.system(size: 13, weight: .semibold)).foregroundColor(Theme.ink)
                     }
                     .padding(.horizontal, 20).padding(.vertical, 10)
 
-                    Rectangle().fill(Theme.ink).frame(height: 1.5).padding(.horizontal, 20)
+                    Rectangle().fill(Theme.rule).frame(height: 0.5).padding(.horizontal, 20)
+                    Text("Around the table").font(Theme.display(24))
+                        .padding(.horizontal, 20).padding(.top, 24).padding(.bottom, 8)
 
                     ForEach(dayGroups, id: \.0) { day, entries in
                         Text(dayLabel(day))
@@ -216,9 +217,13 @@ struct StoryView: View {
         }
         .sheet(isPresented: $showReport) {
             ReportSheet(store: store, target: $reportTarget, note: $reportNote)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showHistory) {
             HistorySheet(history: store.history)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
     }
 }
@@ -292,8 +297,8 @@ struct SourceEntryView: View {
             }
             .padding(12)
             .background(Theme.raised)
-            .clipShape(RoundedRectangle(cornerRadius: 2))
-            .overlay(RoundedRectangle(cornerRadius: 2).stroke(Theme.ink, lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.rule, lineWidth: 0.5))
         }
         .padding(.horizontal, 20).padding(.vertical, 10)
     }
@@ -339,23 +344,26 @@ struct MessageEntryView: View {
                 MessageMediaView(media: media)
             }
             HStack(spacing: 6) {
-                ForEach(Self.emojis, id: \.self) { emoji in
-                    let count = message.reactions?.filter { $0.emoji == emoji }.count ?? 0
-                    let mine = message.reactions?.contains { $0.emoji == emoji && $0.user_id == userId } ?? false
-                    Button {
-                        Task { await store.toggleReaction(message: message, emoji: emoji) }
-                    } label: {
-                        Text(count > 0 ? "\(emoji) \(count)" : emoji)
-                            .font(.system(size: 13))
-                            .padding(.horizontal, 8).padding(.vertical, 4)
-                            .background(mine ? Theme.ink : Color.clear)
-                            .foregroundColor(mine ? Theme.paper : Theme.ink)
-                            .clipShape(Capsule())
-                            .overlay(Capsule().stroke(mine ? Theme.ink : Theme.rule, lineWidth: 0.5))
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(Self.emojis, id: \.self) { emoji in
+                            let count = message.reactions?.filter { $0.emoji == emoji }.count ?? 0
+                            let mine = message.reactions?.contains { $0.emoji == emoji && $0.user_id == userId } ?? false
+                            Button {
+                                Task { await store.toggleReaction(message: message, emoji: emoji) }
+                            } label: {
+                                Text(count > 0 ? "\(emoji) \(count)" : emoji)
+                                    .font(.system(size: 13))
+                                    .padding(.horizontal, 8).padding(.vertical, 4)
+                                    .background(mine ? Theme.ink : Color.clear)
+                                    .foregroundColor(mine ? Theme.paper : Theme.ink)
+                                    .clipShape(Capsule())
+                                    .overlay(Capsule().stroke(mine ? Theme.ink : Theme.rule, lineWidth: 0.5))
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
-                    .buttonStyle(.plain)
                 }
-                Spacer()
                 Button { onReply(message) } label: {
                     Image(systemName: "arrowshape.turn.up.left")
                         .font(.system(size: 15, weight: .semibold))
@@ -384,8 +392,9 @@ struct SourceClipView: View {
                 .lineLimit(3)
         }
         .frame(width: 150, alignment: .leading)
-        .padding(8)
-        .overlay(RoundedRectangle(cornerRadius: 2).stroke(Theme.ink, lineWidth: 1))
+        .padding(12)
+        .background(Theme.raised, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.rule, lineWidth: 0.5))
     }
 }
 
@@ -418,7 +427,9 @@ struct ReportSheet: View {
                 .disabled(busy)
                 if let error = store.error { Text(error).font(.caption) }
             }
+            .scrollContentBackground(.hidden).background(Theme.paper)
             .navigationTitle("Report a correction")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -434,14 +445,19 @@ struct HistorySheet: View {
 
     var body: some View {
         NavigationStack {
-            List(history) { version in
-                VStack(alignment: .leading, spacing: 6) {
-                    MetaRow(text: "\(dayLabel(version.created_at)) · \(timeAgo(version.created_at))")
-                    Text(version.title).font(Theme.display(17))
-                    Text(version.summary).font(.system(size: 15)).foregroundColor(Theme.ink2)
+            List {
+                if history.isEmpty { Text("No earlier versions yet.").foregroundColor(Theme.ink2) }
+                ForEach(history) { version in
+                    VStack(alignment: .leading, spacing: 6) {
+                        MetaRow(text: "\(dayLabel(version.created_at)) · \(timeAgo(version.created_at))")
+                        Text(version.title).font(Theme.display(17))
+                        Text(version.summary).font(.system(size: 15)).foregroundColor(Theme.ink2)
+                    }
                 }
             }
+            .scrollContentBackground(.hidden).background(Theme.paper)
             .navigationTitle("What changed")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }

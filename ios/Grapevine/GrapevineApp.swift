@@ -36,7 +36,8 @@ struct ContentView: View {
             } else {
                 TabView(selection: $tab) {
                     Tab("Paper", systemImage: "newspaper", value: 0) { FrontPageView() }
-                    Tab("Friends", systemImage: "person.2", value: 1) { FriendsView() }
+                    Tab("Friends", systemImage: "person.2.fill", value: 1) { FriendsView() }
+                    Tab("Profile", systemImage: "person.crop.circle", value: 2) { ProfileView() }
                 }
                 .tint(Theme.ink)
                 .onChange(of: app.pendingStoryId) { _, id in if id != nil { tab = 0 } }
@@ -45,6 +46,8 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.paper.ignoresSafeArea())
         .foregroundColor(Theme.ink)
+        .tint(Theme.ink)
+        .preferredColorScheme(.light)
         .task(id: app.checked && app.session != nil) {
             if app.checked && app.session != nil {
                 OneSignalManager.shared.requestPushPermission()

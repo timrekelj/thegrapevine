@@ -36,6 +36,7 @@
 		DBB8D81762585B9BEBC0D52A /* StoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 566E3CACEF666CB5432F2983 /* StoryStore.swift */; };
 		E4B329A63B2AF3F47662532B /* FriendsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DC1B16391CF7F7E95222560 /* FriendsView.swift */; };
 		EA64CB4A55954FFA68BA31FE /* MessageMediaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE0D9D3FAFCADC940228C1BB /* MessageMediaView.swift */; };
+		ED470F227C86DC8252114DF5 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 131E7C88FFCD01C4402C7309 /* ProfileView.swift */; };
 		EFFA21025BE2C481BABA4EED /* OneSignalNotificationServiceExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 13C6FDA8A830AC6AA77D283E /* OneSignalNotificationServiceExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -74,6 +75,7 @@
 		090A32009737A8ACB7374B07 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		0DA69381B67C37C52E985388 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		11DAC74708322CC7417FB4CD /* OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = OFL.txt; sourceTree = "<group>"; };
+		131E7C88FFCD01C4402C7309 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		13C6FDA8A830AC6AA77D283E /* OneSignalNotificationServiceExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = OneSignalNotificationServiceExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		158E7434E46342C2DFC183A7 /* Telemetry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Telemetry.swift; sourceTree = "<group>"; };
 		244E2C8E874BA72854FA3E53 /* OneSignalManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneSignalManager.swift; sourceTree = "<group>"; };
@@ -136,6 +138,7 @@
 				A6AD76F6620CD0DDC4317B9A /* LoginView.swift */,
 				DE0D9D3FAFCADC940228C1BB /* MessageMediaView.swift */,
 				2C64C3AA447C2EAD95E1C859 /* OnboardingView.swift */,
+				131E7C88FFCD01C4402C7309 /* ProfileView.swift */,
 				E2432CCCAAD5B4BF4CE261CD /* ShareView.swift */,
 				8807C25BF3BBA7FC0BB51B29 /* StoryView.swift */,
 			);
@@ -385,6 +388,7 @@
 				3B908FDDB93741F7F7F3523B /* OnboardingView.swift in Sources */,
 				29BB4D258C2FD61DE0CA320E /* OneSignalManager.swift in Sources */,
 				D72E631354033995BAD0D993 /* PaperStore.swift in Sources */,
+				ED470F227C86DC8252114DF5 /* ProfileView.swift in Sources */,
 				4958D5616C3D3C4C72CD3957 /* ShareView.swift in Sources */,
 				DBB8D81762585B9BEBC0D52A /* StoryStore.swift in Sources */,
 				8BDBAE67E758BF565921FE70 /* StoryView.swift in Sources */,
