@@ -129,11 +129,11 @@ struct LoginView: View {
                         }
                     }
                 }
-                    .signInWithAppleButtonStyle(.whiteOutline)
+                    // The white style has no outline of its own, so all three buttons share our hairline.
+                    .signInWithAppleButtonStyle(.white)
                     .frame(height: 50)
-                    // Apple draws its own outline at a smaller radius; clip it to ours and redraw the edge.
                     .clipShape(field)
-                    .overlay(field.stroke(Color.black, lineWidth: 1).allowsHitTesting(false))
+                    .overlay(field.stroke(Theme.rule, lineWidth: 1).allowsHitTesting(false))
                     .disabled(busy).opacity(busy ? 0.5 : 1)
                 ForEach([AuthProvider.google, .x], id: \.self) { provider in
                     Button { signIn(provider) } label: {
@@ -146,7 +146,7 @@ struct LoginView: View {
                         .frame(maxWidth: .infinity, minHeight: 50)
                         .foregroundColor(.black)
                         .background(Color.white, in: field)
-                        .overlay(field.stroke(Color.black, lineWidth: 1))
+                        .overlay(field.stroke(Theme.rule, lineWidth: 1))
                     }
                     .buttonStyle(.plain).disabled(busy).opacity(busy ? 0.5 : 1)
                 }
