@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { safeRedirect } from '@/lib/auth'
@@ -61,7 +62,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
 
   return (
     <main style={{ maxWidth: 480, margin: '80px auto', padding: '0 20px' }}>
-      <p className="masthead">The Grapevine</p>
+      <Link href="/" className="masthead" style={{ color: 'inherit', textDecoration: 'none' }}>The Grapevine</Link>
       <hr style={{ border: 0, borderTop: '1px solid var(--rule)', margin: '24px 0 48px' }} />
       <h1 className="display" style={{ fontSize: 42 }}>A paper between friends.</h1>
       <p className="summary" style={{ margin: '24px 0' }}>Sign in to your private paper. No password, no public feed.</p>
