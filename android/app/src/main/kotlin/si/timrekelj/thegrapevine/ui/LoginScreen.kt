@@ -203,7 +203,7 @@ fun LoginScreen(app: AppState) {
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
-                        placeholder = { Text("you@example.com", color = Grape.ink2) },
+                        placeholder = { Text("you@example.com", color = Grape.ink2.copy(alpha = 0.6f)) },
                         singleLine = true,
                         isError = app.error != null,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Send),
@@ -318,7 +318,7 @@ private fun ErrorLine(error: String?) {
 }
 
 @Composable
-private fun PrimaryButton(text: String, enabled: Boolean, onClick: () -> Unit) {
+fun PrimaryButton(text: String, enabled: Boolean, onClick: () -> Unit) {
     // Dim only the fill when disabled, so the label stays readable.
     Box(
         Modifier.fillMaxWidth().heightIn(min = 50.dp).background(Grape.ink.copy(alpha = if (enabled) 1f else 0.45f), Field),

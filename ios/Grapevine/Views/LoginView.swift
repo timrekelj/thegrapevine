@@ -291,7 +291,7 @@ struct LoginView: View {
 }
 
 /// The ink button. Dims only the fill when disabled, so the label stays readable.
-private struct InkButtonStyle: ButtonStyle {
+struct InkButtonStyle: ButtonStyle {
     let enabled: Bool
     let shape: RoundedRectangle
 

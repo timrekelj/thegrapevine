@@ -23,6 +23,7 @@
 .field[aria-invalid="true"] { border-color: #9A3149; }
 
 .primary { height: 50px; width: 100%; border: 0; border-radius: 14px; background: var(--ink); color: var(--paper); font: 600 16px/1 var(--sans); cursor: pointer; }
+.primary:disabled { background: color-mix(in srgb, var(--ink) 45%, transparent); cursor: default; }
 .primary:focus-visible, .provider:focus-visible, .quiet:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
 .error { margin: 0; display: flex; gap: 6px; align-items: flex-start; font: 500 14px/19px var(--sans); color: #9A3149; }
