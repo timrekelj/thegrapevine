@@ -14,7 +14,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
       <article>{children}</article>
       <footer>
         <p>Questions? <a href="mailto:hello@thegrapevine.si">hello@thegrapevine.si</a></p>
-        <Link href="/login">Back to sign in</Link>
+        <Link href="/">Back to The Grapevine</Link>
       </footer>
     </main>
   )

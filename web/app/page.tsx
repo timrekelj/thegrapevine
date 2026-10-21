@@ -5,6 +5,7 @@ import { getPaperStories } from '@/lib/queries';
 import type { PaperMember, RankedStory } from '@/lib/types';
 import LaterEdition from '@/components/paper/later-edition';
 import ShareLink from '@/components/paper/share-link';
+import Landing from '@/components/landing/Landing';
 import styles from '@/components/paper/paper.module.css';
 import { connection } from 'next/server';
 
@@ -35,7 +36,8 @@ export default async function Home() {
   await connection() // fully dynamic: session + database
   const client = await createClient();
   const { data: { user } } = await client.auth.getUser();
-  if (!user) redirect('/login');
+  // Signed-out visitors get the landing page; the paper lives at the same address once signed in.
+  if (!user) return <Landing />;
   const { data: membership, error: membershipError } = await client.from('group_members')
     .select('group_id,last_seen_at').eq('user_id', user.id).order('joined_at').limit(1).maybeSingle();
   if (membershipError) throw membershipError;
