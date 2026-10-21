@@ -1,6 +1,9 @@
 import SwiftUI
 import AuthenticationServices
 
+/// Must match `otp_length` in supabase/config.toml and the hosted project.
+let signInCodeLength = 6
+
 struct LoginView: View {
     @Environment(AppState.self) private var app
     @Environment(\.webAuthenticationSession) private var webAuthenticationSession
@@ -9,128 +12,259 @@ struct LoginView: View {
     @State private var sent = false
     @State private var busy = false
     @State private var appleNonce: String?
+    @State private var resendAt = Date.distantPast
+    @FocusState private var focus: Field?
+
+    private enum Field { case email, code }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                HStack(spacing: 10) {
-                    Image(systemName: "newspaper").font(.system(size: 22, weight: .light))
-                    Text("The Grapevine").font(Theme.display(22))
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(spacing: 0) {
+                    nameplate
+                    Spacer(minLength: 40)
+                    VStack(alignment: .leading, spacing: 24) {
+                        intro
+                        if sent { codeStep } else { emailStep }
+                    }
+                    footer.padding(.top, 32)
                 }
-                .padding(.bottom, 12)
-
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(sent ? "Check your inbox." : "Good stories.\nBetter company.")
-                        .font(Theme.display(34)).fixedSize(horizontal: false, vertical: true)
-                    Text(sent ? "Enter the sign-in code we sent to \(email.trimmed)." : "A private paper, curated by your friends.")
-                        .font(.system(size: 16)).lineSpacing(4).foregroundColor(Theme.ink2)
-                }
-
-                if sent {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("SIGN-IN CODE").font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2)
-                        TextField("Code", text: $code)
-                            .keyboardType(.numberPad)
-                            .textContentType(.oneTimeCode)
-                            .font(.system(size: 24, weight: .medium, design: .monospaced)).tracking(6)
-                            .padding(16).background(Theme.raised, in: RoundedRectangle(cornerRadius: 14))
-                            .accessibilityLabel("Sign-in code")
-                            // Supabase codes are 6 digits by default and up to 10 if the project is configured so.
-                            .onChange(of: code) { code = String(code.filter(\.isNumber).prefix(10)) }
-                    }
-                    Button { Task { await run { try await app.verifyCode(email: email, code: code) } } } label: {
-                        Text(busy ? "Signing in…" : "Sign in")
-                            .font(.system(size: 16, weight: .semibold))
-                            .frame(maxWidth: .infinity, minHeight: 52)
-                    }
-                    .buttonStyle(.plain)
-                    .background(Theme.ink, in: Capsule()).foregroundColor(Theme.paper)
-                    .opacity(busy || code.count < 6 ? 0.4 : 1)
-                    .disabled(busy || code.count < 6)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Button("Send a new code") { Task { await run { try await app.signIn(email: email) } } }
-                            .frame(minHeight: 44)
-                        Button("Use a different email") { sent = false; code = ""; app.error = nil }
-                            .frame(minHeight: 44)
-                    }
-                    .font(.system(size: 14, weight: .medium)).disabled(busy)
-                } else {
-                    VStack(spacing: 12) {
-                        SignInWithAppleButton(.signIn) { request in
-                            let nonce = OAuth.verifier()
-                            appleNonce = nonce
-                            request.requestedScopes = [.email]
-                            request.nonce = OAuth.nonceHash(nonce)
-                            busy = true
-                            app.error = nil
-                        } onCompletion: { result in
-                            Task {
-                                await run {
-                                    defer { appleNonce = nil }
-                                    let authorization = try result.get()
-                                    guard let nonce = appleNonce,
-                                          let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
-                                          let data = credential.identityToken,
-                                          let token = String(data: data, encoding: .utf8), !token.isEmpty else {
-                                        throw APIError.network("Apple did not return a sign-in token. Please try again.")
-                                    }
-                                    try await app.signInWithApple(idToken: token, nonce: nonce)
-                                }
-                            }
-                        }
-                            .signInWithAppleButtonStyle(.black)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .frame(height: 52).disabled(busy).opacity(busy ? 0.5 : 1)
-                        ForEach([AuthProvider.google, .x], id: \.self) { provider in
-                            Button { signIn(provider) } label: {
-                                HStack(spacing: 12) {
-                                    Image(provider == .google ? "GoogleSignIn" : "XSignIn")
-                                        .resizable().scaledToFit().frame(width: 20, height: 20)
-                                        .accessibilityHidden(true)
-                                    Text(provider.title).font(.system(size: 16, weight: .medium))
-                                }
-                                .frame(maxWidth: .infinity, minHeight: 52)
-                                .foregroundColor(provider == .google ? Color(hex: 0x1F1F1F) : .white)
-                                .background(provider == .google ? Color.white : .black, in: RoundedRectangle(cornerRadius: 12))
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(provider == .google ? Color(hex: 0x747775) : .clear, lineWidth: 1))
-                            }
-                            .buttonStyle(.plain).disabled(busy).opacity(busy ? 0.5 : 1)
-                        }
-                    }
-                    HStack(spacing: 12) {
-                        Rectangle().fill(Theme.rule).frame(height: 0.5)
-                        Text("or use your email").font(.system(size: 12)).fixedSize()
-                        Rectangle().fill(Theme.rule).frame(height: 0.5)
-                    }
-                    .foregroundColor(Theme.ink2)
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("EMAIL ADDRESS").font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2)
-                        TextField("you@example.com", text: $email)
-                            .keyboardType(.emailAddress)
-                            .textInputAutocapitalization(.never).autocorrectionDisabled()
-                            .textContentType(.emailAddress)
-                            .padding(16).background(Theme.raised, in: RoundedRectangle(cornerRadius: 14))
-                            .accessibilityLabel("Email address")
-                    }
-                    Button { Task { await run { try await app.signIn(email: email); sent = true } } } label: {
-                        Text(busy ? "Sending…" : "Email me a code")
-                            .font(.system(size: 16, weight: .semibold))
-                            .frame(maxWidth: .infinity, minHeight: 52)
-                    }
-                    .buttonStyle(.plain)
-                    .background(Theme.ink, in: Capsule()).foregroundColor(Theme.paper)
-                    .opacity(busy || email.trimmed.isEmpty ? 0.4 : 1)
-                    .disabled(busy || email.trimmed.isEmpty)
-                }
-                if let error = app.error {
-                    Text(error).font(.system(size: 14)).foregroundColor(Theme.error)
-                }
+                .padding(.horizontal, 24).padding(.vertical, 16)
+                .frame(maxWidth: 468)
+                .frame(maxWidth: .infinity, minHeight: proxy.size.height)
             }
-            .padding(24).padding(.top, 20)
-            .frame(maxWidth: 468)
-            .frame(maxWidth: .infinity)
+            .scrollBounceBehavior(.basedOnSize)
         }
         .scrollDismissesKeyboard(.interactively)
+        .animation(.snappy(duration: 0.25), value: sent)
+    }
+
+    // MARK: - Sections
+
+    private var nameplate: some View {
+        VStack(spacing: 10) {
+            Text("The Grapevine").font(Theme.display(28)).foregroundColor(Theme.ink)
+            VStack(spacing: 2) {
+                Rectangle().fill(Theme.ink).frame(height: 1)
+                Rectangle().fill(Theme.ink).frame(height: 1)
+            }
+            Text("\(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide))) · Private edition")
+                .font(.system(size: 11, weight: .semibold)).tracking(0.8).textCase(.uppercase)
+                .foregroundColor(Theme.ink2)
+        }
+        .overlay(alignment: .topLeading) {
+            if sent {
+                Button { changeEmail() } label: {
+                    Image(systemName: "chevron.left").font(.system(size: 17, weight: .semibold))
+                        .frame(width: 44, height: 44)
+                }
+                .foregroundColor(Theme.ink).offset(x: -12, y: -6)
+                .accessibilityLabel("Use a different email")
+            }
+        }
+    }
+
+    private var intro: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(sent ? "Check your inbox." : "Good stories.\nBetter company.")
+                .font(.custom("Gloock", size: 40, relativeTo: .largeTitle)).foregroundColor(Theme.ink)
+                .fixedSize(horizontal: false, vertical: true)
+            if sent {
+                Text("We sent a \(signInCodeLength)-digit code to \(Text(email.trimmed).fontWeight(.semibold).foregroundColor(Theme.ink))")
+                    .font(.callout).foregroundColor(Theme.ink2)
+                Button("Change email") { changeEmail() }
+                    .font(.callout.weight(.medium)).foregroundColor(Theme.ink).underline()
+                    .disabled(busy)
+            } else {
+                Text("A private paper, curated by your friends.").font(.callout).foregroundColor(Theme.ink2)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var emailStep: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("EMAIL ADDRESS").font(.system(size: 11, weight: .semibold)).tracking(0.8).foregroundColor(Theme.ink2)
+                TextField("you@example.com", text: $email)
+                    .keyboardType(.emailAddress)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    .textContentType(.emailAddress)
+                    .submitLabel(.send).onSubmit(sendCode)
+                    .focused($focus, equals: .email)
+                    .foregroundColor(Theme.ink)
+                    .padding(.horizontal, 16).frame(minHeight: 50)
+                    .background(Theme.raised, in: field)
+                    .overlay(field.stroke(app.error != nil ? Theme.error : focus == .email ? Theme.ink : Theme.rule, lineWidth: 1))
+                    .accessibilityLabel("Email address")
+                errorText
+                primaryButton(busy ? "Sending…" : "Email me a code", enabled: !email.trimmed.isEmpty, action: sendCode)
+                    .padding(.top, 8)
+            }
+            HStack(spacing: 12) {
+                Rectangle().fill(Theme.rule).frame(height: 1)
+                Text("or").font(.footnote.weight(.medium)).foregroundColor(Theme.ink2)
+                Rectangle().fill(Theme.rule).frame(height: 1)
+            }
+            VStack(spacing: 12) {
+                SignInWithAppleButton(.signIn) { request in
+                    let nonce = OAuth.verifier()
+                    appleNonce = nonce
+                    request.requestedScopes = [.email]
+                    request.nonce = OAuth.nonceHash(nonce)
+                    busy = true
+                    app.error = nil
+                } onCompletion: { result in
+                    Task {
+                        await run {
+                            defer { appleNonce = nil }
+                            let authorization = try result.get()
+                            guard let nonce = appleNonce,
+                                  let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                                  let data = credential.identityToken,
+                                  let token = String(data: data, encoding: .utf8), !token.isEmpty else {
+                                throw APIError.network("Apple did not return a sign-in token. Please try again.")
+                            }
+                            try await app.signInWithApple(idToken: token, nonce: nonce)
+                        }
+                    }
+                }
+                    .signInWithAppleButtonStyle(.whiteOutline)
+                    .frame(height: 50)
+                    // Apple draws its own outline at a smaller radius; clip it to ours and redraw the edge.
+                    .clipShape(field)
+                    .overlay(field.stroke(Color.black, lineWidth: 1).allowsHitTesting(false))
+                    .disabled(busy).opacity(busy ? 0.5 : 1)
+                ForEach([AuthProvider.google, .x], id: \.self) { provider in
+                    Button { signIn(provider) } label: {
+                        HStack(spacing: 10) {
+                            Image(provider == .google ? "GoogleSignIn" : "XSignIn")
+                                .resizable().scaledToFit().frame(width: 17, height: 17)
+                                .accessibilityHidden(true)
+                            Text(provider.title).font(.system(size: 19, weight: .medium))
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 50)
+                        .foregroundColor(.black)
+                        .background(Color.white, in: field)
+                        .overlay(field.stroke(Color.black, lineWidth: 1))
+                    }
+                    .buttonStyle(.plain).disabled(busy).opacity(busy ? 0.5 : 1)
+                }
+            }
+        }
+    }
+
+    private var codeStep: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            ZStack {
+                // One real field (so the keyboard's code suggestion and VoiceOver just work), drawn as cells.
+                TextField("", text: $code)
+                    .keyboardType(.numberPad)
+                    .textContentType(.oneTimeCode)
+                    .focused($focus, equals: .code)
+                    .foregroundStyle(.clear).tint(.clear)
+                    .frame(maxWidth: .infinity, minHeight: 58)
+                    .accessibilityLabel("Sign-in code")
+                    .onChange(of: code) {
+                        code = String(code.filter(\.isNumber).prefix(signInCodeLength))
+                        if code.count == signInCodeLength && !busy { verifyCode() }
+                    }
+                HStack(spacing: 8) {
+                    ForEach(0..<signInCodeLength, id: \.self) { index in
+                        let digits = Array(code)
+                        let active = focus == .code && index == min(digits.count, signInCodeLength - 1)
+                        Text(index < digits.count ? String(digits[index]) : "")
+                            .font(.custom("Gloock", size: 28, relativeTo: .title))
+                            .foregroundColor(Theme.ink)
+                            .frame(maxWidth: .infinity, minHeight: 58)
+                            .background(Theme.raised, in: field)
+                            .overlay(field.stroke(app.error != nil ? Theme.error : active ? Theme.ink : Theme.rule, lineWidth: active ? 1.5 : 1))
+                    }
+                }
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture { focus = .code }
+            errorText
+            primaryButton(busy ? "Signing in…" : "Sign in", enabled: code.count == signInCodeLength, action: verifyCode)
+                .padding(.top, 8)
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                let left = max(0, Int(resendAt.timeIntervalSince(context.date).rounded(.up)))
+                Button { resendCode() } label: {
+                    Text(left > 0 ? "Send a new code in 0:\(String(format: "%02d", left))" : "Send a new code")
+                        .font(.subheadline.weight(.medium)).monospacedDigit()
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .foregroundColor(left > 0 ? Theme.ink2 : Theme.ink)
+                        .overlay(field.stroke(left > 0 ? .clear : Theme.rule, lineWidth: 1))
+                }
+                .buttonStyle(.plain).disabled(busy || left > 0)
+            }
+            .padding(.top, 8)
+        }
+        .onAppear { focus = .code }
+    }
+
+    private var footer: some View {
+        Text(LocalizedStringKey("By continuing, you agree to the [Terms](\(Config.webURL.appending(path: "terms").absoluteString)) and [Privacy Policy](\(Config.webURL.appending(path: "privacy").absoluteString))."))
+            .font(.footnote).foregroundColor(Theme.ink2).tint(Theme.ink)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Pieces
+
+    private var field: RoundedRectangle { RoundedRectangle(cornerRadius: 14, style: .continuous) }
+
+    @ViewBuilder private var errorText: some View {
+        if let error = app.error {
+            Label(error, systemImage: "exclamationmark.circle")
+                .font(.subheadline.weight(.medium)).foregroundColor(Theme.error)
+        }
+    }
+
+    private func primaryButton(_ title: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(title, action: action)
+            .buttonStyle(InkButtonStyle(enabled: enabled, shape: field))
+            .disabled(busy || !enabled)
+    }
+
+    // MARK: - Actions
+
+    private func sendCode() {
+        guard !busy, !email.trimmed.isEmpty else { return }
+        Task {
+            await run {
+                try await app.signIn(email: email)
+                code = ""
+                resendAt = .now.addingTimeInterval(30)
+                sent = true
+            }
+        }
+    }
+
+    private func resendCode() {
+        Task {
+            await run {
+                try await app.signIn(email: email)
+                code = ""
+                resendAt = .now.addingTimeInterval(30)
+            }
+        }
+    }
+
+    private func verifyCode() {
+        Task {
+            await run { try await app.verifyCode(email: email, code: code) }
+            if app.error != nil { code = "" }
+        }
+    }
+
+    private func changeEmail() {
+        sent = false
+        code = ""
+        app.error = nil
+        focus = .email
     }
 
     private func signIn(_ provider: AuthProvider) {
@@ -153,5 +287,20 @@ struct LoginView: View {
         catch let error as ASAuthorizationError where error.code == .canceled { }
         catch { app.error = error.localizedDescription }
         busy = false
+    }
+}
+
+/// The ink button. Dims only the fill when disabled, so the label stays readable.
+private struct InkButtonStyle: ButtonStyle {
+    let enabled: Bool
+    let shape: RoundedRectangle
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.body.weight(.semibold))
+            .frame(maxWidth: .infinity, minHeight: 50)
+            .background(Theme.ink.opacity(enabled ? (configuration.isPressed ? 0.85 : 1) : 0.45), in: shape)
+            .foregroundColor(Theme.paper)
+            .contentShape(shape)
     }
 }
