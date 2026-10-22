@@ -19,7 +19,6 @@
   --red: #C8231B;
   --on-red: #FFFFFF;
   --danger: #A3261F;
-  --portrait: transparent;
 
   /* type */
   --nameplate: var(--font-nameplate), 'Old English Text MT', serif;
@@ -51,7 +50,6 @@
     --red: #FF5B4F;
     --on-red: #1A0705;
     --danger: #FF8A80;
-    --portrait: #E4DFD5;
   }
 }
 
@@ -147,9 +145,8 @@ a:hover .plate .screen, a:focus-visible .plate .screen, .plate.reveal:hover .scr
 .typeplate { position: relative; overflow: hidden; display: grid; place-items: center; padding: 10px; background: radial-gradient(circle, var(--rule) .9px, transparent 1.2px) 0 0 / 4px 4px, var(--raised); border: 1px solid var(--rule); container-type: inline-size; }
 .typeplate span { font: italic 500 clamp(13px, 9cqi, 34px)/1.05 var(--serif); letter-spacing: -0.01em; text-align: center; color: var(--ink); background: var(--raised); padding: .15em .35em; max-width: 100%; overflow-wrap: anywhere; }
 
-/* members are marbles: a small face on a coloured sphere, drawn from their id. The paper disc
-   behind it keeps the ink hats and hair readable in the evening edition. */
-.av { width: 32px; height: 32px; border-radius: 50%; overflow: hidden; display: grid; flex: none; background: var(--portrait); }
+/* members are colour halftone discs, drawn from their id (see app/avatar) */
+.av { width: 32px; height: 32px; border-radius: 50%; overflow: hidden; display: grid; flex: none; background: var(--tint); }
 .av img { width: 100%; height: 100%; display: block; }
 
 /* buttons: an ink block that turns to an outline when pressed */
