@@ -10,8 +10,8 @@
     "test": "node --experimental-strip-types --test tests/*.test.mjs"
   },
   "dependencies": {
-    "@dicebear/core": "^9.4.3",
-    "@dicebear/notionists": "^9.4.2",
+    "@dicebear/core": "^10.7.0",
+    "@dicebear/styles": "^10.6.0",
     "@posthog/nextjs-config": "1.11.3",
     "@supabase/ssr": "^0.12.7",
     "next": "16.4.2",
