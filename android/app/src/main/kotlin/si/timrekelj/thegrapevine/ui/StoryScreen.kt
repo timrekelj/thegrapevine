@@ -12,6 +12,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,6 +50,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -74,8 +76,18 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -84,6 +96,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import java.time.Instant
+import java.time.ZoneId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -97,15 +111,28 @@ import si.timrekelj.thegrapevine.Message
 import si.timrekelj.thegrapevine.Source
 import si.timrekelj.thegrapevine.StoryHistoryEntry
 import si.timrekelj.thegrapevine.StoryState
-import java.time.Instant
-import java.time.ZoneId
 
 private sealed class Entry(val key: String, val createdAt: Instant) {
     class FromSource(val source: Source) : Entry("s${source.id}", source.created_at)
     class FromMessage(val message: Message) : Entry("m${message.id}", message.created_at)
 }
 
-private val EMOJIS = listOf("🚀", "👏", "😂", "❤️", "🔥", "👀")
+/** The reaction picker, in order; existing reactions sort by it too. */
+private val EMOJIS = listOf("👍", "❤️", "😂", "😮", "😢", "🔥", "👏", "🚀", "👀", "🎉")
+
+/** Material's outlined "add reaction" glyph, drawn here to avoid the extended icon set. */
+private val AddReactionIcon: ImageVector by lazy {
+    ImageVector.Builder("AddReaction", 24.dp, 24.dp, 24f, 24f).addPath(
+        PathParser().parsePathString(
+            "M7,9.5C7,8.67 7.67,8 8.5,8S10,8.67 10,9.5S9.33,11 8.5,11S7,10.33 7,9.5zM12,17.5c2.33,0 4.31,-1.46 5.11,-3.5H6.89" +
+                "C7.69,16.04 9.67,17.5 12,17.5zM15.5,11c0.83,0 1.5,-0.67 1.5,-1.5S16.33,8 15.5,8S14,8.67 14,9.5S14.67,11 15.5,11z" +
+                "M22,1h-2v2h-2v2h2v2h2V5h2V3h-2V1zM20,12c0,4.42 -3.58,8 -8,8s-8,-3.58 -8,-8s3.58,-8 8,-8c1.46,0 2.82,0.4 4,1.08V2.84" +
+                "C14.77,2.3 13.42,2 11.99,2C6.47,2 2,6.48 2,12s4.47,10 9.99,10C17.52,22 22,17.52 22,12c0,-1.05 -0.17,-2.05 -0.47,-3" +
+                "h-2.13C19.78,9.93 20,10.94 20,12z",
+        ).toNodes(),
+        fill = SolidColor(Color.Black),
+    ).build()
+}
 
 /** Mirrors `StoryView.swift`. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -290,7 +317,7 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit) {
                                 userId = userId,
                                 replyEnabled = store.pendingMessageId == null,
                                 onReply = { replyTo = it },
-                                onReact = { emoji -> scope.launch { store.toggleReaction(entry.message, emoji) } },
+                                onReact = { emoji -> scope.launch { store.toggleReaction(entry.message.id, emoji) } },
                             )
                         }
                     }
@@ -430,7 +457,24 @@ private fun MessageEntry(
     onReact: (String) -> Unit,
 ) {
     val author = store.profiles[message.author_id]
-    Row(Modifier.padding(horizontal = 20.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    var picking by remember { mutableStateOf(false) }
+    val haptics = LocalHapticFeedback.current
+    val reactions = message.reactions.orEmpty()
+    // Only reactions someone used, in picker order; unknown emoji keep their first-seen order after.
+    val used = reactions.map { it.emoji }.distinct()
+        .sortedBy { EMOJIS.indexOf(it).takeIf { index -> index >= 0 } ?: EMOJIS.size }
+    Row(
+        Modifier
+            .pointerInput(Unit) {
+                detectTapGestures(onLongPress = {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    picking = true
+                })
+            }
+            .semantics { onLongClick("Add reaction") { picking = true; true } }
+            .padding(horizontal = 20.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
         Avatar(message.author_id, 36.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             EntryHead(if (message.author_id == userId) "You" else author?.display_name ?: "A member", null, message.created_at)
@@ -454,23 +498,73 @@ private fun MessageEntry(
             message.body?.takeIf { it.isNotEmpty() }?.let { Text(it, style = BodyStyle) }
             message.message_media.orEmpty().sortedBy { it.position }.forEach { MessageMedia(it) }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                LazyRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    items(EMOJIS) { emoji ->
-                        val count = message.reactions.orEmpty().count { it.emoji == emoji }
-                        val mine = message.reactions.orEmpty().any { it.emoji == emoji && it.user_id == userId }
+                LazyRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    items(used) { emoji ->
+                        val count = reactions.count { it.emoji == emoji }
+                        val mine = reactions.any { it.emoji == emoji && it.user_id == userId }
                         Text(
-                            if (count > 0) "$emoji $count" else emoji,
+                            "$emoji $count",
                             style = MetaStyle.copy(fontSize = 13.sp, color = if (mine) Press.paper else Press.ink),
                             modifier = Modifier
-                                .alpha(if (count > 0 || mine) 1f else 0.45f)
                                 .background(if (mine) Press.ink else Press.paper, CircleShape)
-                                .border(BorderStroke(1.dp, if (mine) Press.ink else if (count > 0) Press.rule else androidx.compose.ui.graphics.Color.Transparent), CircleShape)
-                                .clickable { onReact(emoji) }
+                                .border(BorderStroke(1.dp, if (mine) Press.ink else Press.rule), CircleShape)
+                                .clickable(onClickLabel = if (mine) "Remove $emoji" else "React $emoji") { onReact(emoji) }
                                 .padding(horizontal = 9.dp, vertical = 5.dp),
                         )
                     }
+                    item {
+                        Box {
+                            Icon(
+                                AddReactionIcon,
+                                contentDescription = "Add reaction",
+                                tint = Press.ink3,
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .clickable { picking = true }
+                                    .padding(horizontal = 8.dp, vertical = 5.dp)
+                                    .size(18.dp),
+                            )
+                            DropdownMenu(
+                                expanded = picking,
+                                onDismissRequest = { picking = false },
+                                shape = RoundedCornerShape(3.dp),
+                                containerColor = Press.paper,
+                                border = BorderStroke(1.dp, Press.ink),
+                            ) {
+                                ReactionPicker(mine = reactions.filter { it.user_id == userId }.map { it.emoji }.toSet()) { emoji ->
+                                    picking = false
+                                    onReact(emoji)
+                                }
+                            }
+                        }
+                    }
                 }
                 TextAction("↩ Reply", enabled = replyEnabled) { onReply(message) }
+            }
+        }
+    }
+}
+
+/** The full palette, set in a ruled box like the rest of the paper. */
+@Composable
+private fun ReactionPicker(mine: Set<String>, onPick: (String) -> Unit) {
+    Column(Modifier.padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        EMOJIS.chunked(5).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                row.forEach { emoji ->
+                    val selected = emoji in mine
+                    Box(
+                        Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(if (selected) Press.tint else Color.Transparent)
+                            .border(BorderStroke(1.dp, if (selected) Press.ink else Color.Transparent), RoundedCornerShape(3.dp))
+                            .clickable(onClickLabel = if (selected) "Remove $emoji" else "React $emoji") { onPick(emoji) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(emoji, fontSize = 22.sp)
+                    }
+                }
             }
         }
     }

@@ -396,8 +396,24 @@ struct MessageEntryView: View {
     let store: StoryStore
     let userId: UUID
     let onReply: (Message) -> Void
+    @State private var picking = false
 
-    private static let emojis = ["🚀", "👏", "😂", "❤️", "🔥", "👀"]
+    static let emojis = ["👍", "❤️", "😂", "😮", "😢", "🔥", "👏", "🚀", "👀", "🎉"]
+
+    /// Only the emojis someone has used, in palette order.
+    private var used: [String] {
+        let present = (message.reactions ?? []).map(\.emoji)
+        let unknown = present.filter { !Self.emojis.contains($0) }.reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } }
+        return Self.emojis.filter(present.contains) + unknown
+    }
+
+    private func isMine(_ emoji: String) -> Bool {
+        message.reactions?.contains { $0.emoji == emoji && $0.user_id == userId } ?? false
+    }
+
+    private func toggle(_ emoji: String) {
+        Task { await store.toggleReaction(message: message, emoji: emoji) }
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -429,27 +445,48 @@ struct MessageEntryView: View {
                 HStack(spacing: 4) {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 4) {
-                            ForEach(Self.emojis, id: \.self) { emoji in
+                            ForEach(used, id: \.self) { emoji in
                                 let count = message.reactions?.filter { $0.emoji == emoji }.count ?? 0
-                                let mine = message.reactions?.contains { $0.emoji == emoji && $0.user_id == userId } ?? false
-                                Button {
-                                    Task { await store.toggleReaction(message: message, emoji: emoji) }
-                                } label: {
+                                let mine = isMine(emoji)
+                                Button { toggle(emoji) } label: {
                                     HStack(spacing: 4) {
                                         Text(emoji).font(.system(size: 13))
-                                        if count > 0 { Text("\(count)").font(Theme.mono(12, bold: true)) }
+                                        Text("\(count)").font(Theme.mono(12, bold: true))
                                     }
                                     .padding(.horizontal, 8).frame(minHeight: 30)
                                     .background(mine ? Theme.ink : Color.clear)
                                     .foregroundColor(mine ? Theme.paper : Theme.ink)
                                     .clipShape(Capsule())
-                                    .overlay(Capsule().stroke(mine ? Theme.ink : count > 0 ? Theme.rule : .clear, lineWidth: 1))
-                                    .opacity(mine || count > 0 ? 1 : 0.45)
+                                    .overlay(Capsule().stroke(mine ? Theme.ink : Theme.rule, lineWidth: 1))
                                 }
                                 .buttonStyle(.plain)
-                                .accessibilityLabel("React \(emoji)\(count > 0 ? ", \(count) reactions" : "")")
+                                .accessibilityLabel("\(emoji), \(count) \(count == 1 ? "reaction" : "reactions")")
+                                .accessibilityAddTraits(mine ? .isSelected : [])
+                            }
+                            Button { picking = true } label: {
+                                Image(systemName: "face.smiling")
+                                    .font(.system(size: 15))
+                                    .overlay(alignment: .topTrailing) {
+                                        Image(systemName: "plus")
+                                            .font(.system(size: 7, weight: .heavy))
+                                            .padding(1.5)
+                                            .background(Theme.paper, in: Circle())
+                                            .offset(x: 4, y: -3)
+                                    }
+                                    .foregroundColor(Theme.ink3)
+                                    .padding(.horizontal, 8).frame(minHeight: 30)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Add reaction")
+                            .popover(isPresented: $picking) {
+                                ReactionPicker(isMine: isMine) { emoji in
+                                    picking = false
+                                    toggle(emoji)
+                                }
+                                .presentationCompactAdaptation(.popover)
                             }
                         }
+                        .padding(.vertical, 1)
                     }
                     Button { onReply(message) } label: {
                         Image(systemName: "arrowshape.turn.up.left")
@@ -464,6 +501,33 @@ struct MessageEntryView: View {
             }
         }
         .padding(.top, 14).padding(.bottom, 2)
+        .contentShape(Rectangle())
+        .onLongPressGesture { picking = true }
+        .sensoryFeedback(.impact(weight: .medium), trigger: picking) { _, open in open }
+    }
+}
+
+/// The full palette, set in a ruled box like the rest of the paper.
+struct ReactionPicker: View {
+    let isMine: (String) -> Bool
+    let onPick: (String) -> Void
+
+    var body: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.fixed(44), spacing: 4), count: 5), spacing: 4) {
+            ForEach(MessageEntryView.emojis, id: \.self) { emoji in
+                Button { onPick(emoji) } label: {
+                    Text(emoji)
+                        .font(.system(size: 26))
+                        .frame(width: 44, height: 44)
+                        .background(isMine(emoji) ? Theme.tint : Color.clear, in: RoundedRectangle(cornerRadius: 3))
+                        .overlay(RoundedRectangle(cornerRadius: 3).stroke(isMine(emoji) ? Theme.ink : .clear, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(isMine(emoji) ? "Remove \(emoji)" : "React \(emoji)")
+            }
+        }
+        .padding(12)
+        .background(Theme.paper)
     }
 }
 

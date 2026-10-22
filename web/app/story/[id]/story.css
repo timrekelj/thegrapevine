@@ -73,14 +73,17 @@
 .story-quote { border-left: 2px solid var(--ink); padding-left: 10px; margin: 2px 0 8px; color: var(--ink-2); font: italic 400 15px/1.4 var(--serif); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .story-quote b { font: 600 13px/1 var(--sans); font-style: normal; color: var(--ink); margin-right: 4px; }
 
+/* reactions: only the ones in use, then a quiet add button that opens the palette */
 .story-message-actions { display: flex; align-items: center; gap: 8px; }
-.story-reactions { display: flex; flex-wrap: wrap; gap: 4px; }
-.story-reactions button { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--rule); border-radius: 999px; padding: 3px 9px; min-height: 30px; background: none; font: 500 13px/1 var(--mono); transition: opacity .15s, background .15s; }
-.story-reactions button:not(.used):not(.mine) { opacity: .4; border-color: transparent; }
-.story-entry:hover .story-reactions button, .story-reactions button:focus-visible { opacity: 1 !important; }
-.story-entry:hover .story-reactions button:not(.used):not(.mine) { border-color: var(--rule); }
-.story-reactions button:hover:not(:disabled) { background: var(--tint); }
+.story-reactions { position: relative; display: flex; flex-wrap: wrap; gap: 4px; }
+.story-reactions button { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--rule); border-radius: 999px; padding: 3px 9px; min-height: 30px; background: none; font: 500 13px/1 var(--mono); transition: background .15s, color .15s; }
+.story-reactions button:hover { background: var(--tint); }
 .story-reactions .mine { background: var(--ink) !important; color: var(--paper); border-color: var(--ink); }
+.story-reactions .story-add-reaction { color: var(--ink-3); border-color: transparent; padding: 3px 8px; }
+.story-reactions .story-add-reaction:hover, .story-reactions .story-add-reaction[aria-expanded="true"] { color: var(--ink); border-color: var(--rule); }
+.story-reaction-picker { position: absolute; z-index: 5; bottom: calc(100% + 8px); left: 0; display: grid; grid-template-columns: repeat(5, 44px); gap: 4px; padding: 8px; background: var(--paper); border: 1px solid var(--ink); box-shadow: var(--press); }
+.story-reactions .story-reaction-picker button { justify-content: center; border: 0; border-radius: var(--radius); width: 44px; height: 44px; padding: 0; font-size: 24px; }
+.story-reactions .story-reaction-picker .mine { background: var(--tint) !important; color: inherit; outline: 1px solid var(--ink); }
 .story-reply { display: grid; place-items: center; border: 0; background: none; width: 40px; height: 40px; border-radius: 50%; color: var(--ink-2); }
 .story-reply:hover { background: var(--tint); color: var(--ink); }
 

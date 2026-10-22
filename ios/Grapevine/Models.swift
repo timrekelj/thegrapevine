@@ -119,7 +119,7 @@ struct Message: Codable, Identifiable {
     let body: String?
     let reply_to: UUID?
     let created_at: Date
-    let reactions: [Reaction]?
+    var reactions: [Reaction]?
     let message_media: [Media]?
 }
 

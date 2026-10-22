@@ -29,6 +29,8 @@ class StoryState(private val api: Api) : ViewModel() {
     /** Uploads already accepted by storage, so a retry resumes instead of re-uploading. */
     private val uploaded = mutableListOf<String>()
     private var trackedStoryId: String? = null
+    /** `messageId:emoji` toggles still waiting on the server. */
+    private val pendingReactions = mutableSetOf<String>()
 
     suspend fun load(storyId: String) {
         if (isLoading) return
@@ -134,22 +136,47 @@ class StoryState(private val api: Api) : ViewModel() {
         }
     }
 
-    suspend fun toggleReaction(message: Message, emoji: String) {
+    suspend fun toggleReaction(messageId: String, emoji: String) {
         val session = api.session ?: return
-        val mine = message.reactions?.firstOrNull { it.user_id == session.userId && it.emoji == emoji }
+        val key = "$messageId:$emoji"
+        if (key in pendingReactions) return
+        val before = messages.firstOrNull { it.id == messageId }?.reactions.orEmpty()
+        val adding = before.none { it.user_id == session.userId && it.emoji == emoji }
+        // Optimistic: the row shows the change at once, and a quick second tap sees it.
+        setReactions(
+            messageId,
+            if (adding) before + Reaction(id = "", message_id = messageId, user_id = session.userId, emoji = emoji)
+            else before.filterNot { it.user_id == session.userId && it.emoji == emoji },
+        )
+        pendingReactions += key
         try {
-            if (mine != null) {
-                api.delete("rest/v1/reactions", listOf("id" to "eq.${mine.id}"))
+            if (adding) {
+                try {
+                    api.postVoid(
+                        "rest/v1/reactions",
+                        encodeBody(NewReaction(message_id = messageId, user_id = session.userId, emoji = emoji)),
+                    )
+                } catch (e: ApiError.Http) {
+                    // Already saved by an earlier tap.
+                    if (e.code != 409) throw e
+                }
             } else {
-                api.postVoid(
+                api.delete(
                     "rest/v1/reactions",
-                    encodeBody(NewReaction(message_id = message.id, user_id = session.userId, emoji = emoji)),
+                    listOf("message_id" to "eq.$messageId", "user_id" to "eq.${session.userId}", "emoji" to "eq.$emoji"),
                 )
             }
+            pendingReactions -= key
             story?.let { load(it.id) }
         } catch (e: Exception) {
+            pendingReactions -= key
+            setReactions(messageId, before)
             error = e.message
         }
+    }
+
+    private fun setReactions(messageId: String, reactions: List<Reaction>) {
+        messages = messages.map { if (it.id == messageId) it.copy(reactions = reactions) else it }
     }
 
     suspend fun report(target: String, note: String): Boolean {
