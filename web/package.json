@@ -13,6 +13,7 @@
     "@dicebear/core": "^10.7.0",
     "@dicebear/styles": "^10.6.0",
     "@posthog/nextjs-config": "1.11.3",
+    "@resvg/resvg-js": "^2.6.2",
     "@supabase/ssr": "^0.12.7",
     "next": "16.4.2",
     "posthog-js": "1.438.12",

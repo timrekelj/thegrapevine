@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 import { withPostHogConfig } from "@posthog/nextjs-config";
 
 const nextConfig: NextConfig = {
+  // A native addon (renders avatar PNGs for the apps); load it from node_modules, don't bundle it.
+  serverExternalPackages: ["@resvg/resvg-js"],
   /* config options here */
   // cacheComponents + partialPrefetching disabled: every route is fully dynamic
   // (auth + database), so there is nothing to prerender or cache
