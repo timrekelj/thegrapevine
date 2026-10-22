@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { loadStoryDetails, mergeTimeline, type Source, type Story, type Message } from './queries'
 import Composer from './Composer'
 import Plate from '@/components/print/Plate'
+import Avatar from '@/components/print/Avatar'
 import { capture, correctionsEnabled } from '@/lib/telemetry'
 
 const emojis = ['🚀', '👏', '😂', '❤️', '🔥', '👀']
@@ -102,7 +103,7 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
     if (error) { setError('Could not send the report. Your note is kept; try again.'); return }
     reportDialog.current?.close(); setNote(''); setToast('Reported — it will be re-checked'); await refresh()
   }
-  const person = (id: string | null) => details.people.find(person => person.id === id) || { display_name: 'Member', monogram: '?' }
+  const person = (id: string | null) => details.people.find(person => person.id === id) || { id: id ?? 'member', display_name: 'Member', monogram: '?' }
   const timeline = mergeTimeline(details.sources, details.messages)
   const unread = lastViewed ? timeline.filter(entry => entry.kind === 'message' && Date.parse(entry.created_at) > Date.parse(lastViewed) && entry.author_id !== userId) : []
   const firstUnread = unread[0]?.id
@@ -165,7 +166,7 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
             {newDay && <div className="story-day label">{day(entry.created_at)}</div>}
             {entry.id === firstUnread && lastViewed && <div className="story-new-divider label">{unread.length} new since {time(lastViewed)}</div>}
             <article id={`${entry.kind}-${entry.id}`} className={`story-entry ${grouped ? 'story-grouped' : ''}`}>
-              {!grouped ? <span className="av" aria-hidden="true">{author.monogram}</span> : <span className="story-avatar-space" />}
+              {!grouped ? <Avatar seed={author.id} /> : <span className="story-avatar-space" />}
               <div className="story-entry-body">
                 {!grouped && <div className="story-who"><b>{authorId === userId ? 'You' : author.display_name}</b>{entry.kind === 'source' && <span className="meta">filed a source</span>}<time className="meta" dateTime={entry.created_at}>{time(entry.created_at)}</time></div>}
                 {entry.kind === 'source' ? <>{entry.submitter_comment && <p>{entry.submitter_comment}</p>}<SourceCard source={entry} /></> : <>

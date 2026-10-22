@@ -9,7 +9,7 @@
 .count { justify-self: end; display: flex; align-items: center; gap: 12px; }
 .nameplate { font-size: clamp(44px, 7.5vw, 116px); line-height: .95; text-align: center; text-wrap: balance; overflow-wrap: anywhere; padding: 6px 0 16px; }
 .members { display: flex; }
-.members > span { width: 26px; height: 26px; font-size: 13px; box-shadow: 0 0 0 2px var(--paper); }
+.members > span { width: 30px; height: 30px; box-shadow: 0 0 0 2px var(--paper); }
 .members > span + span { margin-left: -6px; }
 
 /* ---------- sections bar ---------- */
@@ -34,7 +34,7 @@
 .leadSummary { margin: 20px 0 18px; font-size: 19px; line-height: 1.55; color: var(--ink); white-space: pre-line; column-count: 2; column-gap: 32px; column-rule: 1px solid var(--rule); }
 .meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; }
 .submitters { display: flex; gap: 3px; }
-.submitters > span { width: 22px; height: 22px; font-size: 11px; }
+.submitters > span { width: 24px; height: 24px; }
 
 .side { grid-column: 9 / 13; padding-left: 32px; }
 .side > article + article { border-top: 1px solid var(--rule); margin-top: 22px; padding-top: 22px; }

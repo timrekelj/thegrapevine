@@ -58,7 +58,8 @@
 .story-who .meta { color: var(--ink-3); }
 .story-entry p { margin: 0 0 8px; font-size: 18px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .story-grouped { padding-top: 2px; }
-.story-avatar-space { width: 32px; flex: none; }
+.story-avatar-space { width: 38px; flex: none; }
+.story-entry > .av { width: 38px; height: 38px; }
 
 .story-source-card { display: flex; gap: 14px; padding: 12px; margin: 6px 0; background: var(--raised); border: 1px dashed var(--ink-3); }
 .story-source-thumb { width: 88px; height: 88px; flex: none; }

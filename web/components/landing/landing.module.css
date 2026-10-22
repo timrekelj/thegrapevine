@@ -47,7 +47,7 @@
 .sheetTop { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .sheetMasthead { font: 400 40px/1 var(--nameplate); white-space: nowrap; }
 .sheetMembers { display: flex; justify-content: flex-end; }
-.sheetMembers > span { width: 22px; height: 22px; font-size: 11px; box-shadow: 0 0 0 2px var(--raised); }
+.sheetMembers > span { width: 26px; height: 26px; box-shadow: 0 0 0 2px var(--raised); }
 .sheetMembers > span + span { margin-left: -5px; }
 .sheetRule { height: 5px; margin-top: 10px; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); }
 .sheetSections { display: flex; gap: 16px; padding: 7px 0; border-bottom: 1px solid var(--ink); font: 500 9px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-2); }

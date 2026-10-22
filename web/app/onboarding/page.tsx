@@ -55,7 +55,7 @@ export default async function OnboardingPage({ searchParams }: PageProps<'/onboa
         <h1 className="display">Your people.<br />Your paper.</h1>
       </header>
       <div className={form.body}>
-        <OnboardingForm id={groupId} today={today}
+        <OnboardingForm id={groupId} userId={user.id} today={today}
           initialName={value('name') || profile?.display_name || ''} initialPaper={value('paper')} initialCode={value('code') || inviteCode}
           inviteFirst={!!inviteCode} error={value('error') || (profileError ? 'Your profile could not be loaded. Please try again.' : '')}
           startPaper={startPaper} joinPaper={joinPaper} />

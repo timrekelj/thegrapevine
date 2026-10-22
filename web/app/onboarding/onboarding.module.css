@@ -6,7 +6,7 @@
 .sheet { position: relative; margin: 8px 4px 0; padding: 14px 18px 18px; background: var(--raised); border: 1px solid var(--rule); transform: rotate(-1deg); box-shadow: 0 1px 0 var(--rule), 0 24px 44px -26px rgb(0 0 0 / .4); }
 .sheetTop { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .sheetTop :global(.label) { font-size: 9px; color: var(--ink-2); }
-.sheetTop :global(.av) { width: 26px; height: 26px; font-size: 13px; transition: transform .2s; }
+.sheetTop :global(.av) { width: 34px; height: 34px; }
 .masthead { font: 400 40px/1.05 var(--nameplate); text-align: center; margin: 10px 0 0; overflow-wrap: anywhere; }
 .masthead[data-empty="true"] { color: var(--ink-3); }
 .rules { height: 5px; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); margin: 10px 0 14px; }

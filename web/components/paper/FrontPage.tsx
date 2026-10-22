@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { PaperMember, RankedStory } from '@/lib/types'
 import Plate from '@/components/print/Plate'
+import Avatar from '@/components/print/Avatar'
 import LaterEdition from './later-edition'
 import ShareLink from './share-link'
 import styles from './paper.module.css'
@@ -20,7 +21,7 @@ function StoryMeta({ story, publishers = false }: { story: RankedStory; publishe
     {story.newSources > 0 && <span className="new">{plural(story.newSources, 'new source')}</span>}
     {story.newMessages > 0 && <span className="new">{plural(story.newMessages, 'new message')}</span>}
     {story.submitters.length > 0 && <span className={styles.submitters} aria-label={`Shared by ${story.submitters.map(m => m.display_name).join(', ')}`}>
-      {story.submitters.map(m => <span className="av" key={m.id} title={m.display_name}>{m.monogram}</span>)}
+      {story.submitters.map(m => <Avatar key={m.id} seed={m.id} name={m.display_name} />)}
     </span>}
   </div>
 }
@@ -55,7 +56,7 @@ export default function FrontPage({ group, members, stories, loadedAt }: {
         <span className={styles.edition}>Vol. {volume} · No. {edition}</span>
         <time className={styles.date} dateTime={loadedAt.toISOString()}>{loadedAt.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</time>
         <span className={`tnum ${styles.count}`}><span>{stories.length} {stories.length === 1 ? 'story' : 'stories'}{fresh > 0 && <> · <span className={styles.fresh}>{fresh} new</span></>}</span>
-          <span className={styles.members} aria-label="At the table">{members.map(member => <span className="av" key={member.id} title={member.display_name}>{member.monogram}</span>)}</span>
+          <span className={styles.members} aria-label="At the table">{members.map(member => <Avatar key={member.id} seed={member.id} name={member.display_name} />)}</span>
         </span>
       </div>
       <nav className={styles.sections} aria-label="Sections">

@@ -1,9 +1,10 @@
 import Link from 'next/link'
 import Plate from '@/components/print/Plate'
+import Avatar from '@/components/print/Avatar'
 import styles from './landing.module.css'
 
 // Fictional sample content, printed with the same plates and markers as the real paper.
-const sampleMembers = ['L', 'N', 'J', 'M']
+const sampleMembers = ['Luka', 'Nika', 'Jure', 'Maja']
 
 const wire = [
   'Storm closes coastal roads as rivers rise overnight',
@@ -19,7 +20,7 @@ function Specimen() {
     <div className={styles.sheet} aria-hidden="true">
       <div className={styles.sheetTop}>
         <span className={styles.sheetMasthead}>The Supper Club</span>
-        <span className={styles.sheetMembers}>{sampleMembers.map(m => <span className="av" key={m}>{m}</span>)}</span>
+        <span className={styles.sheetMembers}>{sampleMembers.map(m => <Avatar key={m} seed={`sample-${m}`} />)}</span>
       </div>
       <div className={styles.sheetRule} />
       <div className={styles.sheetSections}><b>Front page</b><span>Weather</span><span>Science</span><span>Sport</span></div>

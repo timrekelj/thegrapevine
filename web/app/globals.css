@@ -19,6 +19,7 @@
   --red: #C8231B;
   --on-red: #FFFFFF;
   --danger: #A3261F;
+  --portrait: #FBF9F4;
 
   /* type */
   --nameplate: var(--font-nameplate), 'Old English Text MT', serif;
@@ -50,6 +51,7 @@
     --red: #FF5B4F;
     --on-red: #1A0705;
     --danger: #FF8A80;
+    --portrait: #E4DFD5;
   }
 }
 
@@ -145,8 +147,10 @@ a:hover .plate .screen, a:focus-visible .plate .screen, .plate.reveal:hover .scr
 .typeplate { position: relative; overflow: hidden; display: grid; place-items: center; padding: 10px; background: radial-gradient(circle, var(--rule) .9px, transparent 1.2px) 0 0 / 4px 4px, var(--raised); border: 1px solid var(--rule); container-type: inline-size; }
 .typeplate span { font: italic 500 clamp(13px, 9cqi, 34px)/1.05 var(--serif); letter-spacing: -0.01em; text-align: center; color: var(--ink); background: var(--raised); padding: .15em .35em; max-width: 100%; overflow-wrap: anywhere; }
 
-/* members are monograms, never photos */
-.av { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--paper); color: var(--ink); border: 1px solid var(--ink); font: italic 600 15px/1 var(--serif); flex: none; }
+/* members are ink portraits, drawn from their id. The disc stays light in the evening edition too:
+   a clipping on the page, rather than an inverted drawing. */
+.av { width: 32px; height: 32px; border-radius: 50%; overflow: hidden; display: grid; flex: none; background: var(--portrait); border: 1px solid var(--ink); }
+.av img { width: 100%; height: 100%; display: block; }
 
 /* buttons: an ink block that turns to an outline when pressed */
 .btn { height: 42px; border-radius: var(--radius); padding: 0 18px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: 600 14px/1 var(--sans); letter-spacing: -0.005em; background: var(--ink); color: var(--paper); border: 1px solid var(--ink); cursor: pointer; white-space: nowrap; text-decoration: none; transition: background .15s, color .15s; }

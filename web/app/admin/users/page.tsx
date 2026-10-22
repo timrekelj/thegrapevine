@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { requireAdmin } from '@/lib/auth'
 import { adminRpc, formatDate, formatUsd, num, type AdminUserRow } from '@/lib/admin'
 import styles from '@/components/admin/admin.module.css'
+import Avatar from '@/components/print/Avatar'
 
 export default async function AdminUsers() {
   const { supabase } = await requireAdmin()
@@ -14,7 +15,7 @@ export default async function AdminUsers() {
         <th className={styles.num}>Groups</th><th className={styles.num}>Sources</th><th className={styles.num}>Messages</th><th className={styles.num}>AI cost</th>
       </tr></thead>
       <tbody>{users.length ? users.map(u => <tr key={u.id}>
-        <td><Link className={styles.who} href={`/admin/users/${u.id}`}><span className="av">{u.monogram}</span>{u.display_name}</Link>
+        <td><Link className={styles.who} href={`/admin/users/${u.id}`}><Avatar seed={u.id} />{u.display_name}</Link>
           {u.is_admin && <> <span className={`${styles.badge} ${styles.badgeStrong}`}>Admin</span></>}</td>
         <td className={styles.wrap}>{u.email ?? <span className={styles.muted}>—</span>}</td>
         <td>{formatDate(u.created_at)}</td><td>{formatDate(u.last_sign_in_at, true)}</td>
