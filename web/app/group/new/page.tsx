@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
 import { connection } from 'next/server'
-import { captureServer } from '@/lib/telemetry-server'
+import { createPaper } from '@/lib/papers'
 
 export default async function NewGroupPage({ searchParams }: PageProps<'/group/new'>) {
   await connection() // fully dynamic: session + database
@@ -14,30 +14,8 @@ export default async function NewGroupPage({ searchParams }: PageProps<'/group/n
     'use server'
     const { supabase, user } = await requireUser('/group/new')
     const name = String(formData.get('name') ?? '').trim()
-    const query = new URLSearchParams({ id: groupId, name })
-    if (!name || name.length > 100) {
-      query.set('error', 'Choose a paper name between 1 and 100 characters.')
-      redirect(`/group/new?${query}`)
-    }
-    // Keep the ID on failure so retrying membership never creates a second paper.
-    const { data: existing, error: lookupError } = await supabase.from('groups').select('id').eq('id', groupId).eq('created_by', user.id).maybeSingle()
-    if (lookupError) {
-      query.set('error', 'The paper could not be checked. Please try again.')
-      redirect(`/group/new?${query}`)
-    }
-    if (!existing) {
-      const { error } = await supabase.from('groups').insert({ id: groupId, name, created_by: user.id })
-      if (error) {
-        query.set('error', error.message)
-        redirect(`/group/new?${query}`)
-      }
-    }
-    const { error } = await supabase.from('group_members').insert({ group_id: groupId, user_id: user.id, role: 'owner' })
-    if (error && error.code !== '23505') {
-      query.set('error', 'Your paper was created, but membership could not be saved. Try again to finish joining it.')
-      redirect(`/group/new?${query}`)
-    }
-    if (!error) await captureServer(user.id, 'paper_created')
+    const error = await createPaper(supabase, user.id, groupId, name)
+    if (error) redirect(`/group/new?${new URLSearchParams({ id: groupId, name, error })}`)
     redirect('/')
   }
 

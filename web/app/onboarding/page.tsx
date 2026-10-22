@@ -1,6 +1,18 @@
+import { randomUUID } from 'node:crypto'
 import { redirect } from 'next/navigation'
 import { requireUser, safeRedirect } from '@/lib/auth'
+import { createPaper, saveDisplayName } from '@/lib/papers'
 import { connection } from 'next/server'
+import form from '../login/login.module.css'
+import styles from './onboarding.module.css'
+import { OnboardingForm } from './onboarding-form'
+
+const UUID = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i
+
+/** Back to the form with what was typed and why it failed. */
+function retry(destination: string, id: string, fields: Record<string, string>, error: string): never {
+  redirect(`/onboarding?${new URLSearchParams({ redirect: destination, id, ...fields, error })}`)
+}
 
 export default async function OnboardingPage({ searchParams }: PageProps<'/onboarding'>) {
   await connection() // fully dynamic: session + database
@@ -8,50 +20,46 @@ export default async function OnboardingPage({ searchParams }: PageProps<'/onboa
   const destination = safeRedirect(params.redirect)
   const { supabase, user } = await requireUser(`/onboarding?${new URLSearchParams({ redirect: destination })}`)
   const { data: profile, error: profileError } = await supabase.from('profiles').select('display_name').eq('id', user.id).single()
+  // Keep the paper's ID across retries so a failed membership insert never creates a second paper.
+  const groupId = typeof params.id === 'string' && UUID.test(params.id) ? params.id : randomUUID()
+  // Someone who arrived from an invite link joins first; the code rides along in the destination.
+  const inviteCode = typeof params.code === 'string' ? params.code
+    : destination.startsWith('/invite?') ? new URLSearchParams(destination.slice('/invite?'.length)).get('code') ?? '' : ''
+  const value = (key: string) => typeof params[key] === 'string' ? params[key] : ''
 
-  async function saveName(formData: FormData) {
+  async function startPaper(formData: FormData) {
     'use server'
     const { supabase, user } = await requireUser('/onboarding')
     const name = String(formData.get('name') ?? '').trim()
-    const query = new URLSearchParams({ redirect: destination })
-    if (!name || name.length > 80) {
-      query.set('error', 'Choose a name between 1 and 80 characters.')
-    } else {
-      const { data, error } = await supabase.from('profiles').update({ display_name: name, monogram: Array.from(name)[0].toUpperCase() }).eq('id', user.id).select('id').single()
-      if (error || !data) query.set('error', 'Your name could not be saved. Please try again.')
-      else query.set('saved', '1')
-    }
-    redirect(`/onboarding?${query}`)
+    const paper = String(formData.get('paper') ?? '').trim()
+    const error = await saveDisplayName(supabase, user.id, name) ?? await createPaper(supabase, user.id, groupId, paper)
+    if (error) retry(destination, groupId, { name, paper }, error)
+    redirect('/')
   }
 
-  async function enterCode(formData: FormData) {
+  async function joinPaper(formData: FormData) {
     'use server'
+    const { supabase, user } = await requireUser('/onboarding')
+    const name = String(formData.get('name') ?? '').trim()
     const code = String(formData.get('code') ?? '').trim()
+    const error = await saveDisplayName(supabase, user.id, name) ?? (code ? null : 'Enter the invite code from your friend.')
+    if (error) retry(destination, groupId, { name, code }, error)
     redirect(`/invite?${new URLSearchParams({ code })}`)
   }
 
+  const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
   return (
-    <main style={{ maxWidth: 480, margin: '80px auto', padding: '0 20px' }}>
-      <p className="masthead">The Grapevine</p>
-      <hr style={{ border: 0, borderTop: '1px solid var(--rule)', margin: '24px 0 48px' }} />
-      <h1 className="headline">Pull up a chair.</h1>
-      <p className="summary" style={{ margin: '24px 0' }}>Your friends will see this name beside the links and messages you share.</p>
-      {params.saved !== '1' ? <form action={saveName} style={{ display: 'grid', gap: 16 }}>
-        <label htmlFor="name" className="meta">Your name</label>
-        <input id="name" name="name" required maxLength={80} autoComplete="name" defaultValue={profile?.display_name ?? ''} style={{ padding: 12, font: 'inherit', color: 'var(--ink)', background: 'var(--raised)', border: '1px solid var(--rule)' }} />
-        <button className="btn" style={{ justifySelf: 'start' }}>Save and continue</button>
-      </form> : <>
-        <p role="status">Your name is saved. Find your paper.</p>
-        {destination.startsWith('/invite?') && <p><a href={destination} className="btn">Continue to your invitation</a></p>}
-        <p><a href="/group/new" className="btn">Create a paper</a></p>
-        <hr style={{ border: 0, borderTop: '1px solid var(--rule)', margin: '32px 0' }} />
-        <form action={enterCode} style={{ display: 'grid', gap: 16 }}>
-          <label htmlFor="code" className="meta">Or join with an invite code</label>
-          <input id="code" name="code" required maxLength={100} autoCapitalize="none" style={{ padding: 12, font: 'inherit', color: 'var(--ink)', background: 'var(--raised)', border: '1px solid var(--rule)' }} />
-          <button className="btn" style={{ justifySelf: 'start' }}>Find the paper</button>
-        </form>
-      </>}
-      {(profileError || typeof params.error === 'string') && <p role="alert">{typeof params.error === 'string' ? params.error : 'Your profile could not be loaded. Please try again.'}</p>}
+    <main className={form.page}>
+      <header className={styles.intro}>
+        <p className="label" style={{ margin: 0 }}>Make yourself at home</p>
+        <h1 className="display">Your people.<br />Your paper.</h1>
+      </header>
+      <div className={form.body}>
+        <OnboardingForm id={groupId} today={today}
+          initialName={value('name') || profile?.display_name || ''} initialPaper={value('paper')} initialCode={value('code') || inviteCode}
+          inviteFirst={!!inviteCode} error={value('error') || (profileError ? 'Your profile could not be loaded. Please try again.' : '')}
+          startPaper={startPaper} joinPaper={joinPaper} />
+      </div>
     </main>
   )
 }

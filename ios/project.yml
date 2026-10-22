@@ -65,6 +65,7 @@ targets:
           if [ "$CONFIGURATION" = "Release" ] && [ -n "$POSTHOG_CLI_API_KEY" ]; then
             export POSTHOG_CLI_HOST=https://eu.posthog.com
             export POSTHOG_CLI_PROJECT_ID=310029
+            export POSTHOG_SKIP_ON_CONFLICT=1
             "${BUILD_DIR%/Build/*}/SourcePackages/checkouts/posthog-ios/build-tools/upload-symbols.sh"
           fi
         inputFiles:

@@ -348,7 +348,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"$CONFIGURATION\" = \"Release\" ] && [ -n \"$POSTHOG_CLI_API_KEY\" ]; then\n  export POSTHOG_CLI_HOST=https://eu.posthog.com\n  export POSTHOG_CLI_PROJECT_ID=310029\n  \"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/posthog-ios/build-tools/upload-symbols.sh\"\nfi\n";
+			shellScript = "if [ \"$CONFIGURATION\" = \"Release\" ] && [ -n \"$POSTHOG_CLI_API_KEY\" ]; then\n  export POSTHOG_CLI_HOST=https://eu.posthog.com\n  export POSTHOG_CLI_PROJECT_ID=310029\n  export POSTHOG_SKIP_ON_CONFLICT=1\n  \"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/posthog-ios/build-tools/upload-symbols.sh\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
