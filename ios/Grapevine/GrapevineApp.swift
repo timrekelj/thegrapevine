@@ -47,7 +47,6 @@ struct ContentView: View {
         .background(Theme.paper.ignoresSafeArea())
         .foregroundColor(Theme.ink)
         .tint(Theme.ink)
-        .preferredColorScheme(.light)
         .task(id: app.checked && app.session != nil) {
             if app.checked && app.session != nil {
                 OneSignalManager.shared.requestPushPermission()

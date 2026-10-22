@@ -1,77 +1,37 @@
 import SwiftUI
 
+/// The front page: a broadsheet. Nameplate and dateline, the lead above the fold, ruled stories below.
 struct FrontPageView: View {
     @Environment(AppState.self) private var app
     @Environment(PaperStore.self) private var paper
     @State private var share = false
     @State private var path: [UUID] = []
 
+    private var profiles: [Profile] { app.members.map(\.profiles) }
+
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
-                LazyVStack(spacing: 0) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("YOUR PRIVATE PAPER")
-                            .font(.system(size: 10, weight: .bold)).tracking(2)
-                            .foregroundColor(Theme.ink2)
-                        HStack(alignment: .center, spacing: 16) {
-                            Text(app.group?.name ?? "The paper")
-                                .font(Theme.display(32))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            Button { share = true } label: {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 20, weight: .medium))
-                                    .frame(width: 48, height: 48)
-                                    .background(Theme.ink, in: Circle())
-                                    .foregroundColor(Theme.paper)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Share a link")
-                        }
-                        Text(Date.now, format: .dateTime.weekday(.wide).day().month(.wide))
-                            .font(.system(size: 12)).foregroundColor(Theme.ink2)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(24)
-
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    masthead
                     if let error = paper.error {
-                        Text(error).font(.callout).padding()
-                        Button("Try again") { Task { await paper.load(app: app) } }
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text(error).font(Theme.serif(17))
+                            Button("Try again") { Task { await paper.load(app: app) } }
+                                .font(.system(size: 15, weight: .semibold)).underline()
+                        }
+                        .padding(.vertical, 32)
                     } else if paper.isLoading && paper.stories.isEmpty {
-                        ProgressView().tint(Theme.ink).frame(maxWidth: .infinity).padding(40)
+                        ProgressView().tint(Theme.ink).frame(maxWidth: .infinity).padding(48)
                     } else if let lead = paper.stories.first {
-                        NavigationLink(value: lead.id) {
-                            LeadStoryView(story: lead, members: app.members, seenAt: paper.seenAt)
-                        }
-                        .buttonStyle(.plain)
-                        if paper.stories.count > 1 {
-                        Text("MORE FROM YOUR FRIENDS")
-                            .font(.system(size: 10, weight: .bold)).tracking(1.5)
-                            .foregroundColor(Theme.ink2)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 24).padding(.top, 28).padding(.bottom, 4)
-                        }
-                        ForEach(paper.stories.dropFirst()) { story in
-                            NavigationLink(value: story.id) {
-                                StoryRowView(story: story, members: app.members, seenAt: paper.seenAt)
-                            }
-                            .buttonStyle(.plain)
-                        }
+                        edition(lead: lead)
                     } else {
-                        VStack(spacing: 12) {
-                            Text("Share the first link to start the paper.")
-                                .font(Theme.display(21)).fixedSize(horizontal: false, vertical: true)
-                                .multilineTextAlignment(.center)
-                            Button("Share a link") { share = true }
-                                .buttonStyle(.plain)
-                                .padding(.horizontal, 18).frame(height: 44)
-                                .background(Theme.ink).foregroundColor(Theme.paper)
-                                .clipShape(Capsule())
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(40)
+                        empty
                     }
+                    colophon
                 }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 24)
             }
             .background(Theme.paper)
             .navigationDestination(for: UUID.self) { id in StoryView(storyId: id) }
@@ -84,6 +44,202 @@ struct FrontPageView: View {
             }
         }
     }
+
+    // MARK: - Nameplate
+
+    private var edition: (volume: String, number: Int)? {
+        guard let founded = app.group?.created_at else { return nil }
+        let days = Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: founded), to: Calendar.current.startOfDay(for: .now)).day ?? 0
+        let number = max(1, days + 1)
+        return (roman((number - 1) / 365 + 1), number)
+    }
+
+    private var fresh: Int {
+        paper.stories.filter { story in
+            story.sources.contains { isNew($0.created_at) } || story.messages.contains { isNew($0.created_at) }
+        }.count
+    }
+
+    private func isNew(_ date: Date) -> Bool { paper.seenAt.map { $0 < date } ?? true }
+
+    private var masthead: some View {
+        VStack(spacing: 0) {
+            Text(app.group?.name ?? "The paper")
+                .font(Theme.nameplate(46))
+                .multilineTextAlignment(.center)
+                .lineLimit(2).minimumScaleFactor(0.5)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 12).padding(.bottom, 12)
+                .accessibilityAddTraits(.isHeader)
+            DoubleRule()
+            HStack {
+                if let edition {
+                    Kicker(text: "Vol. \(edition.volume) · No. \(edition.number)", color: Theme.ink2, size: 10)
+                }
+                Spacer()
+                HStack(spacing: 0) {
+                    Kicker(text: plural(paper.stories.count, "story", "stories"), color: Theme.ink2, size: 10)
+                    if fresh > 0 {
+                        Kicker(text: " · \(fresh) new", color: Theme.red, size: 10)
+                    }
+                }
+            }
+            .padding(.vertical, 8)
+            Hairline()
+            HStack {
+                Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide).year()))
+                    .font(Theme.italic(16, medium: true))
+                Spacer()
+                AvatarStack(profiles: profiles, size: 24)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("At the table: \(profiles.map(\.display_name).joined(separator: ", "))")
+            }
+            .padding(.vertical, 8)
+            Rectangle().fill(Theme.ink).frame(height: 1)
+            sections
+        }
+    }
+
+    private var sections: some View {
+        VStack(spacing: 10) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 20) {
+                    Kicker(text: "Front page", size: 10)
+                    ForEach(categories, id: \.self) { Kicker(text: $0, color: Theme.ink2, size: 10) }
+                }
+                .padding(.vertical, 2)
+            }
+            Button { share = true } label: {
+                Label("Share a link", systemImage: "plus")
+            }
+            .buttonStyle(InkButtonStyle(height: 44))
+        }
+        .padding(.vertical, 10)
+        .overlay(alignment: .bottom) { Hairline() }
+    }
+
+    private var categories: [String] {
+        var seen = Set<String>()
+        return paper.stories.compactMap(\.category).filter { seen.insert($0).inserted }
+    }
+
+    // MARK: - The edition
+
+    @ViewBuilder private func edition(lead: StoryRow) -> some View {
+        NavigationLink(value: lead.id) {
+            LeadStoryView(story: lead, members: app.members, seenAt: paper.seenAt)
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 22)
+
+        let rest = Array(paper.stories.dropFirst())
+        ForEach(Array(rest.prefix(3).enumerated()), id: \.element.id) { index, story in
+            Hairline().padding(.vertical, 20)
+            NavigationLink(value: story.id) {
+                SideStoryView(story: story, members: app.members, seenAt: paper.seenAt, featured: index == 0)
+            }
+            .buttonStyle(.plain)
+        }
+
+        if rest.count > 3 {
+            SectionHead(title: "Also in this edition").padding(.top, 40).padding(.bottom, 8)
+            ForEach(Array(rest.dropFirst(3).enumerated()), id: \.element.id) { index, story in
+                if index > 0 { Hairline() }
+                NavigationLink(value: story.id) {
+                    StoryRowView(story: story, members: app.members, seenAt: paper.seenAt)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+
+        let letters = paper.stories
+            .flatMap { story in story.messages.map { (message: $0, story: story) } }
+            .sorted { $0.message.created_at > $1.message.created_at }
+            .prefix(4)
+        if !letters.isEmpty {
+            SectionHead(title: "Letters from the table").padding(.top, 40).padding(.bottom, 16)
+            ForEach(Array(letters.enumerated()), id: \.element.message.id) { index, letter in
+                if index > 0 { Hairline().padding(.vertical, 16) }
+                NavigationLink(value: letter.story.id) {
+                    LetterView(message: letter.message, story: letter.story, author: app.members.first { $0.user_id == letter.message.author_id }?.profiles)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var empty: some View {
+        VStack(spacing: 16) {
+            Kicker(text: "Stop the presses")
+            Text("This edition is waiting for its first story.")
+                .font(Theme.headline(34)).multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("Share a link and it becomes the lead. Links about the same event are filed together, and every story gets its own conversation.")
+                .font(Theme.serif(17)).foregroundColor(Theme.ink2).multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 56)
+    }
+
+    private var colophon: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Rectangle().fill(Theme.ink).frame(height: 1).padding(.bottom, 8)
+            Text("The Grapevine").font(Theme.nameplate(22))
+            Text("Printed at \(clock(.now)) for \(plural(app.members.count, "reader")) · Private edition")
+                .font(Theme.mono(11)).foregroundColor(Theme.ink3)
+        }
+        .padding(.top, 48)
+    }
+}
+
+/// Story facts shared by every slot on the page.
+struct StoryFacts {
+    let story: StoryRow
+    let members: [Member]
+    let seenAt: Date?
+
+    private func isNew(_ date: Date) -> Bool { seenAt.map { $0 < date } ?? true }
+    var newSources: Int { story.sources.filter { isNew($0.created_at) }.count }
+    var newMessages: Int { story.messages.filter { isNew($0.created_at) }.count }
+    var publishers: [String] {
+        var seen = Set<String>()
+        return story.sources.sorted { $0.created_at > $1.created_at }.map { $0.publisher.isEmpty ? $0.domain : $0.publisher }.filter { seen.insert($0).inserted }
+    }
+    var submitters: [Profile] {
+        members.compactMap { member in story.sources.contains { $0.submitted_by == member.user_id } ? member.profiles : nil }
+    }
+    var imageURL: URL? {
+        story.sources.sorted { $0.created_at > $1.created_at }.first { $0.image_url != nil }?.image_url.flatMap { URL(string: $0) }
+    }
+    var title: String { story.title.isEmpty ? "A link from the table" : story.title }
+    var category: String { story.category ?? "News" }
+    var label: String { publishers.first ?? "The paper" }
+}
+
+/// Counts in mono, with red marks for what's new.
+struct StoryMeta: View {
+    let facts: StoryFacts
+    var publishers = false
+
+    var body: some View {
+        let story = facts.story
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top, spacing: 12) {
+                Text("\(Text("\(story.sources.count)").foregroundColor(Theme.ink).font(Theme.mono(12, bold: true))) \(story.sources.count == 1 ? "source" : "sources")\(publishers && !facts.publishers.isEmpty ? ": " + facts.publishers.joined(separator: ", ") : "")  \(Text("\(story.messages.count)").foregroundColor(Theme.ink).font(Theme.mono(12, bold: true))) \(story.messages.count == 1 ? "message" : "messages")")
+                    .font(Theme.mono(12)).foregroundColor(Theme.ink2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                AvatarStack(profiles: facts.submitters, size: 22, limit: 3)
+            }
+            if facts.newSources > 0 || facts.newMessages > 0 {
+                HStack(spacing: 12) {
+                    if facts.newSources > 0 { NewMark(text: plural(facts.newSources, "new source")) }
+                    if facts.newMessages > 0 { NewMark(text: plural(facts.newMessages, "new message")) }
+                }
+            }
+        }
+    }
 }
 
 struct LeadStoryView: View {
@@ -91,98 +247,126 @@ struct LeadStoryView: View {
     let members: [Member]
     let seenAt: Date?
 
-    private var newSources: Int {
-        story.sources.filter { source in seenAt.map { $0 < source.created_at } ?? true }.count
-    }
-    private var newMessages: Int {
-        story.messages.filter { message in seenAt.map { $0 < message.created_at } ?? true }.count
-    }
-    private var submitters: [Profile] {
-        members.compactMap { member in
-            story.sources.contains(where: { $0.submitted_by == member.user_id }) ? member.profiles : nil
-        }
-    }
-    private var imageURL: URL? {
-        story.sources.first(where: { $0.image_url != nil })?.image_url.flatMap { URL(string: $0) }
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            PlateView(url: imageURL, label: story.sources.first?.publisher ?? "The paper", height: 172)
-            HStack {
-                Text((story.category ?? "News").uppercased())
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(Theme.ink2)
-                if newSources > 0 {
-                    Stamp(text: "+\(newSources) source\(newSources == 1 ? "" : "s")")
-                }
+        let facts = StoryFacts(story: story, members: members, seenAt: seenAt)
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                Kicker(text: facts.category)
+                if facts.newSources > 0 { Stamp(text: "+" + plural(facts.newSources, "source")) }
             }
-            Text(story.title.isEmpty ? "A link from the table" : story.title)
-                .font(Theme.display(28)).fixedSize(horizontal: false, vertical: true)
-            if !story.summary.isEmpty {
-                Text(story.summary)
-                    .font(.system(size: 15)).lineSpacing(4).fixedSize(horizontal: false, vertical: true)
-                    .foregroundColor(Theme.ink2)
+            Text(facts.title)
+                .font(Theme.headline(38)).lineSpacing(-4)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 10).padding(.bottom, 16)
+            PlateView(url: facts.imageURL, label: facts.label)
+                .aspectRatio(16 / 9, contentMode: .fit)
+            if let publisher = facts.publishers.first {
+                Text("Pictured via \(publisher)\(facts.submitters.first.map { ", shared by \($0.display_name)" } ?? "")")
+                    .font(Theme.mono(11)).foregroundColor(Theme.ink3)
+                    .padding(.top, 8).padding(.bottom, 8)
             }
-            HStack(spacing: 12) {
-                MetaRow(text: "\(story.sources.count) source\(story.sources.count == 1 ? "" : "s") · \(story.messages.count) message\(story.messages.count == 1 ? "" : "s")")
-                    .fixedSize(horizontal: false, vertical: true)
-                Spacer()
-                ForEach(submitters.prefix(2)) { Monogram(profile: $0, size: 24) }
-            }
-            if newMessages > 0 {
-                HStack(spacing: 4) {
-                    Circle().fill(Theme.pink).frame(width: 8, height: 8)
-                    MetaRow(text: "\(newMessages) new")
-                }
-            }
-
+            Hairline()
+            DropCapText(text: story.summary.isEmpty ? "The summary is still being prepared. Open the story to read the shared link." : story.summary, size: 18)
+                .padding(.top, 14).padding(.bottom, 14)
+            StoryMeta(facts: facts, publishers: true)
         }
-        .padding(16)
-        .background(Theme.raised, in: RoundedRectangle(cornerRadius: 18))
-        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.rule, lineWidth: 0.5))
-        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
     }
 }
 
+/// The three stories beside the lead; the first carries a picture and a summary.
+struct SideStoryView: View {
+    let story: StoryRow
+    let members: [Member]
+    let seenAt: Date?
+    let featured: Bool
+
+    var body: some View {
+        let facts = StoryFacts(story: story, members: members, seenAt: seenAt)
+        VStack(alignment: .leading, spacing: 8) {
+            if featured {
+                PlateView(url: facts.imageURL, label: facts.label)
+                    .aspectRatio(3 / 2, contentMode: .fit)
+                    .padding(.bottom, 4)
+            }
+            Kicker(text: facts.category)
+            Text(facts.title)
+                .font(Theme.headline(featured ? 28 : 23))
+                .fixedSize(horizontal: false, vertical: true)
+            if featured, !story.summary.isEmpty {
+                Text(story.summary).font(Theme.serif(16)).foregroundColor(Theme.ink2).lineSpacing(2).lineLimit(3)
+            }
+            StoryMeta(facts: facts)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+}
+
+/// "Also in this edition": text beside a small square plate.
 struct StoryRowView: View {
     let story: StoryRow
     let members: [Member]
     let seenAt: Date?
 
-    private var newCount: Int {
-        story.sources.filter { source in seenAt.map { $0 < source.created_at } ?? true }.count
-            + story.messages.filter { message in seenAt.map { $0 < message.created_at } ?? true }.count
+    var body: some View {
+        let facts = StoryFacts(story: story, members: members, seenAt: seenAt)
+        HStack(alignment: .top, spacing: 16) {
+            VStack(alignment: .leading, spacing: 8) {
+                Kicker(text: facts.category)
+                Text(facts.title).font(Theme.headline(21)).fixedSize(horizontal: false, vertical: true)
+                StoryMeta(facts: facts)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            PlateView(url: facts.imageURL, label: facts.label)
+                .frame(width: 96, height: 96)
+        }
+        .padding(.vertical, 18)
+        .contentShape(Rectangle())
     }
-    private var imageURL: URL? {
-        story.sources.first(where: { $0.image_url != nil })?.image_url.flatMap { URL(string: $0) }
-    }
+}
+
+struct LetterView: View {
+    let message: Message
+    let story: StoryRow
+    let author: Profile?
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text((story.category ?? "News").uppercased())
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(Theme.ink2)
-                Text(story.title.isEmpty ? "A link from the table" : story.title)
-                    .font(Theme.display(21)).fixedSize(horizontal: false, vertical: true)
-                VStack(alignment: .leading, spacing: 6) {
-                    MetaRow(text: "\(story.sources.count) source\(story.sources.count == 1 ? "" : "s") · \(story.messages.count) message\(story.messages.count == 1 ? "" : "s")")
-                        .fixedSize(horizontal: false, vertical: true)
-                    if newCount > 0 {
-                        HStack(spacing: 4) {
-                            Circle().fill(Theme.pink).frame(width: 8, height: 8)
-                            MetaRow(text: "\(newCount) new")
-                        }
-                    }
-                }
-            }
-            Spacer()
-            PlateView(url: imageURL, label: story.sources.first?.publisher ?? "?", height: 72)
-                .frame(width: 72)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("“").font(Theme.headline(54)).foregroundColor(Theme.ink3).frame(height: 22, alignment: .top)
+            Text(message.body ?? "Shared something with the table.")
+                .font(Theme.italic(21)).lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("\(Text(author?.display_name ?? "A member").font(Theme.mono(12, bold: true)).foregroundColor(Theme.ink)) on \(story.title) · \(clock(message.created_at))")
+                .font(Theme.mono(12)).foregroundColor(Theme.ink2)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 20).padding(.horizontal, 24)
-        .overlay(alignment: .bottom) { Rectangle().fill(Theme.rule).frame(height: 0.5).padding(.horizontal, 24) }
+        .contentShape(Rectangle())
     }
+}
+
+/// Body copy that opens with a raised initial, as in a newspaper column.
+struct DropCapText: View {
+    let text: String
+    var size: CGFloat = 18
+
+    var body: some View {
+        let trimmed = text.trimmed
+        if let first = trimmed.first {
+            Text("\(Text(String(first)).font(Theme.headline(size * 2.6)))\(Text(String(trimmed.dropFirst())).font(Theme.serif(size)))")
+                .lineSpacing(size * 0.32)
+                .foregroundColor(Theme.ink)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+private func roman(_ number: Int) -> String {
+    var left = number, out = ""
+    for (value, glyph) in [(10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")] {
+        while left >= value { out += glyph; left -= value }
+    }
+    return out
 }

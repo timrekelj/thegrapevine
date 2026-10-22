@@ -40,7 +40,14 @@
 	</dict>
 	<key>UIAppFonts</key>
 	<array>
-		<string>Gloock-Regular.ttf</string>
+		<string>UnifrakturMaguntia-Regular.ttf</string>
+		<string>Newsreader-Display-SemiBold.ttf</string>
+		<string>Newsreader-Text-Regular.ttf</string>
+		<string>Newsreader-Text-SemiBold.ttf</string>
+		<string>Newsreader-Text-Italic.ttf</string>
+		<string>Newsreader-Text-MediumItalic.ttf</string>
+		<string>IBMPlexMono-Medium.ttf</string>
+		<string>IBMPlexMono-SemiBold.ttf</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>

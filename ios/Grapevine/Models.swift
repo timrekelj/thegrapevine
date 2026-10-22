@@ -21,6 +21,8 @@ struct Group: Codable, Identifiable {
     let id: UUID
     let name: String
     let invite_code: String
+    /// The paper's founding day, which numbers its editions.
+    var created_at: Date? = nil
 }
 
 struct Membership: Codable {
