@@ -172,3 +172,38 @@ insert into public.story_history (id, story_id, title, summary, category, create
    'The champions are out of the cup on penalties after a third-tier side held its nerve from the spot.',
    'Sport', now() - interval '4 hours')
 on conflict (id) do nothing;
+
+-- admin: tim@example.com can open /admin on the web
+insert into public.admins (user_id) values ('00000000-0000-0000-0000-000000000001')
+on conflict do nothing;
+
+-- a sample correction report so the admin reports page has a row
+insert into public.reports (id, story_id, reporter_id, target, note, status, created_at, resolved_at) values
+  ('00000000-0000-0000-0000-000000000201', '00000000-0000-0000-0000-0000000000b2', '00000000-0000-0000-0000-000000000003',
+   'summary', 'The delay is to spring, not summer.', 'resolved', now() - interval '3 hours', now() - interval '3 hours'),
+  ('00000000-0000-0000-0000-000000000202', '00000000-0000-0000-0000-0000000000b4', '00000000-0000-0000-0000-000000000004',
+   'category', 'This is more City than Travel.', 'open', now() - interval '40 minutes', null)
+on conflict (id) do nothing;
+
+-- sample AI usage: one submission per story over the last two weeks, priced like the edge functions price them
+insert into public.ai_usage (created_at, request_id, function_name, operation, provider, model,
+  input_tokens, output_tokens, cost_usd, latency_ms, user_id, group_id, story_id)
+select r.at, r.request_id, 'submit-source', c.operation, c.provider, c.model, c.input_tokens, c.output_tokens,
+  (c.input_tokens * c.input_rate + c.output_tokens * c.output_rate) / 1000000.0, c.latency_ms,
+  r.user_id, '00000000-0000-0000-0000-0000000000a1', r.story_id
+from (values
+  ('00000000-0000-0000-0000-000000000301'::uuid, now() - interval '13 days', '00000000-0000-0000-0000-000000000002'::uuid, '00000000-0000-0000-0000-0000000000b1'::uuid),
+  ('00000000-0000-0000-0000-000000000302'::uuid, now() - interval '9 days',  '00000000-0000-0000-0000-000000000003'::uuid, '00000000-0000-0000-0000-0000000000b2'::uuid),
+  ('00000000-0000-0000-0000-000000000303'::uuid, now() - interval '5 days',  '00000000-0000-0000-0000-000000000004'::uuid, '00000000-0000-0000-0000-0000000000b3'::uuid),
+  ('00000000-0000-0000-0000-000000000304'::uuid, now() - interval '2 days',  '00000000-0000-0000-0000-000000000005'::uuid, '00000000-0000-0000-0000-0000000000b4'::uuid),
+  ('00000000-0000-0000-0000-000000000305'::uuid, now() - interval '4 hours', '00000000-0000-0000-0000-000000000001'::uuid, '00000000-0000-0000-0000-0000000000b5'::uuid)
+) as r (request_id, at, user_id, story_id)
+cross join (values
+  ('embeddings',       'mistral', 'mistral-embed',        180,  0, 0.10, 0.00, 210),
+  ('clustering',       'openai',  'gpt-6-luna',           240,  0, 0.10, 0.00, 380),
+  ('chat/completions', 'mistral', 'mistral-large-latest', 620, 18, 0.50, 1.50, 1400),
+  ('chat/completions', 'mistral', 'mistral-large-latest', 640, 190, 0.50, 1.50, 3900),
+  ('chat/completions', 'mistral', 'mistral-small-latest', 610, 3, 0.15, 0.60, 520),
+  ('embeddings',       'mistral', 'mistral-embed',        230,  0, 0.10, 0.00, 190)
+) as c (operation, provider, model, input_tokens, output_tokens, input_rate, output_rate, latency_ms)
+where not exists (select 1 from public.ai_usage);

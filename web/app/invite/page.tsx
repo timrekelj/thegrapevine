@@ -2,6 +2,9 @@ import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
 import { connection } from 'next/server'
 import { captureServer } from '@/lib/telemetry-server'
+import { invitePreview } from '@/lib/metadata'
+
+export const metadata = invitePreview
 
 export default async function InvitePage({ searchParams }: PageProps<'/invite'>) {
   await connection() // fully dynamic: session + database

@@ -32,6 +32,22 @@ The experimental stack keeps separate data per Git branch. Use `supabase status`
 
 `supabase db reset` also loads `supabase/seed.sql`: the fictional paper "The Grapevine" from the design mockups — five members (tim@, luka@, nika@, jure@, maja@example.com), five stories with sources, messages and reactions. Sign in as any of them with a code from `supabase/scripts/sign-in-code.sh`. The group's invite code is `grapevinedemo`. Demo images live in `web/public/seed/`; run the web dev server to serve them.
 
+## Admin dashboard
+
+`/admin` on the web shows every user, every group with its members and stories, correction reports with each story's generated versions, and AI usage: tokens and cost per day, per model, per group, and per request, with each request expandable into its individual model calls.
+
+Admins are listed in the `admins` table, which no API role can read. The demo seed makes tim@example.com an admin. To promote a hosted account, run this in the SQL editor:
+
+    insert into public.admins (user_id) select id from auth.users where email = 'you@example.com';
+
+Non-admins get a 404. All admin data comes from `admin_*` database functions that check admin status on every call; no table policy mentions admins, so an admin's own paper behaves like any member's.
+
+AI usage is recorded by the edge functions: every model call through `observeAI` is buffered and written to `ai_usage` once per request, attributed to the member, paper, and story. Cost is priced at write time from `supabase/functions/_shared/usage.ts`; confirm those rates against the providers' pricing pages and update them when prices change. Usage before this was deployed exists only in PostHog.
+
+The access regression runs like the membership one:
+
+    "$(brew --prefix libpq)/bin/psql" postgresql://postgres:postgres@127.0.0.1:55322/postgres -v ON_ERROR_STOP=1 -f supabase/tests/admin_access.sql
+
 ## iOS simulator
 
 Requires Xcode with the iOS 26+ SDK and XcodeGen (`brew install xcodegen`). Start Supabase, the Edge Functions, and the web server (`cd web` then `npm run dev`).

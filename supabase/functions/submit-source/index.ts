@@ -4,7 +4,7 @@ import { fetchSource, normalizeUrl } from '../_shared/fetch-source.ts';
 import { cosineSimilarity, decide, sourceText, storyText, vector } from '../_shared/clustering.ts';
 import { embed } from '../_shared/mistral.ts';
 import { generate } from '../_shared/editorial.ts';
-import { capture, featureEnabled, withTelemetry } from '../_shared/telemetry.ts';
+import { capture, featureEnabled, usageScope, withTelemetry } from '../_shared/telemetry.ts';
 
 Deno.serve(withTelemetry('submit-source', async req => {
   if (req.method === 'OPTIONS') return json({});
@@ -18,6 +18,7 @@ Deno.serve(withTelemetry('submit-source', async req => {
     const url = normalizeUrl(input.url);
     const comment = optionalText(input.comment);
     await requireMember(input.group_id, user.id);
+    usageScope({ groupId: input.group_id });
     const duplicate = async () => {
       const { data, error } = await supabase.from('sources').select('id,story_id').eq('group_id', input.group_id).eq('url', url).maybeSingle();
       if (error) throw error;
@@ -36,6 +37,7 @@ Deno.serve(withTelemetry('submit-source', async req => {
     }).select('*').single();
     if (storyError) throw storyError;
     placeholderId = placeholder.id;
+    usageScope({ storyId: placeholder.id });
     const { data: source, error: sourceError } = await supabase.from('sources').insert({
       story_id: placeholder.id, group_id: input.group_id, url, submitted_by: user.id,
       submitter_comment: comment, domain: fetched.domain, publisher: fetched.publisher,
@@ -83,6 +85,7 @@ Deno.serve(withTelemetry('submit-source', async req => {
       if (decision.same_event) { chosen = candidate.story; conflict = decision.conflict; break; }
     }
     const joined = chosen.id !== placeholder.id;
+    usageScope({ storyId: chosen.id });
     if (joined) {
       const { error } = await supabase.from('sources').update({ story_id: chosen.id }).eq('id', source.id);
       if (error) throw error;
