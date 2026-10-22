@@ -52,6 +52,13 @@ class AdapterTests(unittest.TestCase):
                 DecideRequest(state="x", questions={"q": question})
         with self.assertRaises(ValidationError):
             DecideRequest(state="x", questions={})
+        for oversized in [
+            {"q" * 65: {"type": "yesno"}},
+            {"q": {"type": "yesno", "instructions": "x" * 2001}},
+            {"q": {"type": "choice", "options": ["a", "b" * 201]}},
+        ]:
+            with self.subTest(oversized=list(oversized)), self.assertRaises(ValidationError):
+                DecideRequest(state="x", questions=oversized)
 
     def test_http_contract_without_loading_weights(self):
         app = create_app()

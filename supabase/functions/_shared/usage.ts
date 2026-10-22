@@ -1,4 +1,5 @@
 // AI usage accounting: one ai_usage row per model call, written once per request.
+import { uuid } from './cors.ts';
 
 // USD per million tokens. Priced at write time, so changing a rate never rewrites history.
 // TO CHECK before trusting cost figures: these come from third-party price trackers (October 2026),
@@ -26,8 +27,7 @@ export function costUsd(model: string, inputTokens: number, outputTokens: number
   return Number(((inputTokens * price.input + outputTokens * price.output) / 1_000_000).toFixed(8));
 }
 
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const idOrNull = (value?: string) => value && uuidPattern.test(value) ? value : null;
+const idOrNull = (value?: string) => uuid(value) ? value : null;
 
 export function usageRows(context: UsageContext, calls: UsageCall[]) {
   return calls.map(call => ({
