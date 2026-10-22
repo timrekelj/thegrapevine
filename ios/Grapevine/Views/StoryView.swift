@@ -309,8 +309,24 @@ struct MessageEntryView: View {
     let store: StoryStore
     let userId: UUID
     let onReply: (Message) -> Void
+    @State private var picking = false
 
-    private static let emojis = ["🚀", "👏", "😂", "❤️", "🔥", "👀"]
+    static let emojis = ["👍", "❤️", "😂", "😮", "😢", "🔥", "👏", "🚀", "👀", "🎉"]
+
+    /// Only the emojis someone has used, in palette order.
+    private var used: [String] {
+        let present = (message.reactions ?? []).map(\.emoji)
+        let unknown = present.filter { !Self.emojis.contains($0) }.reduce(into: [String]()) { if !$0.contains($1) { $0.append($1) } }
+        return Self.emojis.filter(present.contains) + unknown
+    }
+
+    private func isMine(_ emoji: String) -> Bool {
+        message.reactions?.contains { $0.emoji == emoji && $0.user_id == userId } ?? false
+    }
+
+    private func toggle(_ emoji: String) {
+        Task { await store.toggleReaction(message: message, emoji: emoji) }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -346,13 +362,11 @@ struct MessageEntryView: View {
             HStack(spacing: 6) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
-                        ForEach(Self.emojis, id: \.self) { emoji in
+                        ForEach(used, id: \.self) { emoji in
                             let count = message.reactions?.filter { $0.emoji == emoji }.count ?? 0
-                            let mine = message.reactions?.contains { $0.emoji == emoji && $0.user_id == userId } ?? false
-                            Button {
-                                Task { await store.toggleReaction(message: message, emoji: emoji) }
-                            } label: {
-                                Text(count > 0 ? "\(emoji) \(count)" : emoji)
+                            let mine = isMine(emoji)
+                            Button { toggle(emoji) } label: {
+                                Text("\(emoji) \(count)")
                                     .font(.system(size: 13))
                                     .padding(.horizontal, 8).padding(.vertical, 4)
                                     .background(mine ? Theme.ink : Color.clear)
@@ -361,8 +375,34 @@ struct MessageEntryView: View {
                                     .overlay(Capsule().stroke(mine ? Theme.ink : Theme.rule, lineWidth: 0.5))
                             }
                             .buttonStyle(.plain)
+                            .accessibilityLabel("\(emoji), \(count) \(count == 1 ? "reaction" : "reactions")")
+                            .accessibilityAddTraits(mine ? .isSelected : [])
+                        }
+                        Button { picking = true } label: {
+                            Image(systemName: "face.smiling")
+                                .font(.system(size: 15))
+                                .overlay(alignment: .topTrailing) {
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 7, weight: .heavy))
+                                        .padding(1.5)
+                                        .background(Theme.paper, in: Circle())
+                                        .offset(x: 4, y: -3)
+                                }
+                                .foregroundColor(Theme.ink2)
+                                .padding(.horizontal, 10).padding(.vertical, 4)
+                                .overlay(Capsule().stroke(Theme.rule, lineWidth: 0.5))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Add reaction")
+                        .popover(isPresented: $picking) {
+                            ReactionPicker(isMine: isMine) { emoji in
+                                picking = false
+                                toggle(emoji)
+                            }
+                            .presentationCompactAdaptation(.popover)
                         }
                     }
+                    .padding(.vertical, 1)
                 }
                 Button { onReply(message) } label: {
                     Image(systemName: "arrowshape.turn.up.left")
@@ -376,6 +416,30 @@ struct MessageEntryView: View {
             }
         }
         .padding(.horizontal, 20).padding(.vertical, 8)
+        .contentShape(Rectangle())
+        .onLongPressGesture { picking = true }
+        .sensoryFeedback(.impact(weight: .medium), trigger: picking) { _, open in open }
+    }
+}
+
+struct ReactionPicker: View {
+    let isMine: (String) -> Bool
+    let onPick: (String) -> Void
+
+    var body: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.fixed(44), spacing: 4), count: 5), spacing: 4) {
+            ForEach(MessageEntryView.emojis, id: \.self) { emoji in
+                Button { onPick(emoji) } label: {
+                    Text(emoji)
+                        .font(.system(size: 26))
+                        .frame(width: 44, height: 44)
+                        .background(isMine(emoji) ? Theme.ink.opacity(0.14) : Color.clear, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(isMine(emoji) ? "Remove \(emoji)" : "React \(emoji)")
+            }
+        }
+        .padding(12)
     }
 }
 
