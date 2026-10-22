@@ -33,8 +33,13 @@
 .story-message-actions { display: flex; align-items: center; gap: 10px; }
 .story-reactions { display: flex; flex-wrap: wrap; gap: 6px; }
 .story-reactions button { border: 1px solid var(--rule); border-radius: 16px; padding: 4px 9px; background: none; font-size: 13px; min-height: 32px; }
+.story-reactions { position: relative; }
 .story-reactions .mine { background: var(--ink); color: var(--paper); }
-.story-reply { border: 0; background: none; width: 44px; height: 44px; }
+.story-reactions .story-add-reaction { display: grid; place-items: center; color: var(--ink-2); padding: 4px 10px; }
+.story-reaction-picker { position: absolute; z-index: 5; bottom: calc(100% + 6px); left: 0; display: grid; grid-template-columns: repeat(5, 44px); gap: 4px; padding: 8px; border: 1px solid var(--rule); border-radius: 18px; background: var(--raised); box-shadow: 0 8px 24px rgba(46, 19, 64, .16); }
+.story-reactions .story-reaction-picker button { border: 0; border-radius: 22px; width: 44px; height: 44px; padding: 0; font-size: 24px; }
+.story-reactions .story-reaction-picker .mine { background: var(--tint); color: inherit; }
+.story-reply { display: grid; place-items: center; border: 0; background: none; width: 44px; height: 44px; color: var(--ink-2); }
 .story-new-divider { display: flex; align-items: center; gap: 12px; padding: 24px 0 6px; font-size: 13px; font-weight: 600; }
 .story-new-divider::before, .story-new-divider::after { content: ''; flex: 1; height: 1.5px; background: var(--pink); }
 .story-media { margin: 8px 0; }

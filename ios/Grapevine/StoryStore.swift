@@ -14,6 +14,7 @@ final class StoryStore {
     var pendingMessageId: UUID?
     private var uploaded: [String] = []
     private var trackedStoryId: UUID?
+    private var pendingReactions: Set<String> = []
 
     @MainActor
     func load(storyId: UUID) async {
@@ -96,19 +97,38 @@ final class StoryStore {
 
     @MainActor
     func toggleReaction(message: Message, emoji: String) async {
-        guard let session = API.session else { return }
-        let mine = message.reactions?.first { $0.user_id == session.userId && $0.emoji == emoji }
+        guard let session = API.session,
+              let index = messages.firstIndex(where: { $0.id == message.id }) else { return }
+        let key = "\(message.id):\(emoji)"
+        // A second tap while the first is still saving would repeat the same insert or delete.
+        guard !pendingReactions.contains(key) else { return }
+        pendingReactions.insert(key)
+        defer { pendingReactions.remove(key) }
+        let previous = messages[index].reactions
+        let mine = previous?.contains { $0.user_id == session.userId && $0.emoji == emoji } ?? false
+        if mine {
+            messages[index].reactions?.removeAll { $0.user_id == session.userId && $0.emoji == emoji }
+        } else {
+            messages[index].reactions = (previous ?? []) + [Reaction(id: UUID(), message_id: message.id, user_id: session.userId, emoji: emoji)]
+        }
         do {
-            if let mine {
-                try await API.delete(path: "rest/v1/reactions",
-                    query: [URLQueryItem(name: "id", value: "eq.\(mine.id)")])
+            if mine {
+                // By key rather than id: an optimistic reaction has no server id yet.
+                try await API.delete(path: "rest/v1/reactions", query: [
+                    URLQueryItem(name: "message_id", value: "eq.\(message.id)"),
+                    URLQueryItem(name: "user_id", value: "eq.\(session.userId)"),
+                    URLQueryItem(name: "emoji", value: "eq.\(emoji)"),
+                ])
             } else {
                 struct NewReaction: Encodable { let message_id: UUID; let user_id: UUID; let emoji: String }
-                try await API.postVoid(path: "rest/v1/reactions",
-                    body: NewReaction(message_id: message.id, user_id: session.userId, emoji: emoji))
+                do {
+                    try await API.postVoid(path: "rest/v1/reactions",
+                        body: NewReaction(message_id: message.id, user_id: session.userId, emoji: emoji))
+                } catch APIError.http(409, _) { /* Already saved, e.g. from another device. */ }
             }
             if let story { await load(storyId: story.id) }
         } catch {
+            if let index = messages.firstIndex(where: { $0.id == message.id }) { messages[index].reactions = previous }
             self.error = error.localizedDescription
         }
     }

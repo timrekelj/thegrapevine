@@ -1,13 +1,16 @@
 'use client'
 
 import Link from 'next/link'
+import { Reply, SmilePlus } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { loadStoryDetails, mergeTimeline, type Source, type Story, type Message } from './queries'
 import Composer from './Composer'
 import { capture, correctionsEnabled } from '@/lib/telemetry'
 
-const emojis = ['🚀', '👏', '😂', '❤️', '🔥', '👀']
+const emojis = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '🚀', '👀', '🎉']
+// Only the emojis someone has used, in palette order.
+const usedEmojis = (message: Message) => { const present = [...new Set(message.reactions.map(reaction => reaction.emoji))]; return [...emojis.filter(emoji => present.includes(emoji)), ...present.filter(emoji => !emojis.includes(emoji))] }
 const time = (date: string) => new Date(date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Ljubljana' })
 const day = (date: string) => new Date(date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Ljubljana' })
 const safeUrl = (url: string | null | undefined) => url && (/^https?:\/\//i.test(url) || /^\/(?!\/)/.test(url)) ? url : undefined
@@ -37,7 +40,7 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
   const [error, setError] = useState('')
   const [toast, setToast] = useState('')
   const [summaryChanged, setSummaryChanged] = useState(false)
-  const [reactionBusy, setReactionBusy] = useState<string | null>(null)
+  const [picker, setPicker] = useState<string | null>(null)
   const [reportBusy, setReportBusy] = useState(false)
   const [target, setTarget] = useState('summary')
   const [note, setNote] = useState('')
@@ -47,6 +50,8 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
   const reportDialog = useRef<HTMLDialogElement>(null)
   const summary = useRef(initialStory.summary)
   const refreshing = useRef(false)
+  const reactionBusy = useRef(new Set<string>())
+  const longPress = useRef<number | undefined>(undefined)
   const refresh = useCallback(async () => {
     if (refreshing.current) return
     refreshing.current = true
@@ -82,18 +87,36 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
     const poll = window.setInterval(() => { if (document.visibilityState === 'visible') { void refresh(); saveView() } }, 30000)
     return () => { saveView(); window.clearInterval(poll); media.removeEventListener('change', motion); void client.removeChannel(channel) }
   }, [initialStory.id, userId, refresh])
+  useEffect(() => {
+    if (!picker) return
+    const close = (event: Event) => { if (event instanceof KeyboardEvent ? event.key === 'Escape' : !(event.target as Element).closest('.story-reaction-picker, .story-add-reaction')) setPicker(null) }
+    document.addEventListener('pointerdown', close); document.addEventListener('keydown', close)
+    return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', close) }
+  }, [picker])
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(''), 5000); return () => clearTimeout(timer) }, [toast])
 
   async function react(message: Message, emoji: string) {
-    if (reactionBusy) return
-    setReactionBusy(`${message.id}:${emoji}`)
+    setPicker(null)
+    const key = `${message.id}:${emoji}`
+    // A second tap while the first is still saving would repeat the same insert or delete.
+    if (reactionBusy.current.has(key)) return
+    reactionBusy.current.add(key)
+    const mine = message.reactions.some(reaction => reaction.user_id === userId && reaction.emoji === emoji)
+    const setReactions = (update: (reactions: Message['reactions']) => Message['reactions']) => setDetails(details => ({ ...details, messages: details.messages.map(other => other.id === message.id ? { ...other, reactions: update(other.reactions) } : other) }))
+    setReactions(reactions => mine ? reactions.filter(reaction => !(reaction.user_id === userId && reaction.emoji === emoji)) : [...reactions, { id: crypto.randomUUID(), user_id: userId, emoji }])
     const client = createClient()
-    const mine = message.reactions.find(reaction => reaction.user_id === userId && reaction.emoji === emoji)
-    const { error } = mine ? await client.from('reactions').delete().eq('id', mine.id).eq('user_id', userId) : await client.from('reactions').insert({ message_id: message.id, user_id: userId, emoji })
-    if (error) setError('Could not save your reaction. Try again.')
+    // By key rather than id: an optimistic reaction has no server id yet. A duplicate insert means it is already saved.
+    const { error } = mine ? await client.from('reactions').delete().eq('message_id', message.id).eq('user_id', userId).eq('emoji', emoji) : await client.from('reactions').insert({ message_id: message.id, user_id: userId, emoji })
+    if (error && error.code !== '23505') { setReactions(() => message.reactions); setError('Could not save your reaction. Try again.') }
     else await refresh()
-    setReactionBusy(null)
+    reactionBusy.current.delete(key)
   }
+  const holdToReact = (id: string) => ({
+    onPointerDown: (event: React.PointerEvent) => { if (event.pointerType === 'touch') longPress.current = window.setTimeout(() => setPicker(id), 450) },
+    onPointerUp: () => window.clearTimeout(longPress.current),
+    onPointerMove: () => window.clearTimeout(longPress.current),
+    onPointerCancel: () => window.clearTimeout(longPress.current),
+  })
   async function report(event: FormEvent) {
     event.preventDefault()
     if (!correctionsEnabled()) { setError('Corrections are temporarily unavailable.'); return }
@@ -146,7 +169,7 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
         return <Fragment key={entry.id}>
           {newDay && <div className="story-day label">{day(entry.created_at)}</div>}
           {entry.id === firstUnread && lastViewed && <div className="story-new-divider">{unread.length} new since {time(lastViewed)}</div>}
-          <article id={`${entry.kind}-${entry.id}`} className={`story-entry ${grouped ? 'story-grouped' : ''}`}>
+          <article id={`${entry.kind}-${entry.id}`} className={`story-entry ${grouped ? 'story-grouped' : ''}`} {...(entry.kind === 'message' ? holdToReact(entry.id) : {})}>
             {!grouped ? <span className="av" aria-hidden="true">{author.monogram}</span> : <span className="story-avatar-space" />}
             <div className="story-entry-body">
               {!grouped && <div className="story-who"><b>{authorId === userId ? 'You' : author.display_name}</b><time className="meta" dateTime={entry.created_at}>{time(entry.created_at)}</time></div>}
@@ -157,11 +180,17 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
                   {media.kind === 'video' ? <video controls preload="metadata" src={safeUrl(media.display_url)} aria-label={media.alt_text || 'Shared video'} /> : media.kind === 'gif' && reducedMotion && !playingGifs.includes(media.id) ? <button className="story-gif-paused" onClick={() => setPlayingGifs([...playingGifs, media.id])}>Play GIF · {media.alt_text || 'Animated reaction'}</button> : <Plate url={media.display_url} label="Attachment unavailable" alt={media.alt_text || 'Shared image'} className={`story-media-plate ${media.kind === 'gif' ? 'pinkdrum' : ''}`} />}
                   {media.kind === 'gif' && <div className="meta">GIF · {media.alt_text || 'Animated reaction'}{playingGifs.includes(media.id) && <button onClick={() => setPlayingGifs(playingGifs.filter(id => id !== media.id))}>Pause</button>}</div>}
                 </div>)}
-                <div className="story-message-actions"><div className="story-reactions">{emojis.map(emoji => {
+                <div className="story-message-actions"><div className="story-reactions">{usedEmojis(entry).map(emoji => {
                   const reactions = entry.reactions.filter(reaction => reaction.emoji === emoji)
                   const mine = reactions.some(reaction => reaction.user_id === userId)
-                  return <button key={emoji} aria-label={`React ${emoji}${reactions.length ? `, ${reactions.length} reactions` : ''}`} aria-pressed={mine} className={mine ? 'mine' : ''} disabled={Boolean(reactionBusy)} onClick={() => void react(entry, emoji)}>{emoji}{reactions.length > 0 && ` ${reactions.length}`}</button>
-                })}</div><button className="story-reply" aria-label={`Reply to ${author.display_name}'s message`} onClick={() => { setReply(entry); document.querySelector<HTMLInputElement>('.story-composer input[aria-label="Message"]')?.focus() }}>↩</button></div>
+                  return <button key={emoji} aria-label={`${emoji}, ${reactions.length} ${reactions.length === 1 ? 'reaction' : 'reactions'}`} aria-pressed={mine} className={mine ? 'mine' : ''} onClick={() => void react(entry, emoji)}>{emoji} {reactions.length}</button>
+                })}
+                  <button className="story-add-reaction" aria-label="Add reaction" aria-expanded={picker === entry.id} onClick={() => setPicker(picker === entry.id ? null : entry.id)}><SmilePlus size={17} strokeWidth={1.75} aria-hidden="true" /></button>
+                  {picker === entry.id && <div className="story-reaction-picker" role="menu" aria-label="Reactions">{emojis.map(emoji => {
+                    const mine = entry.reactions.some(reaction => reaction.user_id === userId && reaction.emoji === emoji)
+                    return <button key={emoji} role="menuitemcheckbox" aria-checked={mine} aria-label={mine ? `Remove ${emoji}` : `React ${emoji}`} className={mine ? 'mine' : ''} onClick={() => void react(entry, emoji)}>{emoji}</button>
+                  })}</div>}
+                </div><button className="story-reply" aria-label={`Reply to ${author.display_name}'s message`} onClick={() => { setReply(entry); document.querySelector<HTMLInputElement>('.story-composer input[aria-label="Message"]')?.focus() }}><Reply size={18} strokeWidth={1.75} aria-hidden="true" /></button></div>
               </>}
             </div>
           </article>
