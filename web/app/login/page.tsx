@@ -6,6 +6,7 @@ import { safeRedirect } from '@/lib/auth'
 import { connection } from 'next/server'
 import { captureServer } from '@/lib/telemetry-server'
 import { invitePreview } from '@/lib/metadata'
+import { dayline } from '@/lib/format'
 import { CodeInput, ResendButton, SignInButton } from './code-input'
 import styles from './login.module.css'
 
@@ -45,7 +46,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
   const destination = safeRedirect(params.redirect)
   const sentTo = typeof params.email === 'string' ? params.email : ''
   const error = typeof params.error === 'string' ? params.error : ''
-  const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+  const today = dayline(new Date())
 
   async function signInWithProvider(formData: FormData) {
     'use server'

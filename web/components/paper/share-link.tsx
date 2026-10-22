@@ -2,8 +2,10 @@
 
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import styles from './paper.module.css';
+
+// The Supabase client loads on first use: `/` is also the landing page, which never needs it.
+const supabase = () => import('@/lib/supabase/client').then(({ createClient }) => createClient());
 
 type Submission = { status: 'new_story' | 'joined' | 'duplicate'; source_id?: string; story_id?: string; story_title?: string; title?: string };
 
@@ -41,7 +43,7 @@ export default function ShareLink({ groupId, groupName }: { groupId: string; gro
     setStatus(`Reading ${parsed.hostname}…`);
     timer.current = setTimeout(() => setStatus('Looking for the same event…'), 1400);
     try {
-      const client = createClient();
+      const client = await supabase();
       const { data, error: invokeError } = await client.functions.invoke<Submission>('submit-source', {
         body: { group_id: groupId, url: parsed.href, comment: comment.trim() || undefined },
       });
@@ -92,7 +94,7 @@ export default function ShareLink({ groupId, groupName }: { groupId: string; gro
     if (!toast?.sourceId || busy) return;
     setBusy(true);
     try {
-      const { data, error } = await createClient().from('sources').delete().eq('id', toast.sourceId).select('id');
+      const { data, error } = await (await supabase()).from('sources').delete().eq('id', toast.sourceId).select('id');
       if (error || !data?.length) throw new Error('Could not undo this contribution.');
       setToast({ text: 'Contribution removed.' });
       router.refresh();

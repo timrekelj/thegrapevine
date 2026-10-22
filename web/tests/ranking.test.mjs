@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { rankStories } from '../lib/queries.ts'
+import { printEdition, rankStories } from '../lib/queries.ts'
 
 const now = Date.parse('2026-10-12T12:00:00Z')
 const ago = hours => new Date(now - hours * 3_600_000).toISOString()
@@ -30,4 +30,17 @@ test('ranking handles empty editions, single stories and stable ties', () => {
 test('recent activity outranks quieter stories even when both are outside the window', () => {
   const quietLead = story('lead', 0)
   assert.equal(rankStories([story('old-busy', 60, [48]), story('old-quiet', 50), quietLead], now)[1].id, 'old-busy')
+})
+
+test('an edition marks only what arrived since the last visit and credits who shared it', () => {
+  const members = [{ id: 'u1', display_name: 'Nika', monogram: 'N' }, { id: 'u2', display_name: 'Luka', monogram: 'L' }]
+  const s = { ...story('s', 1), messages: [{ id: 'm1', created_at: ago(5) }, { id: 'm2', created_at: ago(1) }],
+    sources: [{ id: 'a', publisher: '', domain: 'delo.si', image_url: null, submitted_by: 'u1', created_at: ago(6) }, { id: 'b', publisher: 'BBC', domain: 'bbc.co.uk', image_url: '/seed/x.jpg', submitted_by: 'u1', created_at: ago(2) }] }
+  const [printed] = printEdition([s], ago(3), members, now)
+  assert.deepEqual(printed.sources.map(x => x.id), ['b', 'a'])
+  assert.deepEqual(printed.publishers, ['BBC', 'delo.si'])
+  assert.equal(printed.newSources, 1)
+  assert.equal(printed.newMessages, 1)
+  assert.deepEqual(printed.submitters.map(m => m.id), ['u1'])
+  assert.equal(printed.imageUrl, '/seed/x.jpg')
 })

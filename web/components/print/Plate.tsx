@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, type CSSProperties } from 'react'
-
-const safeUrl = (url: string | null | undefined) => url && (/^https?:\/\//i.test(url) || /^\/(?!\/)/.test(url)) ? url : undefined
+import { safeUrl } from '@/lib/validate'
 
 /**
  * A photograph printed in colour through a halftone screen (see `.plate` in globals.css).

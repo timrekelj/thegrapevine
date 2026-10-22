@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { requireAdmin } from '@/lib/auth'
-import { adminRpc, formatDate, formatUsd, isUuid, type AdminStory } from '@/lib/admin'
+import { adminRpc, formatDate, formatUsd, type AdminStory } from '@/lib/admin'
+import { isUuid, safeUrl } from '@/lib/validate'
 import styles from '@/components/admin/admin.module.css'
 
 export default async function AdminStoryPage({ params }: PageProps<'/admin/stories/[id]'>) {
@@ -48,7 +49,7 @@ export default async function AdminStoryPage({ params }: PageProps<'/admin/stori
       <div className={styles.tableWrap}><table className={styles.table}>
         <thead><tr><th>Source</th><th>Status</th><th>Shared by</th><th>When</th></tr></thead>
         <tbody>{story.sources.map(s => <tr key={s.id}>
-          <td className={styles.wrap}><a href={s.url} target="_blank" rel="noreferrer noopener">{s.source_title || s.domain}</a><div className={styles.muted}>{s.publisher || s.domain}</div></td>
+          <td className={styles.wrap}><a href={safeUrl(s.url)} target="_blank" rel="noreferrer noopener">{s.source_title || s.domain}</a><div className={styles.muted}>{s.publisher || s.domain}</div></td>
           <td>{s.extraction_status}</td><td>{s.submitted_by_name ?? '—'}</td><td>{formatDate(s.created_at, true)}</td>
         </tr>)}</tbody>
       </table></div>

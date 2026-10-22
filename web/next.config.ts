@@ -1,15 +1,29 @@
 import type { NextConfig } from "next";
 import { withPostHogConfig } from "@posthog/nextjs-config";
 
+// Every page: no framing (clickjacking), no MIME sniffing, no full URLs (invite codes, emails) in
+// referrers to the publishers members click through to, and no powerful browser features.
+// A script CSP would need per-request nonces; these headers hold without one.
+const security = [
+  { key: "Content-Security-Policy", value: "frame-ancestors 'none'; base-uri 'self'; object-src 'none'" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+];
+
 const nextConfig: NextConfig = {
   // A native addon (renders avatar PNGs for the apps); load it from node_modules, don't bundle it.
   serverExternalPackages: ["@resvg/resvg-js"],
-  /* config options here */
-  // cacheComponents + partialPrefetching disabled: every route is fully dynamic
-  // (auth + database), so there is nothing to prerender or cache
-  // The Apple file has no extension, so its JSON type has to be set explicitly.
+  poweredByHeader: false,
   async headers() {
-    return [{ source: "/.well-known/apple-app-site-association", headers: [{ key: "Content-Type", value: "application/json" }] }];
+    return [
+      { source: "/:path*", headers: security },
+      // The Apple file has no extension, so its JSON type has to be set explicitly.
+      { source: "/.well-known/apple-app-site-association", headers: [{ key: "Content-Type", value: "application/json" }] },
+      // Demo pictures for the landing page and the local seed data; unhashed, so cached for a day rather than forever.
+      { source: "/seed/:file*", headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }] },
+    ];
   },
 };
 

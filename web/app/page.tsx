@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { getPaperStories } from '@/lib/queries';
+import { loadPaperStories, printEdition } from '@/lib/queries';
 import type { PaperMember } from '@/lib/types';
 import FrontPage from '@/components/paper/FrontPage';
 import Landing from '@/components/landing/Landing';
@@ -18,14 +18,15 @@ export default async function Home() {
   if (!membership) redirect('/onboarding');
   const groupId = membership.group_id;
   const loadedAt = new Date();
-  const [{ data: group, error: groupError }, { data: memberRows, error: membersError }] = await Promise.all([
+  const [{ data: group, error: groupError }, { data: memberRows, error: membersError }, rows] = await Promise.all([
     client.from('groups').select('name,created_at').eq('id', groupId).single(),
     client.from('group_members').select('profiles(id,display_name,monogram)').eq('group_id', groupId).order('joined_at'),
+    loadPaperStories(client, groupId),
   ]);
   if (groupError) throw groupError;
   if (membersError) throw membersError;
   const members = memberRows.flatMap(row => row.profiles) as unknown as PaperMember[];
-  const stories = await getPaperStories(client, groupId, membership.last_seen_at, members);
+  const stories = printEdition(rows, membership.last_seen_at, members);
   // Read the previous timestamp before advancing it, and do not mark a failed load as seen.
   const { data: seenRows, error: seenError } = await client.from('group_members')
     .update({ last_seen_at: loadedAt.toISOString() }).eq('group_id', groupId).eq('user_id', user.id).select('user_id');
