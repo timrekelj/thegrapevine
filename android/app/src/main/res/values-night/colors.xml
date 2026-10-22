@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The evening edition. -->
+    <color name="paper">#121110</color>
+    <color name="ink">#EDE9E1</color>
+</resources>

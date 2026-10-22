@@ -91,8 +91,7 @@ import si.timrekelj.thegrapevine.R
 /** Must match `otp_length` in supabase/config.toml and the hosted project. */
 const val SIGN_IN_CODE_LENGTH = 6
 private const val RESEND_SECONDS = 30
-private val Field = RoundedCornerShape(14.dp)
-private val ErrorRed = Color(0xFF9A3149)
+private val Field = Corner
 
 @Composable
 fun LoginScreen(app: AppState) {
@@ -164,17 +163,17 @@ fun LoginScreen(app: AppState) {
                 Spacer(Modifier.height(40.dp))
                 Spacer(Modifier.weight(1f))
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(if (sent) "Check your inbox." else "Good stories.\nBetter company.", style = display(40))
+                    Text(if (sent) "Check your inbox." else "Good stories.\nBetter company.", style = display(44))
                     if (sent) {
                         Text(
                             buildAnnotatedString {
                                 append("We sent a $SIGN_IN_CODE_LENGTH-digit code to ")
-                                withStyle(SpanStyle(color = Grape.ink, fontWeight = FontWeight.SemiBold)) { append(email.trim()) }
+                                withStyle(SpanStyle(color = Press.ink, fontWeight = FontWeight.SemiBold)) { append(email.trim()) }
                             },
-                            style = BodyStyle.copy(color = Grape.ink2),
+                            style = BodyStyle.copy(color = Press.ink2),
                         )
                     } else {
-                        Text("A private paper, curated by your friends.", style = BodyStyle.copy(color = Grape.ink2))
+                        Text("A private paper, curated by your friends.", style = BodyStyle.copy(color = Press.ink2))
                     }
                 }
                 Spacer(Modifier.height(24.dp))
@@ -203,23 +202,24 @@ fun LoginScreen(app: AppState) {
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
-                        placeholder = { Text("you@example.com", color = Grape.ink2.copy(alpha = 0.6f)) },
+                        placeholder = { Text("you@example.com", style = BodyStyle.copy(color = Press.ink3)) },
+                        textStyle = BodyStyle,
                         singleLine = true,
                         isError = app.error != null,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Send),
                         keyboardActions = KeyboardActions(onSend = { sendCode() }),
                         shape = Field,
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Grape.raised,
-                            unfocusedContainerColor = Grape.raised,
-                            errorContainerColor = Grape.raised,
-                            focusedBorderColor = Grape.ink,
-                            unfocusedBorderColor = Grape.rule,
-                            errorBorderColor = ErrorRed,
-                            cursorColor = Grape.ink,
-                            focusedTextColor = Grape.ink,
-                            unfocusedTextColor = Grape.ink,
-                            errorTextColor = Grape.ink,
+                            focusedContainerColor = Press.raised,
+                            unfocusedContainerColor = Press.raised,
+                            errorContainerColor = Press.raised,
+                            focusedBorderColor = Press.ink,
+                            unfocusedBorderColor = Press.rule,
+                            errorBorderColor = Press.danger,
+                            cursorColor = Press.ink,
+                            focusedTextColor = Press.ink,
+                            unfocusedTextColor = Press.ink,
+                            errorTextColor = Press.ink,
                         ),
                         modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.EmailAddress },
                     )
@@ -231,9 +231,9 @@ fun LoginScreen(app: AppState) {
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.padding(vertical = 24.dp),
                     ) {
-                        HorizontalDivider(Modifier.weight(1f), color = Grape.rule)
-                        Text("or", style = MetaStyle)
-                        HorizontalDivider(Modifier.weight(1f), color = Grape.rule)
+                        HorizontalDivider(Modifier.weight(1f), color = Press.rule)
+                        Text("or", style = BodyStyle.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = Press.ink3))
+                        HorizontalDivider(Modifier.weight(1f), color = Press.rule)
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         AuthProvider.entries.forEach { provider ->
@@ -253,20 +253,18 @@ fun LoginScreen(app: AppState) {
 private fun Nameplate(onBack: (() -> Unit)?) {
     Box(Modifier.fillMaxWidth()) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("The Grapevine", style = display(28))
-            Spacer(Modifier.height(12.dp))
-            HorizontalDivider(color = Grape.ink, thickness = 1.dp)
-            Spacer(Modifier.height(2.dp))
-            HorizontalDivider(color = Grape.ink, thickness = 1.dp)
+            Text("The Grapevine", style = nameplate(50), maxLines = 1)
             Spacer(Modifier.height(10.dp))
-            Text(
-                "${LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE d MMMM"))} · Private edition".uppercase(),
-                style = LabelStyle,
-            )
+            DoubleRule()
+            Row(Modifier.fillMaxWidth().padding(vertical = 7.dp)) {
+                Text(LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE d MMMM")).uppercase(), style = LabelStyle.copy(fontSize = 10.sp), modifier = Modifier.weight(1f))
+                Text("PRIVATE EDITION", style = LabelStyle.copy(fontSize = 10.sp))
+            }
+            Hairline(color = Press.ink)
         }
         if (onBack != null) {
             IconButton(onClick = onBack, modifier = Modifier.padding(start = 0.dp).size(40.dp).align(Alignment.TopStart)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Use a different email", tint = Grape.ink)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Use a different email", tint = Press.ink)
             }
         }
     }
@@ -293,11 +291,11 @@ private fun CodeCells(code: String, invalid: Boolean, onChange: (String) -> Unit
                     repeat(SIGN_IN_CODE_LENGTH) { index ->
                         val active = focused && index == minOf(code.length, SIGN_IN_CODE_LENGTH - 1)
                         Box(
-                            Modifier.weight(1f).height(58.dp).background(Grape.raised, Field)
-                                .border(if (active) 1.5.dp else 1.dp, if (invalid) ErrorRed else if (active) Grape.ink else Grape.rule, Field),
+                            Modifier.weight(1f).height(62.dp).background(Press.raised, Field)
+                                .border(if (active) 1.5.dp else 1.dp, if (invalid) Press.danger else if (active) Press.ink else Press.rule, Field),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text(code.getOrNull(index)?.toString() ?: "", style = display(28))
+                            Text(code.getOrNull(index)?.toString() ?: "", style = display(30))
                         }
                     }
                 }
@@ -312,22 +310,14 @@ private fun CodeCells(code: String, invalid: Boolean, onChange: (String) -> Unit
 private fun ErrorLine(error: String?) {
     if (error == null) return
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 8.dp)) {
-        Icon(Icons.Outlined.Info, contentDescription = null, tint = ErrorRed, modifier = Modifier.size(18.dp))
-        Text(error, fontSize = 14.sp, lineHeight = 18.sp, fontWeight = FontWeight.Medium, color = ErrorRed)
+        Icon(Icons.Outlined.Info, contentDescription = null, tint = Press.danger, modifier = Modifier.size(18.dp))
+        Text(error, fontSize = 14.sp, lineHeight = 18.sp, fontWeight = FontWeight.Medium, color = Press.danger)
     }
 }
 
 @Composable
 fun PrimaryButton(text: String, enabled: Boolean, onClick: () -> Unit) {
-    // Dim only the fill when disabled, so the label stays readable.
-    Box(
-        Modifier.fillMaxWidth().heightIn(min = 50.dp).background(Grape.ink.copy(alpha = if (enabled) 1f else 0.45f), Field),
-        contentAlignment = Alignment.Center,
-    ) {
-        TextButton(onClick = onClick, enabled = enabled, shape = Field, modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp)) {
-            Text(text, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Grape.paper)
-        }
-    }
+    InkButton(text, enabled = enabled, height = 52.dp, onClick = onClick)
 }
 
 @Composable
@@ -336,10 +326,10 @@ private fun QuietButton(text: String, enabled: Boolean, onClick: () -> Unit) {
         onClick = onClick,
         enabled = enabled,
         shape = Field,
-        border = BorderStroke(1.dp, if (enabled) Grape.rule else Color.Transparent),
-        modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp),
+        border = BorderStroke(1.dp, if (enabled) Press.rule else Color.Transparent),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 46.dp),
     ) {
-        Text(text, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = if (enabled) Grape.ink else Grape.ink2)
+        Text(text, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = if (enabled) Press.ink else Press.ink2)
     }
 }
 
@@ -348,25 +338,25 @@ private fun ProviderButton(provider: AuthProvider, enabled: Boolean, onClick: ()
     OutlinedButton(
         onClick = onClick,
         enabled = enabled,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp).alpha(if (enabled) 1f else 0.5f),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).alpha(if (enabled) 1f else 0.5f),
         shape = Field,
         contentPadding = PaddingValues(horizontal = 16.dp),
-        border = BorderStroke(1.dp, Grape.rule),
-        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(containerColor = Grape.raised, contentColor = Grape.ink),
+        border = BorderStroke(1.dp, Press.rule),
+        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(containerColor = Press.raised, contentColor = Press.ink),
     ) {
         when (provider) {
             AuthProvider.Google -> Image(painterResource(R.drawable.google_sign_in), contentDescription = null, modifier = Modifier.size(20.dp))
-            AuthProvider.Apple -> Icon(painterResource(R.drawable.apple_logo), contentDescription = null, tint = Grape.ink, modifier = Modifier.size(20.dp))
-            AuthProvider.X -> Icon(painterResource(R.drawable.x_sign_in), contentDescription = null, tint = Grape.ink, modifier = Modifier.size(18.dp))
+            AuthProvider.Apple -> Icon(painterResource(R.drawable.apple_logo), contentDescription = null, tint = Press.ink, modifier = Modifier.size(20.dp))
+            AuthProvider.X -> Icon(painterResource(R.drawable.x_sign_in), contentDescription = null, tint = Press.ink, modifier = Modifier.size(18.dp))
         }
         Spacer(Modifier.width(12.dp))
-        Text(provider.title, fontSize = 16.sp, lineHeight = 20.sp, fontWeight = FontWeight.Medium)
+        Text(provider.title, fontSize = 15.sp, lineHeight = 20.sp, fontWeight = FontWeight.Medium)
     }
 }
 
 @Composable
 private fun Footer(modifier: Modifier = Modifier) {
-    val links = TextLinkStyles(SpanStyle(color = Grape.ink, textDecoration = TextDecoration.Underline))
+    val links = TextLinkStyles(SpanStyle(color = Press.ink, textDecoration = TextDecoration.Underline))
     Text(
         buildAnnotatedString {
             append("By continuing, you agree to the ")

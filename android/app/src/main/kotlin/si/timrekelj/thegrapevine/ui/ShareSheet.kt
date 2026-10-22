@@ -50,14 +50,19 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", on
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = Grape.paper,
+        containerColor = Press.paper,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp),
     ) {
         Column(
             Modifier.fillMaxWidth().imePadding().padding(horizontal = 20.dp).padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text("Share a link", style = display(28))
-            Text("Found something worth reading? Bring it to the table.", style = BodyStyle.copy(color = Grape.ink2))
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("FILING FOR ${(app.group?.name ?: "your paper").uppercase()}", style = LabelStyle.copy(color = Press.ink2))
+                Text("Share a link", style = display(32))
+            }
+            DoubleRule()
+            Text("Found something worth reading? Bring it to the table.", style = BodyStyle.copy(color = Press.ink2))
             val notice = when {
                 !app.checked -> null
                 app.session == null -> "Sign in to The Grapevine to share links with your paper."
@@ -65,15 +70,16 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", on
                 else -> null
             }
             if (notice != null) {
-                Text(notice, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Grape.ink)
+                Text(notice, style = BodyStyle.copy(fontWeight = FontWeight.SemiBold))
                 onOpenApp?.let { InkButton("Open The Grapevine", onClick = it) }
                 return@Column
             }
             Text("LINK", style = LabelStyle)
             PaperField(url, { url = it }, "https://…", keyboardType = KeyboardType.Uri)
-            Text("YOUR COMMENT", style = LabelStyle)
-            PaperField(comment, { comment = it }, "Optional", singleLine = false)
-            result?.let { Text(it, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Grape.ink) }
+            Text("YOUR COMMENT (OPTIONAL)", style = LabelStyle)
+            PaperField(comment, { comment = it }, "Why it caught your eye", singleLine = false)
+            app.group?.let { Text("Everyone in ${it.name} sees this with your name.", style = MetaStyle.copy(color = Press.ink3)) }
+            result?.let { Text(it, style = BodyStyle.copy(fontWeight = FontWeight.SemiBold)) }
             InkButton(if (busy) "Posting…" else "Share with your paper", enabled = !busy && url.isNotBlank() && app.group != null) {
                 val group = app.group ?: return@InkButton
                 scope.launch {
@@ -101,7 +107,7 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", on
                 }
             }
             if (result != null) {
-                TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Done", color = Grape.ink) }
+                GhostButton("Done", onClick = onDismiss)
             }
         }
     }
