@@ -5,7 +5,10 @@ import UIKit
 /// colour comes only from photographs and members' discs. Press red has one meaning: new to you.
 /// Every colour has an evening edition that follows the system appearance.
 enum Theme {
-    static let paper = Color(light: 0xF4F1EA, dark: 0x121110)
+    private static let newsprint: UInt32 = 0xF4F1EA, eveningPaper: UInt32 = 0x121110
+    static let paper = Color(light: newsprint, dark: eveningPaper)
+    /// The paper for drawing outside SwiftUI: the halftone plates print onto it.
+    static func paper(dark: Bool) -> UIColor { UIColor(hex: dark ? eveningPaper : newsprint) }
     static let raised = Color(light: 0xFBF9F4, dark: 0x1B1A17)
     static let ink = Color(light: 0x161513, dark: 0xEDE9E1)
     static let ink2 = Color(light: 0x4A4740, dark: 0xB9B3A8)
@@ -40,10 +43,6 @@ enum Theme {
 }
 
 extension Color {
-    init(hex: UInt32, opacity: Double = 1) {
-        self.init(.sRGB, red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255, blue: Double(hex & 0xFF) / 255, opacity: opacity)
-    }
-
     init(light: UInt32, dark: UInt32, opacity: CGFloat = 1) {
         self.init(uiColor: UIColor { traits in
             UIColor(hex: traits.userInterfaceStyle == .dark ? dark : light, alpha: opacity)

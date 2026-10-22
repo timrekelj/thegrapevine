@@ -23,7 +23,7 @@ struct ShareView: View {
     }
 
     struct SubmitBody: Encodable { let group_id: UUID; let url: String; let comment: String? }
-    struct SubmitResult: Codable { let status: String; let story_id: UUID? }
+    struct SubmitResult: Codable { let status: String; let story_id: UUID?; let story_title: String? }
 
     var body: some View {
         NavigationStack {
@@ -108,12 +108,7 @@ struct ShareView: View {
             let submitted: SubmitResult = try await API.postObject(SubmitResult.self, path: "functions/v1/submit-source",
                 body: SubmitBody(group_id: group.id, url: url.trimmed,
                                 comment: comment.trimmed.isEmpty ? nil : comment.trimmed))
-            var story: Story?
-            if let id = submitted.story_id {
-                story = try? await API.getOne(Story.self, path: "rest/v1/stories",
-                                       query: [URLQueryItem(name: "id", value: "eq.\(id)")])
-            }
-            let title = story?.title ?? "the story"
+            let title = submitted.story_title.flatMap { $0.isEmpty ? nil : $0 } ?? "the story"
             switch submitted.status {
             case "duplicate":
                 result = "Your contribution was not added because it was a duplicate."

@@ -153,11 +153,11 @@ extension StoryView {
                 .overlay(alignment: .bottom) { Hairline() }
         }
         .buttonStyle(.plain)
-        PlateView(url: heroURL, label: lead.map { $0.publisher.isEmpty ? $0.domain : $0.publisher } ?? "The paper")
+        PlateView(url: heroURL, label: lead?.displayPublisher ?? "The paper")
             .aspectRatio(16 / 9, contentMode: .fit)
             .padding(.top, 20)
         if let lead {
-            Text("Pictured via \(lead.publisher.isEmpty ? lead.domain : lead.publisher)")
+            Text("Pictured via \(lead.displayPublisher)")
                 .font(Theme.mono(11)).foregroundColor(Theme.ink3).padding(.top, 8)
         }
         if story.summary.isEmpty {
@@ -356,7 +356,7 @@ struct SourceEntryView: View {
                         HStack {
                             Text(clock(source.created_at)).foregroundColor(Theme.ink3)
                             Spacer()
-                            if let url = URL(string: source.url) {
+                            if let url = source.webURL {
                                 Link(destination: url) { Text("Open\(source.author != nil ? " on X" : "") ↗").fontWeight(.semibold).underline() }
                                     .foregroundColor(Theme.ink)
                             }

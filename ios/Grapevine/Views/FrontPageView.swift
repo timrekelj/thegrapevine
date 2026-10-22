@@ -193,25 +193,30 @@ struct FrontPageView: View {
     }
 }
 
-/// Story facts shared by every slot on the page.
+/// Story facts shared by every slot on the page, worked out once per story rather than on every read
+/// (each slot reads several of them, some twice).
 struct StoryFacts {
     let story: StoryRow
-    let members: [Member]
-    let seenAt: Date?
+    let newSources: Int
+    let newMessages: Int
+    /// Newest first, without repeats.
+    let publishers: [String]
+    let submitters: [Profile]
+    let imageURL: URL?
 
-    private func isNew(_ date: Date) -> Bool { seenAt.map { $0 < date } ?? true }
-    var newSources: Int { story.sources.filter { isNew($0.created_at) }.count }
-    var newMessages: Int { story.messages.filter { isNew($0.created_at) }.count }
-    var publishers: [String] {
+    init(story: StoryRow, members: [Member], seenAt: Date?) {
+        self.story = story
+        func isNew(_ date: Date) -> Bool { seenAt.map { $0 < date } ?? true }
+        newSources = story.sources.count(where: { isNew($0.created_at) })
+        newMessages = story.messages.count(where: { isNew($0.created_at) })
+        let newest = story.sources.sorted { $0.created_at > $1.created_at }
         var seen = Set<String>()
-        return story.sources.sorted { $0.created_at > $1.created_at }.map { $0.publisher.isEmpty ? $0.domain : $0.publisher }.filter { seen.insert($0).inserted }
+        publishers = newest.map(\.displayPublisher).filter { seen.insert($0).inserted }
+        let submitterIds = Set(story.sources.compactMap(\.submitted_by))
+        submitters = members.filter { submitterIds.contains($0.user_id) }.map(\.profiles)
+        imageURL = newest.first { $0.image_url != nil }?.image_url.flatMap { URL(string: $0) }
     }
-    var submitters: [Profile] {
-        members.compactMap { member in story.sources.contains { $0.submitted_by == member.user_id } ? member.profiles : nil }
-    }
-    var imageURL: URL? {
-        story.sources.sorted { $0.created_at > $1.created_at }.first { $0.image_url != nil }?.image_url.flatMap { URL(string: $0) }
-    }
+
     var title: String { story.title.isEmpty ? "A link from the table" : story.title }
     var category: String { story.category ?? "News" }
     var label: String { publishers.first ?? "The paper" }

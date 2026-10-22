@@ -37,7 +37,7 @@ struct Member: Codable, Identifiable {
     var id: UUID { user_id }
 }
 
-struct Story: Codable, Identifiable {
+struct Story: Codable, Identifiable, Equatable {
     let id: UUID
     let group_id: UUID
     let title: String
@@ -45,9 +45,12 @@ struct Story: Codable, Identifiable {
     let category: String?
     let last_activity_at: Date
     let created_at: Date
+
+    /// The columns this model reads. Stories also carry a large embedding, so never select `*`.
+    static let columns = "id,group_id,title,summary,category,last_activity_at,created_at"
 }
 
-struct Source: Codable, Identifiable {
+struct Source: Codable, Identifiable, Equatable {
     let id: UUID
     let story_id: UUID
     let url: String
@@ -61,16 +64,25 @@ struct Source: Codable, Identifiable {
     let submitter_comment: String?
     let extraction_status: String
     let created_at: Date
+
+    /// The columns this model reads. Sources also carry a large embedding, so never select `*`.
+    static let columns = "id,story_id,url,domain,publisher,source_title,excerpt,image_url,author,submitted_by,submitter_comment,extraction_status,created_at"
+
+    /// The shared page, only when it is a web link: the URL is member-supplied and is opened by the system.
+    var webURL: URL? { URL(string: url).flatMap { ["http", "https"].contains($0.scheme?.lowercased() ?? "") ? $0 : nil } }
+
+    /// The publisher's name, or the site's domain when the page didn't name one.
+    var displayPublisher: String { publisher.isEmpty ? domain : publisher }
 }
 
-struct Reaction: Codable, Identifiable {
+struct Reaction: Codable, Identifiable, Equatable {
     let id: UUID
     let message_id: UUID
     let user_id: UUID
     let emoji: String
 }
 
-struct Media: Codable, Identifiable {
+struct Media: Codable, Identifiable, Equatable {
     let id: UUID
     let message_id: UUID
     let kind: String
@@ -112,7 +124,7 @@ struct PickedFile: Transferable {
     }
 }
 
-struct Message: Codable, Identifiable {
+struct Message: Codable, Identifiable, Equatable {
     let id: UUID
     let story_id: UUID
     let author_id: UUID
@@ -123,7 +135,7 @@ struct Message: Codable, Identifiable {
     let message_media: [Media]?
 }
 
-struct StoryHistoryEntry: Codable, Identifiable {
+struct StoryHistoryEntry: Codable, Identifiable, Equatable {
     let id: UUID
     let story_id: UUID
     let title: String
@@ -171,15 +183,16 @@ enum SharedLink {
 
 extension JSONDecoder {
     static let supabase: JSONDecoder = {
+        // Made once: building an ISO8601DateFormatter per decoded date dominated decoding a page of stories.
+        // ISO8601DateFormatter is thread-safe, so the share extension and the app can both use these.
+        nonisolated(unsafe) let withFraction = ISO8601DateFormatter()
+        withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        nonisolated(unsafe) let plain = ISO8601DateFormatter()
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let string = try container.decode(String.self)
-            let withFraction = ISO8601DateFormatter()
-            withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            if let date = withFraction.date(from: string) { return date }
-            let plain = ISO8601DateFormatter()
-            if let date = plain.date(from: string) { return date }
+            if let date = withFraction.date(from: string) ?? plain.date(from: string) { return date }
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid date: \(string)")
         }
         return decoder

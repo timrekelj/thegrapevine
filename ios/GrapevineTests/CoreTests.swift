@@ -3,6 +3,8 @@ import XCTest
 
 final class CoreTests: XCTestCase {
     func testOAuthPKCEAndCallbackValidation() throws {
+        XCTAssertNotEqual(OAuth.verifier(), OAuth.verifier())
+        XCTAssertTrue(OAuth.verifier().allSatisfy(\.isHexDigit))
         let verifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
         XCTAssertEqual(OAuth.challenge(verifier), "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM")
         XCTAssertEqual(OAuth.verifier().count, 64)
@@ -37,6 +39,7 @@ final class CoreTests: XCTestCase {
         }
     }
 
+    @MainActor
     func testLeadIsNewestThenDiscussionRanksTheRest() {
         let now = Date()
         func row(age: TimeInterval, count: Int) -> StoryRow {
@@ -98,6 +101,20 @@ final class CoreTests: XCTestCase {
         XCTAssertNil(AppLink(URL(string: "https://thegrapevine.si/story/not-a-uuid")!))
         XCTAssertNil(AppLink(URL(string: "https://thegrapevine.si/invite")!))
         XCTAssertNil(AppLink(URL(string: "https://thegrapevine.si/login")!))
+        XCTAssertNil(AppLink(URL(string: "https://evil.example/story/\(id.uuidString.lowercased())")!))
+        XCTAssertNil(AppLink(URL(string: "grapevine://story/\(id.uuidString.lowercased())")!))
+    }
+
+    func testSourceLinksOpenOnlyWebURLs() {
+        func source(_ url: String) -> Source {
+            Source(id: UUID(), story_id: UUID(), url: url, domain: "example.com", publisher: "", source_title: "", excerpt: nil,
+                   image_url: nil, author: nil, submitted_by: nil, submitter_comment: nil, extraction_status: "ok", created_at: Date())
+        }
+        XCTAssertEqual(source("https://example.com/a").webURL, URL(string: "https://example.com/a"))
+        XCTAssertNil(source("javascript:alert(1)").webURL)
+        XCTAssertNil(source("file:///etc/hosts").webURL)
+        XCTAssertNil(source("tel:123").webURL)
+        XCTAssertEqual(source("https://example.com/a").displayPublisher, "example.com")
     }
 
     func testSharedTextYieldsItsLink() {
