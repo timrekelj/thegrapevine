@@ -41,7 +41,7 @@ final class StoryStore {
                 URLQueryItem(name: "story_id", value: "eq.\(storyId)"),
                 URLQueryItem(name: "order", value: "created_at.desc"),
             ])
-            let authorIds = Set(messages.map(\.author_id) + sources.map(\.submitted_by))
+            let authorIds = Set(messages.map(\.author_id) + sources.compactMap(\.submitted_by))
             if !authorIds.isEmpty {
                 let idList = authorIds.map { $0.uuidString }.joined(separator: ",")
                 let found: [Profile] = try await API.getMany(Profile.self, path: "rest/v1/profiles", query: [

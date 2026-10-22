@@ -3,7 +3,7 @@ import type { PaperMember } from '@/lib/types'
 
 export type Person = PaperMember
 export type Story = { id: string; group_id: string; title: string; summary: string; category: string | null; flagged: boolean; last_activity_at: string; created_at: string }
-export type Source = { id: string; created_at: string; url: string; publisher: string; domain: string; author: string | null; source_title: string; image_url: string | null; submitted_by: string; submitter_comment: string | null; extraction_status: string }
+export type Source = { id: string; created_at: string; url: string; publisher: string; domain: string; author: string | null; source_title: string; image_url: string | null; submitted_by: string | null; submitter_comment: string | null; extraction_status: string }
 export type Media = { id: string; kind: 'image' | 'video' | 'gif'; url: string; alt_text: string | null; position: number; display_url?: string }
 export type Reaction = { id: string; user_id: string; emoji: string }
 export type Message = { id: string; author_id: string; body: string | null; reply_to: string | null; created_at: string; message_media: Media[]; reactions: Reaction[] }

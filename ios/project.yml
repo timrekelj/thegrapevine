@@ -47,9 +47,12 @@ targets:
         com.apple.developer.applesignin: [Default]
         aps-environment: development
         com.apple.security.application-groups: [group.si.timrekelj.thegrapevine.onesignal]
+        # The app's own default group, listed so the share extension can read the saved session.
+        keychain-access-groups: [$(AppIdentifierPrefix)si.timrekelj.thegrapevine]
     dependencies:
       - package: PostHog
       - target: OneSignalNotificationServiceExtension
+      - target: ShareExtension
       - package: OneSignal
         product: OneSignalFramework
       - package: OneSignal
@@ -97,6 +100,44 @@ targets:
         product: OneSignalExtension
     settings:
       PRODUCT_BUNDLE_IDENTIFIER: si.timrekelj.thegrapevine.OneSignalNotificationServiceExtension
+      TARGETED_DEVICE_FAMILY: "1"
+      GENERATE_INFOPLIST_FILE: true
+  ShareExtension:
+    type: app-extension
+    platform: iOS
+    # "The Grapevine" in other apps' share sheets; reuses the app's share form and API client.
+    sources:
+      - path: ShareExtension
+      - path: Grapevine/API.swift
+      - path: Grapevine/Config.swift
+      - path: Grapevine/Keychain.swift
+      - path: Grapevine/Models.swift
+      - path: Grapevine/Theme.swift
+      - path: Grapevine/Views/ShareView.swift
+      - path: Grapevine/Resources/Gloock-Regular.ttf
+    info:
+      path: ShareExtension/Info.plist
+      properties:
+        CFBundleDisplayName: The Grapevine
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UIAppFonts: [Gloock-Regular.ttf]
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsText: true
+    entitlements:
+      path: ShareExtension/ShareExtension.entitlements
+      properties:
+        # The app's keychain group, where it saves the session.
+        keychain-access-groups: [$(AppIdentifierPrefix)si.timrekelj.thegrapevine]
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: si.timrekelj.thegrapevine.ShareExtension
       TARGETED_DEVICE_FAMILY: "1"
       GENERATE_INFOPLIST_FILE: true
   GrapevineTests:

@@ -76,7 +76,7 @@ struct FrontPageView: View {
             .background(Theme.paper)
             .navigationDestination(for: UUID.self) { id in StoryView(storyId: id) }
             .toolbarVisibility(.hidden, for: .navigationBar)
-            .sheet(isPresented: $share, onDismiss: { Task { await paper.load(app: app) } }) { ShareView() }
+            .sheet(isPresented: $share, onDismiss: { Task { await paper.load(app: app) } }) { ShareView(group: app.group) }
             .refreshable { await paper.load(app: app) }
             .task(id: app.group?.id) { await paper.load(app: app) }
             .onChange(of: app.pendingStoryId, initial: true) {

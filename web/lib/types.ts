@@ -1,7 +1,7 @@
 export type PaperMember = { id: string; display_name: string; monogram: string };
 export type PaperSource = {
   id: string; publisher: string; domain: string; image_url: string | null;
-  submitted_by: string; created_at: string;
+  submitted_by: string | null; created_at: string;
 };
 export type PaperMessage = {
   id: string; story_id: string; author_id: string; body: string | null; created_at: string;

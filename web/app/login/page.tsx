@@ -6,7 +6,7 @@ import { safeRedirect } from '@/lib/auth'
 import { connection } from 'next/server'
 import { captureServer } from '@/lib/telemetry-server'
 import { invitePreview } from '@/lib/metadata'
-import { CodeInput, ResendButton } from './code-input'
+import { CodeInput, ResendButton, SignInButton } from './code-input'
 import styles from './login.module.css'
 
 function GoogleMark() {
@@ -85,12 +85,19 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
     const token = String(formData.get('code') ?? '').replace(/\D/g, '')
     const supabase = await createClient()
     const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'email' })
-    if (error || !data.user) {
-      const query = new URLSearchParams({ redirect: destination, email, error: error?.message ?? 'That code didn’t work. Check it or send a new one.' })
-      redirect(`/login?${query}`)
+    let user = data.user
+    if (error || !user) {
+      // A code works once. If the same form was submitted twice, the first submit already signed this
+      // person in and the second is rejected; carry on instead of showing an error over a working session.
+      const { data: { user: current } } = await supabase.auth.getUser()
+      if (!current || current.email?.toLowerCase() !== email.toLowerCase()) {
+        const query = new URLSearchParams({ redirect: destination, email, error: error?.message ?? 'That code didn’t work. Check it or send a new one.' })
+        redirect(`/login?${query}`)
+      }
+      user = current
     }
-    const { data: memberships, error: membershipError } = await supabase.from('group_members').select('group_id').eq('user_id', data.user.id).limit(1)
-    await captureServer(data.user.id, 'signed_in')
+    const { data: memberships, error: membershipError } = await supabase.from('group_members').select('group_id').eq('user_id', user.id).limit(1)
+    await captureServer(user.id, 'signed_in')
     redirect(membershipError || memberships?.length ? destination : `/onboarding?${new URLSearchParams({ redirect: destination })}`)
   }
 
@@ -113,7 +120,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
             <input type="hidden" name="email" value={sentTo} />
             <CodeInput invalid={!!error} describedBy={error ? 'login-error' : undefined} />
             {error && <ErrorMessage text={error} />}
-            <button className={styles.primary}>Sign in</button>
+            <SignInButton className={styles.primary} />
           </form>
           <form action={sendCode}>
             <input type="hidden" name="email" value={sentTo} />

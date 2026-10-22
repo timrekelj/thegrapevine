@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useFormStatus } from 'react-dom'
 import styles from './login.module.css'
 
 // Must match `otp_length` in supabase/config.toml and the hosted project.
@@ -11,13 +12,15 @@ export function CodeInput({ invalid, describedBy }: { invalid: boolean; describe
   const input = useRef<HTMLInputElement>(null)
   const [code, setCode] = useState('')
   const [focused, setFocused] = useState(true)
+  const { pending } = useFormStatus()
 
+  // A code works once: a second submit of the same code is rejected even though the first signed in.
   useEffect(() => {
-    if (code.length === CODE_LENGTH) input.current?.form?.requestSubmit()
-  }, [code])
+    if (code.length === CODE_LENGTH && !pending) input.current?.form?.requestSubmit()
+  }, [code]) // eslint-disable-line react-hooks/exhaustive-deps -- submit when the code fills, not when pending changes
 
   return <div className={styles.code} data-invalid={invalid}>
-    <input ref={input} id="code" name="code" value={code} autoFocus required
+    <input ref={input} id="code" name="code" value={code} autoFocus required readOnly={pending}
       inputMode="numeric" autoComplete="one-time-code" pattern={`[0-9]{${CODE_LENGTH}}`} maxLength={CODE_LENGTH}
       aria-label="Sign-in code" aria-invalid={invalid} aria-describedby={describedBy}
       onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, CODE_LENGTH))}
@@ -27,6 +30,12 @@ export function CodeInput({ invalid, describedBy }: { invalid: boolean; describe
         <span key={i} className={styles.cell} data-active={focused && i === Math.min(code.length, CODE_LENGTH - 1)}>{code[i]}</span>)}
     </div>
   </div>
+}
+
+/** Disabled while the code is being checked, which also blocks Enter from submitting the form again. */
+export function SignInButton({ className }: { className: string }) {
+  const { pending } = useFormStatus()
+  return <button className={className} disabled={pending}>{pending ? 'Signing in…' : 'Sign in'}</button>
 }
 
 /** A new code can be requested once the countdown from the last send runs out. */
