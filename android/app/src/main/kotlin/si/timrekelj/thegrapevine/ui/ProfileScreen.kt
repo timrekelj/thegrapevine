@@ -95,25 +95,25 @@ fun ProfileScreen(app: AppState, onSignOut: () -> Unit) {
     }
 
     Column(
-        Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),
+        Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 14.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("YOUR CORNER OF THE PAPER", style = LabelStyle)
-            Text("Profile", style = display(34))
+        Column {
+            Text("Your Corner", style = nameplate(44), modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            DoubleRule()
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            app.profile?.let { Monogram(it, 56.dp) }
+            app.profile?.let { Avatar(it.id, 60.dp) }
             Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text(app.profile?.display_name ?: "Your account", style = display(22))
+                Text(app.profile?.display_name ?: "Your account", style = display(26))
                 Text(app.session?.email.orEmpty(), style = MetaStyle)
             }
         }
         Column(
-            Modifier.fillMaxWidth().background(Grape.raised, RoundedCornerShape(18.dp)).padding(20.dp),
+            Modifier.fillMaxWidth().padding(top = 4.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Your name", style = display(23))
+            SectionHead("Your name")
             Text("This is how you appear to your friends.", style = MetaStyle)
             PaperField(name, { name = it; nameSaved = false; nameError = null }, "Display name", enabled = !savingName)
             val canSave = !savingName && name.trim().isNotEmpty() && name.trim().length <= 80 && name.trim() != app.profile?.display_name
@@ -134,17 +134,17 @@ fun ProfileScreen(app: AppState, onSignOut: () -> Unit) {
             nameError?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
         }
         Column(
-            Modifier.fillMaxWidth().background(Grape.raised, RoundedCornerShape(18.dp)).padding(20.dp),
+            Modifier.fillMaxWidth().padding(top = 4.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Notifications", style = display(23))
+            SectionHead("Notifications")
             Text("For ${app.group?.name ?: "your paper"}. Changes save automatically.", style = MetaStyle)
             val current = preferences
             if (current != null) {
                 PreferenceToggle("Mute this paper", "Pause all notifications from this paper.", current.muted, !savingPreferences) {
                     savePreferences(current.copy(muted = it))
                 }
-                HorizontalDivider(color = Grape.rule)
+                Hairline()
                 val enabled = !savingPreferences && !current.muted
                 PreferenceToggle("New stories", "When friends bring something new to the paper.", current.new_stories, enabled) {
                     savePreferences(current.copy(new_stories = it))
@@ -156,13 +156,13 @@ fun ProfileScreen(app: AppState, onSignOut: () -> Unit) {
                     savePreferences(current.copy(mentions = it))
                 }
             } else if (preferenceError == null) {
-                CircularProgressIndicator(color = Grape.ink)
+                CircularProgressIndicator(color = Press.ink, strokeWidth = 2.dp)
                 Text("Loading preferences…", style = MetaStyle)
             }
             if (savingPreferences) Text("Saving…", style = MetaStyle)
             preferenceError?.let { error ->
                 Text(error, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
-                if (preferences == null) TextButton(onClick = { scope.launch { loadPreferences() } }) { Text("Try again") }
+                if (preferences == null) TextAction("Try again") { scope.launch { loadPreferences() } }
             }
             Text("Push notifications also need permission on this device.", style = MetaStyle)
             SettingsLink("Device notification settings") {
@@ -170,10 +170,10 @@ fun ProfileScreen(app: AppState, onSignOut: () -> Unit) {
             }
         }
         Column(
-            Modifier.fillMaxWidth().background(Grape.raised, RoundedCornerShape(18.dp)).padding(20.dp),
+            Modifier.fillMaxWidth().padding(top = 4.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("About & support", style = display(23))
+            SectionHead("About & support")
             SettingsLink("Help & account requests") { open(Intent(Intent.ACTION_VIEW, Uri.parse("mailto:hello@thegrapevine.si"))) }
             SettingsLink("Privacy policy") { open(Intent(Intent.ACTION_VIEW, Uri.parse("${Config.webURL}/privacy"))) }
             SettingsLink("Terms of service") { open(Intent(Intent.ACTION_VIEW, Uri.parse("${Config.webURL}/terms"))) }
@@ -181,7 +181,7 @@ fun ProfileScreen(app: AppState, onSignOut: () -> Unit) {
             linkError?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
         }
         TextButton(onClick = { onSignOut(); app.signOut() }, enabled = !savingName && !savingPreferences) {
-            Text("Sign out", color = MaterialTheme.colorScheme.error, fontSize = 15.sp)
+            Text("Sign out", style = MetaStyle.copy(color = Press.danger, fontWeight = FontWeight.SemiBold))
         }
     }
 }
@@ -195,10 +195,16 @@ private fun PreferenceToggle(title: String, detail: String, checked: Boolean, en
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(title, style = BodyStyle.copy(fontWeight = FontWeight.Medium))
+            Text(title, style = NameStyle)
             Text(detail, style = MetaStyle.copy(lineHeight = 18.sp))
         }
-        Switch(checked = checked, onCheckedChange = null, enabled = enabled)
+        Switch(
+            checked = checked, onCheckedChange = null, enabled = enabled,
+            colors = androidx.compose.material3.SwitchDefaults.colors(
+                checkedThumbColor = Press.paper, checkedTrackColor = Press.ink, checkedBorderColor = Press.ink,
+                uncheckedThumbColor = Press.ink3, uncheckedTrackColor = Press.paper, uncheckedBorderColor = Press.rule,
+            ),
+        )
     }
 }
 
@@ -206,9 +212,9 @@ private fun PreferenceToggle(title: String, detail: String, checked: Boolean, en
 private fun SettingsLink(title: String, onClick: () -> Unit) {
     TextButton(onClick = onClick, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
         Row(Modifier.fillMaxWidth().heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(title, fontSize = 14.sp, color = Grape.ink, modifier = Modifier.weight(1f))
+            Text(title, style = BodyStyle.copy(fontSize = 16.sp), modifier = Modifier.weight(1f))
             Spacer(Modifier.padding(4.dp))
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Grape.ink)
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Press.ink)
         }
     }
 }

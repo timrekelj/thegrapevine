@@ -25,6 +25,8 @@ data class Group(
     val id: String,
     val name: String,
     val invite_code: String,
+    /** When the paper was founded: every day since is an edition. */
+    @Serializable(with = InstantSerializer::class) val created_at: Instant? = null,
 )
 
 @Serializable

@@ -34,7 +34,7 @@ targets:
         # Only standard HTTPS encryption, so no export-compliance documents are needed.
         ITSAppUsesNonExemptEncryption: false
         UILaunchScreen: {}
-        UIAppFonts: [Gloock-Regular.ttf]
+        UIAppFonts: [UnifrakturMaguntia-Regular.ttf, Newsreader-Display-SemiBold.ttf, Newsreader-Text-Regular.ttf, Newsreader-Text-SemiBold.ttf, Newsreader-Text-Italic.ttf, Newsreader-Text-MediumItalic.ttf, IBMPlexMono-Medium.ttf, IBMPlexMono-SemiBold.ttf]
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UIBackgroundModes: [remote-notification]
         NSAppTransportSecurity:
@@ -114,14 +114,15 @@ targets:
       - path: Grapevine/Models.swift
       - path: Grapevine/Theme.swift
       - path: Grapevine/Views/ShareView.swift
-      - path: Grapevine/Resources/Gloock-Regular.ttf
+      - path: Grapevine/Resources/Fonts
+        excludes: ["*.txt"]
     info:
       path: ShareExtension/Info.plist
       properties:
         CFBundleDisplayName: The Grapevine
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        UIAppFonts: [Gloock-Regular.ttf]
+        UIAppFonts: [UnifrakturMaguntia-Regular.ttf, Newsreader-Display-SemiBold.ttf, Newsreader-Text-Regular.ttf, Newsreader-Text-SemiBold.ttf, Newsreader-Text-Italic.ttf, Newsreader-Text-MediumItalic.ttf, IBMPlexMono-Medium.ttf, IBMPlexMono-SemiBold.ttf]
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         NSExtension:

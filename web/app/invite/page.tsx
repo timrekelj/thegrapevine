@@ -1,8 +1,10 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
 import { connection } from 'next/server'
 import { captureServer } from '@/lib/telemetry-server'
 import { invitePreview } from '@/lib/metadata'
+import styles from '@/components/print/card.module.css'
 
 export const metadata = invitePreview
 
@@ -25,16 +27,24 @@ export default async function InvitePage({ searchParams }: PageProps<'/invite'>)
   }
 
   return (
-    <main style={{ maxWidth: 480, margin: '80px auto', padding: '0 20px' }}>
-      <p className="masthead">The Grapevine</p>
-      <hr style={{ border: 0, borderTop: '1px solid var(--rule)', margin: '24px 0 48px' }} />
-      {error || !group ? <><h1 className="headline">This invitation isn’t valid.</h1><p role="alert">Ask your friend for a new invite code.</p><a href="/onboarding" className="btn">Try another code</a></> : <>
-        <p className="label">You’re invited to</p>
-        <h1 className="display" style={{ fontSize: 42 }}>{group.name}</h1>
-        <p className="summary" style={{ margin: '24px 0' }}>A private newspaper, shared and discussed by the people in it.</p>
-        <form action={join}><button className="btn">Join the paper</button></form>
-        {typeof params.error === 'string' && <p role="alert">{params.error}</p>}
-      </>}
+    <main className={styles.page}>
+      <div className={styles.card}>
+        <Link href="/" className={`masthead ${styles.brand}`}>The Grapevine</Link>
+        <div className="double-rule" />
+        {error || !group ? <>
+          <p className="label">Returned to sender</p>
+          <h1 className="headline">This invitation isn’t valid.</h1>
+          <p className="summary" role="alert">Ask your friend for a new invite code.</p>
+          <a href="/onboarding" className="btn">Try another code</a>
+        </> : <>
+          <p className="label">You’re cordially invited to</p>
+          <h1 className={styles.title}>{group.name}</h1>
+          <span className={styles.ornament} aria-hidden="true">◆◆◆</span>
+          <p className="summary">A private newspaper, shared and discussed by the people in it.</p>
+          <form action={join}><button className="btn">Join the paper</button></form>
+          {typeof params.error === 'string' && <p role="alert" className={styles.error}>{params.error}</p>}
+        </>}
+      </div>
     </main>
   )
 }

@@ -42,15 +42,18 @@ struct LoginView: View {
     // MARK: - Sections
 
     private var nameplate: some View {
-        VStack(spacing: 10) {
-            Text("The Grapevine").font(Theme.display(28)).foregroundColor(Theme.ink)
-            VStack(spacing: 2) {
-                Rectangle().fill(Theme.ink).frame(height: 1)
-                Rectangle().fill(Theme.ink).frame(height: 1)
+        VStack(spacing: 0) {
+            Text("The Grapevine").font(Theme.nameplate(52)).foregroundColor(Theme.ink)
+                .lineLimit(1).minimumScaleFactor(0.6)
+                .padding(.bottom, 10)
+            DoubleRule()
+            HStack {
+                Kicker(text: Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)), size: 10)
+                Spacer()
+                Kicker(text: "Private edition", size: 10)
             }
-            Text("\(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide))) · Private edition")
-                .font(.system(size: 11, weight: .semibold)).tracking(0.8).textCase(.uppercase)
-                .foregroundColor(Theme.ink2)
+            .padding(.vertical, 7)
+            Rectangle().fill(Theme.ink).frame(height: 1)
         }
         .overlay(alignment: .topLeading) {
             if sent {
@@ -67,16 +70,16 @@ struct LoginView: View {
     private var intro: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(sent ? "Check your inbox." : "Good stories.\nBetter company.")
-                .font(.custom("Gloock", size: 40, relativeTo: .largeTitle)).foregroundColor(Theme.ink)
+                .font(Theme.headline(46)).lineSpacing(-6).foregroundColor(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
             if sent {
                 Text("We sent a \(signInCodeLength)-digit code to \(Text(email.trimmed).fontWeight(.semibold).foregroundColor(Theme.ink))")
-                    .font(.callout).foregroundColor(Theme.ink2)
+                    .font(Theme.serif(18)).foregroundColor(Theme.ink2)
                 Button("Change email") { changeEmail() }
-                    .font(.callout.weight(.medium)).foregroundColor(Theme.ink).underline()
+                    .font(.system(size: 15, weight: .medium)).foregroundColor(Theme.ink).underline()
                     .disabled(busy)
             } else {
-                Text("A private paper, curated by your friends.").font(.callout).foregroundColor(Theme.ink2)
+                Text("A private paper, curated by your friends.").font(Theme.serif(18)).foregroundColor(Theme.ink2)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -85,17 +88,14 @@ struct LoginView: View {
     private var emailStep: some View {
         VStack(alignment: .leading, spacing: 24) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("EMAIL ADDRESS").font(.system(size: 11, weight: .semibold)).tracking(0.8).foregroundColor(Theme.ink2)
+                Kicker(text: "Email address")
                 TextField("you@example.com", text: $email)
                     .keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                     .textContentType(.emailAddress)
                     .submitLabel(.send).onSubmit(sendCode)
                     .focused($focus, equals: .email)
-                    .foregroundColor(Theme.ink)
-                    .padding(.horizontal, 16).frame(minHeight: 50)
-                    .background(Theme.raised, in: field)
-                    .overlay(field.stroke(app.error != nil ? Theme.error : focus == .email ? Theme.ink : Theme.rule, lineWidth: 1))
+                    .paperField(focused: focus == .email, invalid: app.error != nil)
                     .accessibilityLabel("Email address")
                 errorText
                 primaryButton(busy ? "Sending…" : "Email me a code", enabled: !email.trimmed.isEmpty, action: sendCode)
@@ -103,7 +103,7 @@ struct LoginView: View {
             }
             HStack(spacing: 12) {
                 Rectangle().fill(Theme.rule).frame(height: 1)
-                Text("or").font(.footnote.weight(.medium)).foregroundColor(Theme.ink2)
+                Text("or").font(Theme.italic(17)).foregroundColor(Theme.ink3)
                 Rectangle().fill(Theme.rule).frame(height: 1)
             }
             VStack(spacing: 12) {
@@ -141,7 +141,7 @@ struct LoginView: View {
                             Image(provider == .google ? "GoogleSignIn" : "XSignIn")
                                 .resizable().scaledToFit().frame(width: 17, height: 17)
                                 .accessibilityHidden(true)
-                            Text(provider.title).font(.system(size: 19, weight: .medium))
+                            Text(provider.title).font(.system(size: 17, weight: .medium))
                         }
                         .frame(maxWidth: .infinity, minHeight: 50)
                         .foregroundColor(.black)
@@ -174,11 +174,12 @@ struct LoginView: View {
                         let digits = Array(code)
                         let active = focus == .code && index == min(digits.count, signInCodeLength - 1)
                         Text(index < digits.count ? String(digits[index]) : "")
-                            .font(.custom("Gloock", size: 28, relativeTo: .title))
+                            .font(Theme.headline(30)).monospacedDigit()
                             .foregroundColor(Theme.ink)
-                            .frame(maxWidth: .infinity, minHeight: 58)
+                            .frame(maxWidth: .infinity, minHeight: 62)
                             .background(Theme.raised, in: field)
-                            .overlay(field.stroke(app.error != nil ? Theme.error : active ? Theme.ink : Theme.rule, lineWidth: active ? 1.5 : 1))
+                            .overlay(field.stroke(app.error != nil ? Theme.danger : active ? Theme.ink : Theme.rule, lineWidth: 1))
+                            .background(field.fill(active ? Theme.rule : .clear).offset(x: 3, y: 3))
                     }
                 }
                 .allowsHitTesting(false)
@@ -193,7 +194,7 @@ struct LoginView: View {
                 let left = max(0, Int(resendAt.timeIntervalSince(context.date).rounded(.up)))
                 Button { resendCode() } label: {
                     Text(left > 0 ? "Send a new code in 0:\(String(format: "%02d", left))" : "Send a new code")
-                        .font(.subheadline.weight(.medium)).monospacedDigit()
+                        .font(.system(size: 15, weight: .medium)).monospacedDigit()
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .foregroundColor(left > 0 ? Theme.ink2 : Theme.ink)
                         .overlay(field.stroke(left > 0 ? .clear : Theme.rule, lineWidth: 1))
@@ -207,25 +208,25 @@ struct LoginView: View {
 
     private var footer: some View {
         Text(LocalizedStringKey("By continuing, you agree to the [Terms](\(Config.webURL.appending(path: "terms").absoluteString)) and [Privacy Policy](\(Config.webURL.appending(path: "privacy").absoluteString))."))
-            .font(.footnote).foregroundColor(Theme.ink2).tint(Theme.ink)
+            .font(Theme.mono(11)).foregroundColor(Theme.ink3).tint(Theme.ink)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
     }
 
     // MARK: - Pieces
 
-    private var field: RoundedRectangle { RoundedRectangle(cornerRadius: 14, style: .continuous) }
+    private var field: RoundedRectangle { RoundedRectangle(cornerRadius: Theme.radius) }
 
     @ViewBuilder private var errorText: some View {
         if let error = app.error {
             Label(error, systemImage: "exclamationmark.circle")
-                .font(.subheadline.weight(.medium)).foregroundColor(Theme.error)
+                .font(.system(size: 14, weight: .medium)).foregroundColor(Theme.danger)
         }
     }
 
     private func primaryButton(_ title: String, enabled: Bool, action: @escaping () -> Void) -> some View {
         Button(title, action: action)
-            .buttonStyle(InkButtonStyle(enabled: enabled, shape: field))
+            .buttonStyle(InkButtonStyle(enabled: enabled))
             .disabled(busy || !enabled)
     }
 
@@ -287,20 +288,5 @@ struct LoginView: View {
         catch let error as ASAuthorizationError where error.code == .canceled { }
         catch { app.error = error.localizedDescription }
         busy = false
-    }
-}
-
-/// The ink button. Dims only the fill when disabled, so the label stays readable.
-struct InkButtonStyle: ButtonStyle {
-    let enabled: Bool
-    let shape: RoundedRectangle
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.body.weight(.semibold))
-            .frame(maxWidth: .infinity, minHeight: 50)
-            .background(Theme.ink.opacity(enabled ? (configuration.isPressed ? 0.85 : 1) : 0.45), in: shape)
-            .foregroundColor(Theme.paper)
-            .contentShape(shape)
     }
 }

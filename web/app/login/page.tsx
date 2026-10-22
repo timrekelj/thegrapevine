@@ -104,9 +104,9 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
   return (
     <main className={styles.page}>
       <header className={styles.nameplate}>
-        <Link href="/" className="masthead">The Grapevine</Link>
-        <div className={styles.rules} />
-        <p className="label" style={{ margin: 0 }}>{today} · Private edition</p>
+        <Link href="/" className="nameplate">The Grapevine</Link>
+        <div className="double-rule" />
+        <p className={styles.dateline}><span>{today}</span><span>Private edition</span></p>
       </header>
       <div className={styles.body}>
         <div className={styles.intro}>

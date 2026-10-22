@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- One grape ink on paper: matches the web paper and ink tokens. -->
-    <color name="paper">#EFEEE9</color>
-    <color name="ink">#4A2160</color>
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- Newsprint and ink: matches the web paper token (globals.css). -->
+    <color name="paper">#F4F1EA</color>
+    <color name="ink">#161513</color>
+    <color name="ic_launcher_background">#F4F1EA</color>
 </resources>

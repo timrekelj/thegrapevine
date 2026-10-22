@@ -23,7 +23,7 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   // Link-preview bots fetch the share images signed out.
   const isPublic = ['/', '/login', '/invite', '/favicon.ico', '/auth/callback', '/opengraph-image', '/invite/opengraph-image'].includes(path)
-    || path === '/seed' || path.startsWith('/seed/') || path.startsWith('/_next/')
+    || path === '/seed' || path.startsWith('/seed/') || path.startsWith('/avatar/') || path.startsWith('/_next/')
   if (!user && !isPublic) {
     const login = new URL('/login', request.url)
     login.searchParams.set('redirect', path + request.nextUrl.search)
@@ -35,4 +35,5 @@ export async function proxy(request: NextRequest) {
 }
 
 // .well-known holds the app-link verification files, which Apple and Google fetch signed out.
-export const config = { matcher: ['/((?!_next/|favicon\\.ico$|seed/|\\.well-known/).*)'] }
+// Avatars are generated art that reveals nothing about a member, so they skip the session check.
+export const config = { matcher: ['/((?!_next/|favicon\\.ico$|seed/|avatar/|\\.well-known/).*)'] }

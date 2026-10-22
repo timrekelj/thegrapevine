@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { requireAdmin } from '@/lib/auth'
 import { adminRpc, formatDate, formatUsd, isUuid, type AdminUser } from '@/lib/admin'
 import styles from '@/components/admin/admin.module.css'
+import Avatar from '@/components/print/Avatar'
 
 export default async function AdminUserPage({ params }: PageProps<'/admin/users/[id]'>) {
   const { supabase } = await requireAdmin()
@@ -13,7 +14,7 @@ export default async function AdminUserPage({ params }: PageProps<'/admin/users/
   return <main className={styles.page}>
     <div className={styles.heading}>
       <div>
-        <h1><span className="av">{user.monogram}</span> {user.display_name} {user.is_admin && <span className={`${styles.badge} ${styles.badgeStrong}`}>Admin</span>}</h1>
+        <h1><Avatar seed={user.id} /> {user.display_name} {user.is_admin && <span className={`${styles.badge} ${styles.badgeStrong}`}>Admin</span>}</h1>
         <p>{user.email ?? 'No email'} · signed up {formatDate(user.created_at)} · last sign-in {formatDate(user.last_sign_in_at, true)} · AI cost {formatUsd(user.ai_cost)}</p>
       </div>
     </div>

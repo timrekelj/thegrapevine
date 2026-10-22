@@ -28,18 +28,22 @@ struct ShareView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Found a good read?")
-                        .font(Theme.display(24)).fixedSize(horizontal: false, vertical: true)
-                    Text("Share it with your paper.")
-                        .font(.system(size: 15)).lineSpacing(3).foregroundColor(Theme.ink2)
+                VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Kicker(text: "Filing for \(group?.name ?? "your paper")", color: Theme.ink2)
+                        Text("Found a good read?")
+                            .font(Theme.headline(32)).fixedSize(horizontal: false, vertical: true)
+                        Text("Share it with your paper.")
+                            .font(Theme.serif(17)).foregroundColor(Theme.ink2)
+                    }
+                    DoubleRule().padding(.bottom, 6)
                     if let notice {
-                        Text(notice).font(.system(size: 15, weight: .semibold))
+                        Text(notice).font(Theme.serif(17))
                     } else {
                         form
                     }
                 }
-                .padding(24)
+                .padding(.horizontal, 24).padding(.vertical, 16)
             }
             .background(Theme.paper)
             .foregroundColor(Theme.ink)
@@ -57,30 +61,38 @@ struct ShareView: View {
     }
 
     @ViewBuilder private var form: some View {
-        Text("LINK").font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2)
+        Kicker(text: "Link")
         TextField("https://…", text: $url)
             .focused($editing)
             .keyboardType(.URL)
             .textInputAutocapitalization(.never).autocorrectionDisabled()
             .textContentType(.URL)
-            .padding(16).background(Theme.raised, in: RoundedRectangle(cornerRadius: 14))
-        Text("YOUR COMMENT").font(.system(size: 11, weight: .semibold)).foregroundColor(Theme.ink2)
-        TextField("Add a thought (optional)", text: $comment, axis: .vertical)
+            .paperField()
+        HStack(spacing: 6) {
+            Kicker(text: "Your comment")
+            Text("(optional)").font(Theme.mono(11)).foregroundColor(Theme.ink3)
+        }
+        .padding(.top, 4)
+        TextField("Add a thought", text: $comment, axis: .vertical)
             .focused($editing).lineLimit(2...4)
-            .padding(16).background(Theme.raised, in: RoundedRectangle(cornerRadius: 14))
+            .padding(.vertical, 12)
+            .paperField()
+        Text("Everyone in \(group?.name ?? "your paper") sees this with your name.")
+            .font(Theme.mono(11)).foregroundColor(Theme.ink3)
         if let result {
-            Text(result).font(.system(size: 15, weight: .semibold))
+            Text(result).font(Theme.serif(17)).padding(.vertical, 4)
         }
         Button { Task { await post() } } label: {
-            Text(busy ? "Posting…" : "Share with your paper")
-                .font(.system(size: 16, weight: .semibold))
-                .frame(maxWidth: .infinity, minHeight: 48)
+            Text(busy ? "Filing…" : "Share with your paper")
         }
-        .buttonStyle(.plain)
-        .background(Theme.ink, in: Capsule()).foregroundColor(Theme.paper)
-        .opacity(busy || url.trimmed.isEmpty || group == nil ? 0.4 : 1)
+        .buttonStyle(InkButtonStyle(enabled: !(busy || url.trimmed.isEmpty || group == nil)))
         .disabled(busy || url.trimmed.isEmpty || group == nil)
-        if result != nil { Button("Done") { finish() } }
+        .padding(.top, 6)
+        if result != nil {
+            Button("Done") { finish() }
+                .font(.system(size: 15, weight: .medium)).underline().foregroundColor(Theme.ink)
+                .frame(maxWidth: .infinity)
+        }
     }
 
     private func finish() {

@@ -3,7 +3,6 @@ package si.timrekelj.thegrapevine
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
-import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -133,10 +132,30 @@ class CoreTest {
     }
 
     @Test
-    fun plateMapsBlackToInkAndWhiteToPaper() {
-        // Black prints as grape ink and white as paper, as in Plate.swift.
-        assertArrayEquals(intArrayOf(74, 33, 96), Plate.toInk(0, 0, 0))
-        assertArrayEquals(intArrayOf(247, 244, 238), Plate.toInk(255, 255, 255))
+    fun plateGivesDarkPartsTheBigDotsOnPaper() {
+        // On paper, white needs no ink and black is a solid; in between, dots grow with darkness.
+        assertEquals(0f, Plate.radius(1f, dark = false), 0.0001f)
+        assertEquals(Plate.MAX_RADIUS, Plate.radius(0f, dark = false), 0.0001f)
+        assertTrue(Plate.radius(0.3f, dark = false) > Plate.radius(0.7f, dark = false))
+        // A mid-grey dot has half the area of a solid one.
+        val half = Plate.radius(0.5f, dark = false)
+        val solid = Plate.radius(0f, dark = false)
+        assertEquals(0.5f, half * half / (solid * solid), 0.001f)
+    }
+
+    @Test
+    fun plateGivesLightPartsTheBigDotsOnTheEveningEdition() {
+        assertEquals(0f, Plate.radius(0f, dark = true), 0.0001f)
+        assertEquals(Plate.MAX_RADIUS, Plate.radius(1f, dark = true), 0.0001f)
+        assertTrue(Plate.radius(0.7f, dark = true) > Plate.radius(0.3f, dark = true))
+    }
+
+    @Test
+    fun plateMeasuresLuminanceAndScreensAtTheWebPitch() {
+        assertEquals(0f, Plate.luminance(0, 0, 0), 0.0001f)
+        assertEquals(1f, Plate.luminance(255, 255, 255), 0.0001f)
+        assertTrue(Plate.luminance(0, 255, 0) > Plate.luminance(255, 0, 0))
+        assertEquals(138, Plate.columns(360f))
     }
 
     private fun assertThrows(block: () -> Unit) {

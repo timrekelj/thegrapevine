@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth'
 import { adminRpc, fillDays, formatDate, formatTokens, formatUsd, isUuid, num, type AdminGroup, type AISummary } from '@/lib/admin'
 import SpendChart from '@/components/admin/SpendChart'
 import styles from '@/components/admin/admin.module.css'
+import Avatar from '@/components/print/Avatar'
 
 export default async function AdminGroupPage({ params }: PageProps<'/admin/groups/[id]'>) {
   const { supabase } = await requireAdmin()
@@ -34,7 +35,7 @@ export default async function AdminGroupPage({ params }: PageProps<'/admin/group
       <div className={styles.tableWrap}><table className={styles.table}>
         <thead><tr><th>Member</th><th>Email</th><th>Role</th><th>Joined</th><th>Last seen</th><th className={styles.num}>Sources</th><th className={styles.num}>Messages</th></tr></thead>
         <tbody>{group.members.map(m => <tr key={m.id}>
-          <td><Link className={styles.who} href={`/admin/users/${m.id}`}><span className="av">{m.monogram}</span>{m.display_name}</Link></td>
+          <td><Link className={styles.who} href={`/admin/users/${m.id}`}><Avatar seed={m.id} />{m.display_name}</Link></td>
           <td className={styles.wrap}>{m.email ?? '—'}</td>
           <td>{m.role === 'owner' ? <span className={`${styles.badge} ${styles.badgeStrong}`}>Owner</span> : 'Member'}</td>
           <td>{formatDate(m.joined_at)}</td><td>{formatDate(m.last_seen_at, true)}</td>

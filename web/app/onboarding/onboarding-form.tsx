@@ -1,21 +1,21 @@
 'use client'
 
 import { useState } from 'react'
+import Avatar from '@/components/print/Avatar'
 import form from '../login/login.module.css'
 import styles from './onboarding.module.css'
 
 type Action = (formData: FormData) => Promise<void>
 
-/** The paper being made, updated as you type: masthead, monogram and a first-edition stamp. */
-function Preview({ name, paper, placeholder, today }: { name: string; paper: string; placeholder: string; today: string }) {
-  const initial = Array.from(name.trim())[0]?.toUpperCase() ?? '?'
+/** The paper being made, updated as you type: masthead, your portrait and a first-edition stamp. */
+function Preview({ userId, name, paper, placeholder, today }: { userId: string; name: string; paper: string; placeholder: string; today: string }) {
   return <div className={styles.sheet} aria-hidden="true">
     <span className={`stamp ${styles.stamp}`}>First edition</span>
-    <div className={styles.sheetTop}><span className="label">{today}</span><span className="av" key={initial}>{initial}</span></div>
+    <div className={styles.sheetTop}><span className="label">{today}</span><Avatar seed={userId} /></div>
     <p className={styles.masthead} data-empty={!paper.trim()}>{paper.trim() || placeholder}</p>
     <div className={styles.rules} />
     <div className={styles.lead}>
-      <div className={`noimg ${styles.plate}`}><span>Your first link</span></div>
+      <div className={`typeplate ${styles.plate}`}><span>Your first link</span></div>
       <div>
         <p className={styles.headline}>Share a link and it becomes the lead story.</p>
         <div className="meta">{name.trim() || 'You'} · 1 member</div>
@@ -24,8 +24,9 @@ function Preview({ name, paper, placeholder, today }: { name: string; paper: str
   </div>
 }
 
-export function OnboardingForm({ id, initialName, initialPaper, initialCode, inviteFirst, today, error, startPaper, joinPaper }: {
+export function OnboardingForm({ id, userId, initialName, initialPaper, initialCode, inviteFirst, today, error, startPaper, joinPaper }: {
   id: string
+  userId: string
   initialName: string
   initialPaper: string
   initialCode: string
@@ -43,7 +44,7 @@ export function OnboardingForm({ id, initialName, initialPaper, initialCode, inv
   const errorMessage = error && <p id="onboarding-error" role="alert" className={form.error}>{error}</p>
 
   return <>
-    <Preview name={name} paper={joining ? '' : paper} placeholder={joining ? 'Your friends’ paper' : 'Your paper'} today={today} />
+    <Preview userId={userId} name={name} paper={joining ? '' : paper} placeholder={joining ? 'Your friends’ paper' : 'Your paper'} today={today} />
     <form className={form.form}>
       <input type="hidden" name="id" value={id} />
       <div className={styles.fields}>

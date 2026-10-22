@@ -14,28 +14,27 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("YOUR CORNER OF THE PAPER")
-                            .font(.system(size: 10, weight: .bold)).tracking(1.5).foregroundColor(Theme.ink2)
-                        Text("Profile").font(Theme.display(34))
-                    }
-                    HStack(spacing: 16) {
-                        if let profile = app.profile { Monogram(profile: profile, size: 56) }
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(app.profile?.display_name ?? "Your account").font(Theme.display(22))
-                            Text(app.session?.email ?? "")
-                                .font(.subheadline).foregroundColor(Theme.ink2).textSelection(.enabled)
+                VStack(alignment: .leading, spacing: 32) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        PageHead(kicker: "Your corner of the paper", title: "Profile")
+                        HStack(spacing: 16) {
+                            if let profile = app.profile { MemberAvatar(profile: profile, size: 60) }
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(app.profile?.display_name ?? "Your account").font(Theme.headline(26))
+                                Text(app.session?.email ?? "")
+                                    .font(Theme.mono(12)).foregroundColor(Theme.ink2).textSelection(.enabled)
+                            }
                         }
+                        .padding(.top, 14)
                     }
 
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Your name").font(Theme.display(23))
+                    VStack(alignment: .leading, spacing: 14) {
+                        SectionHead(title: "Your name")
                         Text("This is how you appear to your friends.")
-                            .font(.subheadline).foregroundColor(Theme.ink2)
+                            .font(Theme.serif(17)).foregroundColor(Theme.ink2)
                         TextField("Display name", text: $name)
                             .textContentType(.name)
-                            .padding(16).background(Theme.paper, in: RoundedRectangle(cornerRadius: 14))
+                            .paperField()
                             .disabled(savingName)
                             .onChange(of: name) {
                                 if name.trimmed != app.profile?.display_name { nameSaved = false }
@@ -43,25 +42,21 @@ struct ProfileView: View {
                             }
                         Button { Task { await saveName() } } label: {
                             Text(savingName ? "Saving…" : "Save name")
-                                .font(.body.weight(.semibold))
-                                .frame(maxWidth: .infinity, minHeight: 48)
                         }
-                        .buttonStyle(.plain)
-                        .background(Theme.ink, in: Capsule()).foregroundColor(Theme.paper)
-                        .opacity(canSaveName ? 1 : 0.4).disabled(!canSaveName)
-                        if name.trimmed.count > 80 { Text("Use a name up to 80 characters.").font(.caption).foregroundColor(Theme.error) }
-                        if nameSaved { Text("Name saved").font(.caption).foregroundColor(Theme.ink2) }
-                        if let nameError { Text(nameError).font(.caption).foregroundColor(Theme.error) }
+                        .buttonStyle(InkButtonStyle(enabled: canSaveName))
+                        .disabled(!canSaveName)
+                        if name.trimmed.count > 80 { Text("Use a name up to 80 characters.").font(.caption).foregroundColor(Theme.danger) }
+                        if nameSaved { Text("Name saved").font(Theme.mono(12)).foregroundColor(Theme.ink2) }
+                        if let nameError { Text(nameError).font(.caption).foregroundColor(Theme.danger) }
                     }
-                    .padding(20).background(Theme.raised, in: RoundedRectangle(cornerRadius: 18))
 
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Notifications").font(Theme.display(23))
+                        SectionHead(title: "Notifications")
                         Text("For \(app.group?.name ?? "your paper"). Changes save automatically.")
-                            .font(.subheadline).foregroundColor(Theme.ink2)
+                            .font(Theme.serif(17)).foregroundColor(Theme.ink2)
                         if preferences != nil {
                             preferenceToggle("Mute this paper", detail: "Pause all notifications from this paper.", keyPath: \.muted)
-                            Divider().overlay(Theme.rule)
+                            Hairline()
                             preferenceToggle("New stories", detail: "When friends bring something new to the paper.", keyPath: \.new_stories)
                             preferenceToggle("Replies to you", detail: "When someone replies to your message.", keyPath: \.direct_replies)
                             preferenceToggle("Mentions", detail: "When someone mentions you in a conversation.", keyPath: \.mentions)
@@ -70,13 +65,13 @@ struct ProfileView: View {
                         }
                         if savingPreferences { ProgressView("Saving…").font(.caption).tint(Theme.ink) }
                         if let preferenceError {
-                            Text(preferenceError).font(.caption).foregroundColor(Theme.error)
+                            Text(preferenceError).font(.caption).foregroundColor(Theme.danger)
                             if preferences == nil {
                                 Button("Try again") { Task { await loadPreferences() } }.frame(minHeight: 44)
                             }
                         }
                         Text("Push notifications also need permission on this device.")
-                            .font(.footnote).foregroundColor(Theme.ink2)
+                            .font(Theme.mono(11)).foregroundColor(Theme.ink3)
                         Button {
                             Task {
                                 let opened = await UIApplication.shared.open(URL(string: UIApplication.openNotificationSettingsURLString)!)
@@ -87,10 +82,9 @@ struct ProfileView: View {
                                 .font(.subheadline.weight(.medium)).frame(minHeight: 44)
                         }
                     }
-                    .padding(20).background(Theme.raised, in: RoundedRectangle(cornerRadius: 18))
 
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("About & support").font(Theme.display(23))
+                        SectionHead(title: "About & support")
                         Link(destination: URL(string: "mailto:hello@thegrapevine.si")!) {
                             Label("Help & account requests", systemImage: "envelope").frame(minHeight: 44)
                         }
@@ -101,20 +95,19 @@ struct ProfileView: View {
                             Label("Terms of service", systemImage: "doc.text").frame(minHeight: 44)
                         }
                         Text("The Grapevine · Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")")
-                            .font(.caption).foregroundColor(Theme.ink2)
+                            .font(Theme.mono(11)).foregroundColor(Theme.ink3)
                     }
-                    .font(.subheadline)
-                    .padding(20).background(Theme.raised, in: RoundedRectangle(cornerRadius: 18))
+                    .font(.system(size: 15))
 
                     Button("Sign out", role: .destructive) {
                         paper.stories = []
                         paper.seenAt = nil
                         app.signOut()
                     }
-                    .font(.subheadline).frame(minHeight: 44)
+                    .font(.system(size: 15, weight: .semibold)).frame(minHeight: 44)
                     .disabled(savingName || savingPreferences)
                 }
-                .padding(24)
+                .padding(.horizontal, 20).padding(.bottom, 24)
             }
             .background(Theme.paper)
             .scrollDismissesKeyboard(.interactively)
@@ -148,8 +141,8 @@ struct ProfileView: View {
             }
         )) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(title).font(.body.weight(.medium))
-                Text(detail).font(.footnote).foregroundColor(Theme.ink2)
+                Text(title).font(Theme.headline(18))
+                Text(detail).font(Theme.serif(15)).foregroundColor(Theme.ink2)
             }
         }
         .padding(.vertical, 6)

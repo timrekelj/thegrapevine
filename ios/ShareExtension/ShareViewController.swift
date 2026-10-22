@@ -35,7 +35,6 @@ struct ShareExtensionView: View {
             }
         }
         .background(Theme.paper.ignoresSafeArea())
-        .preferredColorScheme(.light)
         .task {
             async let link = sharedLink()
             await loadGroup()
