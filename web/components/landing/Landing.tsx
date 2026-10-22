@@ -18,7 +18,6 @@ function Specimen() {
   return <figure className={styles.specimen} aria-label="A sample front page">
     <div className={styles.sheet} aria-hidden="true">
       <div className={styles.sheetTop}>
-        <span className={styles.sheetEar}>No. 52</span>
         <span className={styles.sheetMasthead}>The Supper Club</span>
         <span className={styles.sheetMembers}>{sampleMembers.map(m => <span className="av" key={m}>{m}</span>)}</span>
       </div>
@@ -77,9 +76,7 @@ export default function Landing() {
 
     <header className={styles.flag}>
       <div className={styles.flagRow}>
-        <p className={styles.ear}>“All the links<br />fit to share”</p>
         <Link href="/" className={`nameplate ${styles.nameplate}`}>The Grapevine</Link>
-        <p className={`${styles.ear} ${styles.earRight}`}>Private edition<br />For friends only</p>
       </div>
       <div className="double-rule" />
       <div className={styles.dateline}>

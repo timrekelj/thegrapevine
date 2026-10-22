@@ -49,18 +49,15 @@ export default function FrontPage({ group, members, stories, loadedAt }: {
 
   return <main className={styles.paper}>
     <header className={styles.head}>
-      <div className={styles.ears}>
-        <div className={styles.ear}>
-          <span className="label">Vol. {volume} · No. {edition}</span>
-          <time className="meta" dateTime={loadedAt.toISOString()}>{loadedAt.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</time>
-        </div>
-        <h1 className={`nameplate ${styles.nameplate}`}>{group.name}</h1>
-        <div className={`${styles.ear} ${styles.earRight}`}>
-          <span className="label tnum">{stories.length} {stories.length === 1 ? 'story' : 'stories'}{fresh > 0 && <> · <span className={styles.fresh}>{fresh} new</span></>}</span>
-          <div className={styles.members} aria-label="At the table">{members.map(member => <span className="av" key={member.id} title={member.display_name}>{member.monogram}</span>)}</div>
-        </div>
-      </div>
+      <h1 className={`nameplate ${styles.nameplate}`}>{group.name}</h1>
       <div className="double-rule" />
+      <div className={styles.dateline}>
+        <span className={styles.edition}>Vol. {volume} · No. {edition}</span>
+        <time className={styles.date} dateTime={loadedAt.toISOString()}>{loadedAt.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</time>
+        <span className={`tnum ${styles.count}`}><span>{stories.length} {stories.length === 1 ? 'story' : 'stories'}{fresh > 0 && <> · <span className={styles.fresh}>{fresh} new</span></>}</span>
+          <span className={styles.members} aria-label="At the table">{members.map(member => <span className="av" key={member.id} title={member.display_name}>{member.monogram}</span>)}</span>
+        </span>
+      </div>
       <nav className={styles.sections} aria-label="Sections">
         <div className={styles.sectionList}><b>Front page</b>{categories.map(category => <span key={category}>{category}</span>)}</div>
         <ShareLink groupId={group.id} groupName={group.name} />
