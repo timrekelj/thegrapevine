@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Telemetry from "@/components/telemetry";
+import { sitePreview } from "@/lib/metadata";
 
 export const metadata: Metadata = {
-  title: "The Grapevine",
-  description: "A private newspaper curated by friends.",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://thegrapevine.si"),
+  ...sitePreview,
 };
 
 export const viewport: Viewport = {
