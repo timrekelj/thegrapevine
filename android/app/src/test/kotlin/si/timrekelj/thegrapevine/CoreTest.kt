@@ -106,6 +106,14 @@ class CoreTest {
     }
 
     @Test
+    fun serverErrorMessagesReachTheUser() {
+        // submit-source and report-story rate limits answer 429 {"error": "…"}.
+        assertEquals("Slow down", ApiError.Http(429, """{"error":"Slow down"}""").message)
+        assertEquals("Bad", ApiError.Http(400, """{"message":"Bad"}""").message)
+        assertEquals("Server error (502)", ApiError.Http(502, "<html>").message)
+    }
+
+    @Test
     fun inviteCodeFromLinkOrBareCode() {
         assertEquals("grapevinedemo", DeepLink.inviteCode("https://thegrapevine.si/invite?code=GrapevineDemo"))
         assertEquals("grapevinedemo", DeepLink.inviteCode("  grapevinedemo "))
@@ -119,6 +127,9 @@ class CoreTest {
         assertEquals(null, DeepLink.route("https://thegrapevine.si/story/not-a-uuid"))
         assertEquals(null, DeepLink.route("https://thegrapevine.si/invite"))
         assertEquals(null, DeepLink.route("https://thegrapevine.si/login"))
+        // Only our own https links: MainActivity is exported, so any app can send it a VIEW intent.
+        assertEquals(null, DeepLink.route("https://evil.example/invite?code=GrapevineDemo"))
+        assertEquals(null, DeepLink.route("http://thegrapevine.si/story/$id"))
     }
 
     @Test

@@ -1,7 +1,6 @@
 package si.timrekelj.thegrapevine.ui
 
 import android.content.Intent
-import android.net.Uri
 import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -41,6 +40,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import kotlinx.coroutines.launch
 import si.timrekelj.thegrapevine.ApiError
 import si.timrekelj.thegrapevine.AppState
@@ -174,9 +174,9 @@ fun ProfileScreen(app: AppState, onSignOut: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             SectionHead("About & support")
-            SettingsLink("Help & account requests") { open(Intent(Intent.ACTION_VIEW, Uri.parse("mailto:hello@thegrapevine.si"))) }
-            SettingsLink("Privacy policy") { open(Intent(Intent.ACTION_VIEW, Uri.parse("${Config.webURL}/privacy"))) }
-            SettingsLink("Terms of service") { open(Intent(Intent.ACTION_VIEW, Uri.parse("${Config.webURL}/terms"))) }
+            SettingsLink("Help & account requests") { open(Intent(Intent.ACTION_VIEW, "mailto:hello@thegrapevine.si".toUri())) }
+            SettingsLink("Privacy policy") { open(Intent(Intent.ACTION_VIEW, "${Config.webURL}/privacy".toUri())) }
+            SettingsLink("Terms of service") { open(Intent(Intent.ACTION_VIEW, "${Config.webURL}/terms".toUri())) }
             Text("The Grapevine · Version ${BuildConfig.VERSION_NAME}", style = MetaStyle)
             linkError?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
         }

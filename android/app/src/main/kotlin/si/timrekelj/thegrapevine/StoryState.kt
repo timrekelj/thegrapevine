@@ -4,6 +4,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import java.util.UUID
 
 /** Mirrors `StoryStore.swift`: one story's timeline, composer and corrections. */
@@ -37,35 +40,58 @@ class StoryState(private val api: Api) : ViewModel() {
         isLoading = true
         error = null
         try {
-            val loaded = api.getOne<Story>("rest/v1/stories", listOf("id" to "eq.$storyId"))
-                ?: throw ApiError.Network("This story is no longer available.")
-            story = loaded
-            if (trackedStoryId != storyId) {
-                Telemetry.capture("story_opened")
-                trackedStoryId = storyId
+            // The four reads are independent; run them together. Polling assigns only what changed,
+            // so an unchanged timeline doesn't recompose.
+            coroutineScope {
+                val loadedStory = async { api.getOne<Story>("rest/v1/stories", listOf("select" to Columns.STORY, "id" to "eq.$storyId")) }
+                val loadedSources = async {
+                    api.getMany<Source>(
+                        "rest/v1/sources",
+                        listOf("select" to Columns.SOURCE, "story_id" to "eq.$storyId", "order" to "created_at.desc"),
+                    )
+                }
+                val loadedMessages = async {
+                    api.getMany<Message>(
+                        "rest/v1/messages",
+                        listOf(
+                            "select" to "*,reactions(*),message_media(*)",
+                            "story_id" to "eq.$storyId",
+                            "order" to "created_at.asc",
+                        ),
+                    )
+                }
+                val loadedHistory = async {
+                    api.getMany<StoryHistoryEntry>(
+                        "rest/v1/story_history",
+                        listOf("select" to Columns.STORY_HISTORY, "story_id" to "eq.$storyId", "order" to "created_at.desc"),
+                    )
+                }
+                val loaded = loadedStory.await() ?: throw ApiError.Network("This story is no longer available.")
+                if (loaded != story) story = loaded
+                if (trackedStoryId != storyId) {
+                    Telemetry.capture("story_opened")
+                    trackedStoryId = storyId
+                }
+                loadedSources.await().let { if (it != sources) sources = it }
+                loadedMessages.await().let { if (it != messages) messages = it }
+                loadedHistory.await().let { if (it != history) history = it }
             }
-            sources = api.getMany("rest/v1/sources", listOf("story_id" to "eq.$storyId", "order" to "created_at.desc"))
-            messages = api.getMany(
-                "rest/v1/messages",
-                listOf(
-                    "select" to "*,reactions(*),message_media(*)",
-                    "story_id" to "eq.$storyId",
-                    "order" to "created_at.asc",
-                ),
-            )
-            history = api.getMany("rest/v1/story_history", listOf("story_id" to "eq.$storyId", "order" to "created_at.desc"))
 
             val authorIds = (messages.map { it.author_id } + sources.mapNotNull { it.submitted_by }).toSet()
             if (authorIds.isNotEmpty()) {
-                profiles = api.getMany<Profile>(
+                val loaded = api.getMany<Profile>(
                     "rest/v1/profiles",
                     listOf("select" to "id,display_name,monogram", "id" to "in.(${authorIds.joinToString(",")})"),
                 ).associateBy { it.id }
+                if (loaded != profiles) profiles = loaded
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             error = e.message
+        } finally {
+            isLoading = false
         }
-        isLoading = false
     }
 
     suspend fun postMessage(body: String, replyTo: String?, attachments: List<Attachment>): Boolean {

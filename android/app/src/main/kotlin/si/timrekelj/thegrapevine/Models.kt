@@ -42,6 +42,17 @@ data class Member(
     val profiles: Profile,
 )
 
+/**
+ * Explicit column lists for the tables whose rows carry a large `embedding` vector: never `select=*`.
+ * Each list covers the model's required fields plus the optional ones the app shows (no `excerpt`).
+ */
+object Columns {
+    const val STORY = "id,group_id,title,summary,category,last_activity_at,created_at"
+    const val SOURCE = "id,story_id,url,domain,publisher,source_title,image_url,author,submitted_by," +
+        "submitter_comment,extraction_status,created_at"
+    const val STORY_HISTORY = "id,story_id,title,summary,category,created_at"
+}
+
 @Serializable
 data class Story(
     val id: String,

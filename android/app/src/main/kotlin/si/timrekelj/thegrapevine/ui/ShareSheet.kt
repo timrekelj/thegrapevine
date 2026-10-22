@@ -24,14 +24,13 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import si.timrekelj.thegrapevine.AppState
-import si.timrekelj.thegrapevine.Story
 import si.timrekelj.thegrapevine.encodeBody
 
 @Serializable
 private data class SubmitBody(val group_id: String, val url: String, val comment: String?)
 
 @Serializable
-private data class SubmitResult(val status: String, val story_id: String? = null)
+private data class SubmitResult(val status: String, val story_id: String? = null, val story_title: String? = null)
 
 /**
  * Mirrors `ShareView.swift`. Also opened over other apps from the system share
@@ -90,10 +89,8 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", on
                             "functions/v1/submit-source",
                             encodeBody(SubmitBody(group.id, url.trim(), comment.trim().ifEmpty { null })),
                         )
-                        val story = submitted.story_id?.let { id ->
-                            runCatching { api.getOne<Story>("rest/v1/stories", listOf("id" to "eq.$id")) }.getOrNull()
-                        }
-                        val title = story?.title ?: "the story"
+                        // A 429 (too many links in ten minutes) arrives as ApiError with the server's message.
+                        val title = submitted.story_title?.takeIf { it.isNotBlank() } ?: "the story"
                         when (submitted.status) {
                             "duplicate" -> "Your contribution was not added because it was a duplicate."
                             "joined" -> "Filed under $title."
