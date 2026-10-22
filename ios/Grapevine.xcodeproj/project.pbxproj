@@ -7,11 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0AC7148208540D0F91B139AB /* API.swift in Sources */ = {isa = PBXBuildFile; fileRef = C63E5297B4E947A049701574 /* API.swift */; };
+		113129736FB478CFB940A255 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDB6677CAC2B83257AAA8859 /* Theme.swift */; };
 		14DEEB16251B3E6461A6F447 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CB4D3D864AF68A30B38FC16 /* NotificationService.swift */; };
 		1BE5AC0736BCE1C20EDAA5EE /* OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = 11DAC74708322CC7417FB4CD /* OFL.txt */; };
 		2383E940A0E736291960C098 /* PostHog in Frameworks */ = {isa = PBXBuildFile; productRef = 06E24CDF044B25C3F7D74A53 /* PostHog */; };
 		258C2F7E7978E437BB466B37 /* OneSignalInAppMessages in Frameworks */ = {isa = PBXBuildFile; productRef = 196BD85C25075C095E7548D4 /* OneSignalInAppMessages */; };
+		25FA77B078DBFAD50F5BE709 /* Gloock-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5A1823B98EA48168BE05A4CC /* Gloock-Regular.ttf */; };
 		2607D9947DAE1511BF5B876C /* API.swift in Sources */ = {isa = PBXBuildFile; fileRef = C63E5297B4E947A049701574 /* API.swift */; };
+		27341A71DAE7688BB40BE4B3 /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3E6D11FAE83E043322681E0 /* ShareViewController.swift */; };
 		29BB4D258C2FD61DE0CA320E /* OneSignalManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 244E2C8E874BA72854FA3E53 /* OneSignalManager.swift */; };
 		337744043905E2FCE21175EA /* CoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F5D75AD29C748D1E18B2A25 /* CoreTests.swift */; };
 		3B908FDDB93741F7F7F3523B /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C64C3AA447C2EAD95E1C859 /* OnboardingView.swift */; };
@@ -19,16 +23,21 @@
 		4958D5616C3D3C4C72CD3957 /* ShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2432CCCAAD5B4BF4CE261CD /* ShareView.swift */; };
 		4D9CFC24B0817627B81E1F3E /* OneSignalFramework in Frameworks */ = {isa = PBXBuildFile; productRef = 4A33FA63DF3B3E8C0AD044BF /* OneSignalFramework */; };
 		5416A2BCD4B6C8043E8A0E5B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BFC4CB83A7051D6FE9F40A2A /* Assets.xcassets */; };
+		583C1C54661A44B35F7D30E7 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B4DFCD625ACB4825F91D34E /* Models.swift */; };
 		59FB85F152C28994AB829C2F /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E08268B923B30869950C713 /* Components.swift */; };
 		5BE7BADF4BCAB77537BE7343 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBB8C71D3A341CFCF812FCAD /* Keychain.swift */; };
 		601B5DA60D9540F83B768A7B /* FrontPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F4EC19C9B801E1E2690AE1 /* FrontPageView.swift */; };
 		67B2B1F2B1649827E76CB863 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6AD76F6620CD0DDC4317B9A /* LoginView.swift */; };
+		7B5B0E136ABF9389F51B8D7A /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 9A87474B1BE72D38231B54B7 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		8B5F1A99429DE5C2656349D7 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDB6677CAC2B83257AAA8859 /* Theme.swift */; };
 		8BDBAE67E758BF565921FE70 /* StoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8807C25BF3BBA7FC0BB51B29 /* StoryView.swift */; };
+		8D405790FF29BC6170849D7F /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBB8C71D3A341CFCF812FCAD /* Keychain.swift */; };
 		9B3E0A843CBCFABDED5B21C7 /* OAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8376AD3BE96F7395FA08B687 /* OAuth.swift */; };
 		9D7FBC9925CD74FE5FB0897C /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B4DFCD625ACB4825F91D34E /* Models.swift */; };
+		B056A94E5DC98B5B1D9B1D82 /* ShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2432CCCAAD5B4BF4CE261CD /* ShareView.swift */; };
 		B8DC0C8725384657B80F2889 /* Gloock-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5A1823B98EA48168BE05A4CC /* Gloock-Regular.ttf */; };
 		B9C89D3372A5D7799F84985E /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 090A32009737A8ACB7374B07 /* Config.swift */; };
+		CD887788E089C308677B9C02 /* Telemetry.swift in Sources */ = {isa = PBXBuildFile; fileRef = E82D0E480D32E45FE5DE7B2F /* Telemetry.swift */; };
 		CE0D750A30BC2251BDC13735 /* Telemetry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 158E7434E46342C2DFC183A7 /* Telemetry.swift */; };
 		D22A6017F6D8A77948F1284E /* OneSignalExtension in Frameworks */ = {isa = PBXBuildFile; productRef = 3BF1F2CF2A9BE3BC9A3A260C /* OneSignalExtension */; };
 		D72E631354033995BAD0D993 /* PaperStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC5017F8EDAF37D202FA6CC4 /* PaperStore.swift */; };
@@ -38,6 +47,7 @@
 		EA64CB4A55954FFA68BA31FE /* MessageMediaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE0D9D3FAFCADC940228C1BB /* MessageMediaView.swift */; };
 		ED470F227C86DC8252114DF5 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 131E7C88FFCD01C4402C7309 /* ProfileView.swift */; };
 		EFFA21025BE2C481BABA4EED /* OneSignalNotificationServiceExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 13C6FDA8A830AC6AA77D283E /* OneSignalNotificationServiceExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F7D20D0B39DBDD893EEEB36F /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 090A32009737A8ACB7374B07 /* Config.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -55,6 +65,13 @@
 			remoteGlobalIDString = 4C450E5CA287D4511958A180;
 			remoteInfo = Grapevine;
 		};
+		F6035006F209CDB42F990856 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 300915FA3B1FD59EF60FFD63 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8760E909AFFE4D5126829B50;
+			remoteInfo = ShareExtension;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -65,6 +82,7 @@
 			dstSubfolderSpec = 13;
 			files = (
 				EFFA21025BE2C481BABA4EED /* OneSignalNotificationServiceExtension.appex in Embed Foundation Extensions */,
+				7B5B0E136ABF9389F51B8D7A /* ShareExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -92,17 +110,22 @@
 		8376AD3BE96F7395FA08B687 /* OAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OAuth.swift; sourceTree = "<group>"; };
 		8807C25BF3BBA7FC0BB51B29 /* StoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryView.swift; sourceTree = "<group>"; };
 		8AA540084F673BB60FCCF1DE /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		9A87474B1BE72D38231B54B7 /* ShareExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		9CB4D3D864AF68A30B38FC16 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		A16B340A581EACB81CB43627 /* GrapevineTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = GrapevineTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		A6AD76F6620CD0DDC4317B9A /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		BFC4CB83A7051D6FE9F40A2A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C63E5297B4E947A049701574 /* API.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = API.swift; sourceTree = "<group>"; };
+		CB31E501B025A11A44B28204 /* ShareExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShareExtension.entitlements; sourceTree = "<group>"; };
 		D0F4EC19C9B801E1E2690AE1 /* FrontPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrontPageView.swift; sourceTree = "<group>"; };
 		DB0C9237B273BEA6ED7006AC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		DBB8C71D3A341CFCF812FCAD /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
+		DBBFF5378D1B72AAB57E249B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		DC5017F8EDAF37D202FA6CC4 /* PaperStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperStore.swift; sourceTree = "<group>"; };
 		DE0D9D3FAFCADC940228C1BB /* MessageMediaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageMediaView.swift; sourceTree = "<group>"; };
 		E2432CCCAAD5B4BF4CE261CD /* ShareView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareView.swift; sourceTree = "<group>"; };
+		E3E6D11FAE83E043322681E0 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		E82D0E480D32E45FE5DE7B2F /* Telemetry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Telemetry.swift; sourceTree = "<group>"; };
 		F96AF49CBCE528CEB8A0306D /* Grapevine.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Grapevine.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FDB6677CAC2B83257AAA8859 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -129,6 +152,17 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		041391022DFE29AB24CE017D /* ShareExtension */ = {
+			isa = PBXGroup;
+			children = (
+				DBBFF5378D1B72AAB57E249B /* Info.plist */,
+				CB31E501B025A11A44B28204 /* ShareExtension.entitlements */,
+				E3E6D11FAE83E043322681E0 /* ShareViewController.swift */,
+				E82D0E480D32E45FE5DE7B2F /* Telemetry.swift */,
+			);
+			path = ShareExtension;
+			sourceTree = "<group>";
+		};
 		22709AAAEC23AC020DDB8A55 /* Views */ = {
 			isa = PBXGroup;
 			children = (
@@ -151,6 +185,7 @@
 				E4E591FFFCE8A0E77128FC37 /* Grapevine */,
 				86321E82B58D3797DFD4683D /* GrapevineTests */,
 				5D0C24E27A47B925E0BF21F6 /* OneSignalNotificationServiceExtension */,
+				041391022DFE29AB24CE017D /* ShareExtension */,
 				BA00121650C4C0F7DE06FC40 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -188,6 +223,7 @@
 				F96AF49CBCE528CEB8A0306D /* Grapevine.app */,
 				A16B340A581EACB81CB43627 /* GrapevineTests.xctest */,
 				13C6FDA8A830AC6AA77D283E /* OneSignalNotificationServiceExtension.appex */,
+				9A87474B1BE72D38231B54B7 /* ShareExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -252,6 +288,7 @@
 			);
 			dependencies = (
 				4C9F383929EF5EFAA7C57A93 /* PBXTargetDependency */,
+				F28B31EB29621A8AE47CF211 /* PBXTargetDependency */,
 			);
 			name = Grapevine;
 			packageProductDependencies = (
@@ -262,6 +299,24 @@
 			productName = Grapevine;
 			productReference = F96AF49CBCE528CEB8A0306D /* Grapevine.app */;
 			productType = "com.apple.product-type.application";
+		};
+		8760E909AFFE4D5126829B50 /* ShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7511A36FEEE02B5C75957394 /* Build configuration list for PBXNativeTarget "ShareExtension" */;
+			buildPhases = (
+				143519E17AB5AE5AE2572C13 /* Sources */,
+				926FCC720CB0A01783761084 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ShareExtension;
+			packageProductDependencies = (
+			);
+			productName = ShareExtension;
+			productReference = 9A87474B1BE72D38231B54B7 /* ShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 		F727004BDAB6FDE5DEDC1EDA /* GrapevineTests */ = {
 			isa = PBXNativeTarget;
@@ -312,6 +367,7 @@
 			targets = (
 				4C450E5CA287D4511958A180 /* Grapevine */,
 				08B5340E6DF0DBC83229E834 /* OneSignalNotificationServiceExtension */,
+				8760E909AFFE4D5126829B50 /* ShareExtension */,
 				F727004BDAB6FDE5DEDC1EDA /* GrapevineTests */,
 			);
 		};
@@ -325,6 +381,14 @@
 				5416A2BCD4B6C8043E8A0E5B /* Assets.xcassets in Resources */,
 				B8DC0C8725384657B80F2889 /* Gloock-Regular.ttf in Resources */,
 				1BE5AC0736BCE1C20EDAA5EE /* OFL.txt in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		926FCC720CB0A01783761084 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				25FA77B078DBFAD50F5BE709 /* Gloock-Regular.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -353,6 +417,21 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		143519E17AB5AE5AE2572C13 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0AC7148208540D0F91B139AB /* API.swift in Sources */,
+				F7D20D0B39DBDD893EEEB36F /* Config.swift in Sources */,
+				8D405790FF29BC6170849D7F /* Keychain.swift in Sources */,
+				583C1C54661A44B35F7D30E7 /* Models.swift in Sources */,
+				B056A94E5DC98B5B1D9B1D82 /* ShareView.swift in Sources */,
+				27341A71DAE7688BB40BE4B3 /* ShareViewController.swift in Sources */,
+				CD887788E089C308677B9C02 /* Telemetry.swift in Sources */,
+				113129736FB478CFB940A255 /* Theme.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		78D4B8D95561B1647E6171C7 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -409,6 +488,11 @@
 			isa = PBXTargetDependency;
 			target = 08B5340E6DF0DBC83229E834 /* OneSignalNotificationServiceExtension */;
 			targetProxy = 51823E1A32463ABB4971371C /* PBXContainerItemProxy */;
+		};
+		F28B31EB29621A8AE47CF211 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8760E909AFFE4D5126829B50 /* ShareExtension */;
+			targetProxy = F6035006F209CDB42F990856 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -512,6 +596,23 @@
 			};
 			name = Release;
 		};
+		35D58F18CD4D0B718CF5FC82 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ShareExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = si.timrekelj.thegrapevine.ShareExtension;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 		5CA4BC5D6C7A9F2E3678961C /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -606,6 +707,23 @@
 			};
 			name = Release;
 		};
+		87645C43D10A8C2F64C9DFA5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ShareExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = si.timrekelj.thegrapevine.ShareExtension;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
 		C88D078D957AE5626E311219 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -668,6 +786,15 @@
 			buildConfigurations = (
 				1DC79D98108998F200146A15 /* Debug */,
 				7B9F707C19F7BD2CA1D85192 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		7511A36FEEE02B5C75957394 /* Build configuration list for PBXNativeTarget "ShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				87645C43D10A8C2F64C9DFA5 /* Debug */,
+				35D58F18CD4D0B718CF5FC82 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

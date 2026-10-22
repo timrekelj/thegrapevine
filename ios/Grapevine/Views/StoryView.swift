@@ -270,7 +270,7 @@ struct SourceEntryView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                if let profile = store.profiles[source.submitted_by] {
+                if let id = source.submitted_by, let profile = store.profiles[id] {
                     Monogram(profile: profile, size: 28)
                     Text(profile.display_name).font(.system(size: 15, weight: .semibold))
                 }

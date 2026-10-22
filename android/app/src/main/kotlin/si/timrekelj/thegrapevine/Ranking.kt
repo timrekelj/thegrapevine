@@ -62,3 +62,18 @@ object DeepLink {
             if (parts.size == 2) parts[0] to parts[1] else null
         }.toMap()
 }
+
+/** The link inside text shared from another app, e.g. "Look at this https://x.com/… via @someone". */
+object SharedLink {
+    private val URL_PATTERN = Regex("https?://[^\\s<>\"]+", RegexOption.IGNORE_CASE)
+
+    fun extract(text: String?): String? {
+        val match = URL_PATTERN.find(text.orEmpty())?.value ?: return null
+        // Sentence punctuation after a link isn't part of it; a closing bracket is only when it opens inside.
+        var url = match.trimEnd('.', ',', ';', ':', '!', '?', '\'', '"')
+        while (url.endsWith(")") && url.count { it == ')' } > url.count { it == '(' }) {
+            url = url.dropLast(1).trimEnd('.', ',', ';', ':', '!', '?', '\'', '"')
+        }
+        return url
+    }
+}

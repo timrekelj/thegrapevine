@@ -123,6 +123,16 @@ class CoreTest {
     }
 
     @Test
+    fun sharedTextYieldsItsLink() {
+        assertEquals("https://x.com/nasa/status/123", SharedLink.extract("Look at this https://x.com/nasa/status/123"))
+        assertEquals("https://example.com/a", SharedLink.extract("\"Headline\" (https://example.com/a)."))
+        assertEquals("https://en.wikipedia.org/wiki/Grape_(fruit)", SharedLink.extract("https://en.wikipedia.org/wiki/Grape_(fruit)"))
+        assertEquals("https://example.com/?q=1", SharedLink.extract("https://example.com/?q=1"))
+        assertEquals(null, SharedLink.extract("no link here"))
+        assertEquals(null, SharedLink.extract(null))
+    }
+
+    @Test
     fun plateMapsBlackToInkAndWhiteToPaper() {
         // Black prints as grape ink and white as paper, as in Plate.swift.
         assertArrayEquals(intArrayOf(74, 33, 96), Plate.toInk(0, 0, 0))

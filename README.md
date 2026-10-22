@@ -48,6 +48,10 @@ The access regression runs like the membership one:
 
     "$(brew --prefix libpq)/bin/psql" postgresql://postgres:postgres@127.0.0.1:55322/postgres -v ON_ERROR_STOP=1 -f supabase/tests/admin_access.sql
 
+Deleting a user keeps their sources and stories in the paper without attribution, hands each paper they owned to its longest-standing remaining member, and deletes papers left with no members. The regression:
+
+    "$(brew --prefix libpq)/bin/psql" postgresql://postgres:postgres@127.0.0.1:55322/postgres -v ON_ERROR_STOP=1 -f supabase/tests/user_deletion.sql
+
 ## iOS simulator
 
 Requires Xcode with the iOS 26+ SDK and XcodeGen (`brew install xcodegen`). Start Supabase, the Edge Functions, and the web server (`cd web` then `npm run dev`).

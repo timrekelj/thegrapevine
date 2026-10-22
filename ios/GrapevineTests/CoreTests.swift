@@ -100,6 +100,15 @@ final class CoreTests: XCTestCase {
         XCTAssertNil(AppLink(URL(string: "https://thegrapevine.si/login")!))
     }
 
+    func testSharedTextYieldsItsLink() {
+        XCTAssertEqual(SharedLink.extract("Look at this https://x.com/nasa/status/123"), "https://x.com/nasa/status/123")
+        XCTAssertEqual(SharedLink.extract("\"Headline\" (https://example.com/a)."), "https://example.com/a")
+        XCTAssertEqual(SharedLink.extract("https://en.wikipedia.org/wiki/Grape_(fruit)"), "https://en.wikipedia.org/wiki/Grape_(fruit)")
+        XCTAssertEqual(SharedLink.extract("https://example.com/?q=1"), "https://example.com/?q=1")
+        XCTAssertNil(SharedLink.extract("no link here"))
+        XCTAssertNil(SharedLink.extract(nil))
+    }
+
     @MainActor
     func testVerifyBodySendsEmailType() throws {
         let body = try JSONSerialization.jsonObject(with: JSONEncoder().encode(API.VerifyBody(email: "tim@example.com", token: "123456"))) as? [String: String]

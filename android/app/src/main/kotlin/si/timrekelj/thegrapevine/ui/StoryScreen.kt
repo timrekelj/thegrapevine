@@ -345,7 +345,7 @@ private fun SourceClip(source: Source) {
 private fun SourceEntry(source: Source, store: StoryState, onOpen: (String) -> Unit) {
     Column(Modifier.padding(horizontal = 20.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            store.profiles[source.submitted_by]?.let { profile ->
+            source.submitted_by?.let { store.profiles[it] }?.let { profile ->
                 Monogram(profile, 28.dp)
                 Text(profile.display_name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Grape.ink)
             }

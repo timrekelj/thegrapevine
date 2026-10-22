@@ -103,7 +103,7 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
     if (error) { setError('Could not send the report. Your note is kept; try again.'); return }
     reportDialog.current?.close(); setNote(''); setToast('Reported — it will be re-checked'); await refresh()
   }
-  const person = (id: string) => details.people.find(person => person.id === id) || { display_name: 'Member', monogram: '?' }
+  const person = (id: string | null) => details.people.find(person => person.id === id) || { display_name: 'Member', monogram: '?' }
   const timeline = mergeTimeline(details.sources, details.messages)
   const unread = lastViewed ? timeline.filter(entry => entry.kind === 'message' && Date.parse(entry.created_at) > Date.parse(lastViewed) && entry.author_id !== userId) : []
   const firstUnread = unread[0]?.id

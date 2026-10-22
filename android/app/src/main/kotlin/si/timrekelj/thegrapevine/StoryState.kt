@@ -53,7 +53,7 @@ class StoryState(private val api: Api) : ViewModel() {
             )
             history = api.getMany("rest/v1/story_history", listOf("story_id" to "eq.$storyId", "order" to "created_at.desc"))
 
-            val authorIds = (messages.map { it.author_id } + sources.map { it.submitted_by }).toSet()
+            val authorIds = (messages.map { it.author_id } + sources.mapNotNull { it.submitted_by }).toSet()
             if (authorIds.isNotEmpty()) {
                 profiles = api.getMany<Profile>(
                     "rest/v1/profiles",

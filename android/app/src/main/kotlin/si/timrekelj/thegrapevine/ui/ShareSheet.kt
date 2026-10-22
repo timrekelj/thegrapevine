@@ -33,13 +33,16 @@ private data class SubmitBody(val group_id: String, val url: String, val comment
 @Serializable
 private data class SubmitResult(val status: String, val story_id: String? = null)
 
-/** Mirrors `ShareView.swift`. */
+/**
+ * Mirrors `ShareView.swift`. Also opened over other apps from the system share
+ * sheet ([si.timrekelj.thegrapevine.ShareActivity]) with the shared link filled in.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ShareSheet(app: AppState, onDismiss: () -> Unit) {
+fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", onOpenApp: (() -> Unit)? = null) {
     val api = LocalApi.current
     val scope = rememberCoroutineScope()
-    var url by remember { mutableStateOf("") }
+    var url by remember { mutableStateOf(initialUrl) }
     var comment by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<String?>(null) }
@@ -55,12 +58,23 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit) {
         ) {
             Text("Share a link", style = display(28))
             Text("Found something worth reading? Bring it to the table.", style = BodyStyle.copy(color = Grape.ink2))
+            val notice = when {
+                !app.checked -> null
+                app.session == null -> "Sign in to The Grapevine to share links with your paper."
+                app.group == null -> "Join or start a paper in The Grapevine to share links."
+                else -> null
+            }
+            if (notice != null) {
+                Text(notice, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Grape.ink)
+                onOpenApp?.let { InkButton("Open The Grapevine", onClick = it) }
+                return@Column
+            }
             Text("LINK", style = LabelStyle)
             PaperField(url, { url = it }, "https://…", keyboardType = KeyboardType.Uri)
             Text("YOUR COMMENT", style = LabelStyle)
             PaperField(comment, { comment = it }, "Optional", singleLine = false)
             result?.let { Text(it, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Grape.ink) }
-            InkButton(if (busy) "Posting…" else "Share with your paper", enabled = !busy && url.isNotBlank()) {
+            InkButton(if (busy) "Posting…" else "Share with your paper", enabled = !busy && url.isNotBlank() && app.group != null) {
                 val group = app.group ?: return@InkButton
                 scope.launch {
                     busy = true

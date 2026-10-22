@@ -62,7 +62,7 @@ data class Source(
     val excerpt: String? = null,
     val image_url: String? = null,
     val author: String? = null,
-    val submitted_by: String,
+    val submitted_by: String? = null, // null once the member has deleted their account
     val submitter_comment: String? = null,
     val extraction_status: String,
     @Serializable(with = InstantSerializer::class) val created_at: Instant,

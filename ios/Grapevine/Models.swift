@@ -55,7 +55,7 @@ struct Source: Codable, Identifiable {
     let excerpt: String?
     let image_url: String?
     let author: String?
-    let submitted_by: UUID
+    let submitted_by: UUID? // nil once the member has deleted their account
     let submitter_comment: String?
     let extraction_status: String
     let created_at: Date
@@ -151,6 +151,20 @@ struct Session: Codable {
 
 extension String {
     var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }
+}
+
+/// The link inside text shared from another app, e.g. "Look at this https://x.com/… via @someone".
+enum SharedLink {
+    static func extract(_ text: String?) -> String? {
+        guard let text, let range = text.range(of: #"https?://[^\s<>"]+"#, options: [.regularExpression, .caseInsensitive]) else { return nil }
+        // Sentence punctuation after a link isn't part of it; a closing bracket is only when it opens inside.
+        let punctuation = CharacterSet(charactersIn: ".,;:!?'\"")
+        var url = String(text[range]).trimmingCharacters(in: punctuation)
+        while url.hasSuffix(")"), url.filter({ $0 == ")" }).count > url.filter({ $0 == "(" }).count {
+            url = String(url.dropLast()).trimmingCharacters(in: punctuation)
+        }
+        return url
+    }
 }
 
 extension JSONDecoder {
