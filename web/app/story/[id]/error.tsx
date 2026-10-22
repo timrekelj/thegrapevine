@@ -6,5 +6,10 @@ import { captureError } from '@/lib/telemetry'
 
 export default function StoryError({ error, reset }: { error: Error; reset: () => void }) {
   useEffect(() => { captureError(error, 'story_render_failed') }, [error])
-  return <main style={{ maxWidth: 700, margin: '48px auto', padding: 20 }}><h1 className="headline">This story could not be loaded</h1><p>Your paper and conversation have not been changed.</p><button className="btn" onClick={reset}>Try again</button> <Link href="/">Back to the paper</Link></main>
+  return <main className="fatal">
+    <p className="label">Stop the presses</p>
+    <h1 className="display">This story could not be loaded.</h1>
+    <p className="summary">Your paper and conversation have not been changed.</p>
+    <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}><button className="btn" onClick={reset}>Try again</button><Link href="/" className="meta">Back to the paper</Link></div>
+  </main>
 }

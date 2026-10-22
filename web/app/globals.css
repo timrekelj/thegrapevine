@@ -1,95 +1,159 @@
-@import url('https://fonts.googleapis.com/css2?family=Gloock&display=swap');
-
-/* ---------- tokens ---------- */
+/* ==========================================================================
+   The Grapevine — design tokens
+   A black-and-white broadsheet. Newsprint and ink carry the page; colour comes
+   only from the photographs, printed as a fine colour halftone. One spot ink,
+   press red, means one thing: new to you.
+   ========================================================================== */
 :root {
   /* paper */
-  --paper: #EFEEE9;
-  --raised: #F8F7F3;
-  /* one grape ink for all text, rules and images */
-  --ink: #4A2160;
-  --ink-2: #6E5280;
-  --ink-3: #7A6589;
-  --rule: rgba(74, 33, 96, .30);
-  --plate: #4A2160;
-  /* the second drum: one role — "new to you" */
-  --pink: #FF6AA6;
-  --on-pink: #2E1340;
-  --tint: rgba(74, 33, 96, .08);
-  --glass: rgba(239, 238, 233, .72);
+  --paper: #F4F1EA;
+  --raised: #FBF9F4;
+  /* ink */
+  --ink: #161513;
+  --ink-2: #4A4740;
+  --ink-3: #75716A;
+  --rule: rgba(22, 21, 19, .16);
+  --tint: rgba(22, 21, 19, .06);
+  --glass: rgba(244, 241, 234, .82);
+  /* the spot ink: one role — "new to you" */
+  --red: #C8231B;
+  --on-red: #FFFFFF;
+  --danger: #A3261F;
+
   /* type */
-  --serif: 'Gloock', Georgia, serif;
-  --sans: -apple-system, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+  --nameplate: var(--font-nameplate), 'Old English Text MT', serif;
+  --serif: var(--font-news), Georgia, 'Times New Roman', serif;
+  --mono: var(--font-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+  --sans: var(--font-ui), -apple-system, 'Helvetica Neue', Arial, sans-serif;
+
+  /* the halftone screen: dot pitch for photographs */
+  --screen: 2.4px;
+
+  /* shape */
+  --radius: 3px;
+  --press: 5px 5px 0 var(--ink); /* the hard shadow of a printed card */
+
+  color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* the night run */
-    --paper: #17101F;
-    --raised: #221830;
-    --ink: #ECE4F0;
-    --ink-2: #BBAFC8;
-    --ink-3: #9488A3;
-    --rule: rgba(236, 228, 240, .18);
-    --plate: #B79AD6;
-    --pink: #FF7DB2;
-    --tint: rgba(236, 228, 240, .10);
-    --glass: rgba(34, 24, 48, .66);
+    /* the evening edition */
+    --paper: #121110;
+    --raised: #1B1A17;
+    --ink: #EDE9E1;
+    --ink-2: #B9B3A8;
+    --ink-3: #8C877D;
+    --rule: rgba(237, 233, 225, .16);
+    --tint: rgba(237, 233, 225, .08);
+    --glass: rgba(18, 17, 16, .82);
+    --red: #FF5B4F;
+    --on-red: #1A0705;
+    --danger: #FF8A80;
   }
 }
 
 * { box-sizing: border-box; }
 
+html { -webkit-text-size-adjust: 100%; }
+
 body {
   margin: 0;
   background: var(--paper);
   color: var(--ink);
-  font: 400 17px/22px var(--sans);
-  letter-spacing: -0.4px;
+  font: 400 17px/1.5 var(--serif);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-kerning: normal;
 }
 
-/* ---------- type scale (web is one step up from mobile) ---------- */
-.display { font: 400 56px/1.02 var(--serif); letter-spacing: -0.015em; margin: 0; text-wrap: balance; }
-.masthead { font: 400 28px/1 var(--serif); letter-spacing: -0.02em; margin: 0; }
-.headline { font: 400 26px/1.1 var(--serif); letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
-.summary { font: 400 15px/21px var(--sans); letter-spacing: -0.2px; color: var(--ink-2); margin: 0; }
-.meta { font: 500 13px/18px var(--sans); color: var(--ink-2); }
+/* newsprint grain, barely there */
+body { background-image: var(--grain); background-attachment: fixed; }
+:root { --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .3 0 0 0 0 .25 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+@media (prefers-color-scheme: dark) { :root { --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .95 0 0 0 0 .9 0 0 0 .035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); } }
+
+::selection { background: var(--ink); color: var(--paper); }
+
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+/* ---------- type scale ---------- */
+.nameplate { font: 400 56px/1 var(--nameplate); letter-spacing: 0; margin: 0; font-feature-settings: "liga", "dlig"; }
+.display { font: 600 56px/1 var(--serif); letter-spacing: -0.025em; margin: 0; text-wrap: balance; }
+.masthead { font: 400 30px/1 var(--nameplate); margin: 0; }
+.headline { font: 600 26px/1.08 var(--serif); letter-spacing: -0.015em; margin: 0; text-wrap: balance; }
+.summary { font: 400 17px/1.5 var(--serif); color: var(--ink-2); margin: 0; text-wrap: pretty; }
+.meta { font: 500 12px/18px var(--mono); letter-spacing: .01em; color: var(--ink-2); }
 .meta b { font-weight: 600; color: var(--ink); }
-.label { font: 600 11px/13px var(--sans); letter-spacing: .07em; text-transform: uppercase; color: var(--ink-2); }
+.label { font: 600 11px/14px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink); }
 .tnum { font-variant-numeric: tabular-nums; }
 
-/* "new to you" marker */
-.new { display: inline-flex; align-items: center; gap: 5px; color: var(--ink); font-weight: 600; }
-.new::before { content: ""; width: 8px; height: 8px; border-radius: 4px; background: var(--pink); }
+/* body copy set like a column: justified, hyphenated, with a drop cap where asked */
+.column { hyphens: auto; -webkit-hyphens: auto; text-wrap: pretty; }
+@media (min-width: 640px) { .column { text-align: justify; } }
+.dropcap::first-letter { float: left; font: 600 4.1em/.8 var(--serif); margin: .07em .08em 0 0; color: var(--ink); }
 
-/* stamp */
-.stamp { display: inline-flex; align-items: center; background: var(--pink); color: var(--on-pink); font: 600 13px/17px var(--sans); padding: 3px 8px; border-radius: 2px; }
+/* thick-and-thin rule under a nameplate */
+.double-rule { height: 6px; border-top: 3px solid var(--ink); border-bottom: 1px solid var(--ink); }
+
+/* "new to you": a dot of red */
+.new { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); font-weight: 600; }
+.new::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--red); flex: none; }
+
+/* stamp: a block of red, set square */
+.stamp { display: inline-flex; align-items: center; background: var(--red); color: var(--on-red); font: 600 11px/14px var(--mono); letter-spacing: .06em; text-transform: uppercase; padding: 3px 7px; }
 .stamp.rest { transform: rotate(-2deg); }
 
-/* ---------- the halftone plate: every image is printed, not shown ---------- */
-.riso { position: relative; overflow: hidden; background: var(--paper); }
-.riso .plate { position: absolute; inset: 0; isolation: isolate; mix-blend-mode: multiply; }
-.riso .ht { position: absolute; inset: 0; background: #fff; filter: contrast(40); overflow: hidden; }
-.riso img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: var(--pos, 50% 50%); filter: grayscale(1) brightness(var(--b, 1.1)) contrast(var(--k, 1.15)) blur(.4px); }
-.riso .ht::after { content: ""; position: absolute; inset: -60%; background: radial-gradient(circle closest-side, #000, #fff) 0 0 / var(--dot, 4.5px) var(--dot, 4.5px); opacity: .5; transform: rotate(30deg); }
-.riso .plate::after { content: ""; position: absolute; inset: 0; background: var(--plate-ink, var(--plate)); mix-blend-mode: lighten; }
+/* ==========================================================================
+   The plate: every photograph is printed in colour through a fine dot screen.
+   .screen is a threshold halftone of the photo (black dots on white); screened
+   over the colour photo, the photo shows only through the dots. Hovering a
+   story lifts the screen and shows the clean photograph.
+   ========================================================================== */
+@property --dot { syntax: '<length>'; inherits: true; initial-value: 2.4px; }
+
+.plate { position: relative; overflow: hidden; isolation: isolate; background: var(--paper); --dot: var(--screen); }
+.plate img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: var(--pos, 50% 50%); }
+.plate .photo { filter: saturate(1.3) contrast(1.06); }
+.plate .screen { position: absolute; inset: 0; overflow: hidden; background: #fff; filter: contrast(40); mix-blend-mode: screen; transition: opacity .6s ease; }
+.plate .screen img { filter: grayscale(1) brightness(var(--b, 1.04)) contrast(var(--k, 1.1)) blur(.25px); }
+.plate .screen::after { content: ""; position: absolute; inset: -60%; background: radial-gradient(circle closest-side, #000, #fff) 0 0 / var(--dot) var(--dot); opacity: .5; transform: rotate(28deg); }
+/* newsprint tint: the paper shows through the white between the dots */
+.plate::after { content: ""; position: absolute; inset: 0; z-index: 1; background: var(--paper); mix-blend-mode: multiply; pointer-events: none; }
 
 @media (prefers-color-scheme: dark) {
-  .riso .plate { mix-blend-mode: screen; }
-  .riso .ht { filter: contrast(40) invert(1); }
-  .riso img { filter: grayscale(1) invert(1) brightness(var(--bd, 1.15)) contrast(var(--k, 1.15)) blur(.4px); }
-  .riso .plate::after { mix-blend-mode: multiply; }
+  /* on black paper the dots are light: invert the threshold so highlights get the big dots */
+  .plate .screen { filter: contrast(40) invert(1); mix-blend-mode: multiply; }
+  .plate .screen img { filter: grayscale(1) invert(1) brightness(var(--bd, .72)) contrast(var(--k, 1.1)) blur(.25px); }
+  .plate .photo { filter: saturate(1.3) brightness(1.12) contrast(1.04); }
+  .plate::after { mix-blend-mode: lighten; }
 }
 
-/* GIFs are the one exception: they print on the pink drum */
-.riso.pinkdrum { --plate-ink: var(--pink); }
+/* lift the screen on hover and focus */
+a:hover .plate .screen, a:focus-visible .plate .screen, .plate.reveal:hover .screen { opacity: 0; }
 
-/* a source with no image: a flat 30% screen and the publisher's name */
-.noimg { position: relative; background: radial-gradient(circle, var(--plate) 1.05px, transparent 1.45px) 0 0 / 4.5px 4.5px; display: grid; place-items: center; }
-.noimg span { background: var(--paper); font: 400 13px/1.05 var(--serif); padding: 4px 5px; text-align: center; max-width: 90%; }
+/* coming into view, the dots start coarse and settle to the fine screen */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .plate.ink-in { animation: ink-in linear both; animation-timeline: view(); animation-range: entry 10% cover 35%; }
+  }
+}
+@keyframes ink-in { from { --dot: 11px; } }
 
-/* members are monograms in Gloock, never photos */
-.av { width: 32px; height: 32px; border-radius: 16px; display: grid; place-items: center; background: var(--ink); color: var(--paper); font: 400 15px/1 var(--serif); flex: none; }
+@media (prefers-reduced-motion: reduce) { .plate .screen { transition: none; } }
 
-/* primary button: ink capsule with paper text */
-.btn { height: 40px; border-radius: 20px; padding: 0 18px; display: inline-flex; align-items: center; gap: 8px; font: 600 15px/1 var(--sans); background: var(--ink); color: var(--paper); border: 0; cursor: pointer; white-space: nowrap; text-decoration: none; }
+/* a source with no picture: the publisher's name, set as a type plate on a light screen */
+.typeplate { position: relative; overflow: hidden; display: grid; place-items: center; padding: 10px; background: radial-gradient(circle, var(--rule) .9px, transparent 1.2px) 0 0 / 4px 4px, var(--raised); border: 1px solid var(--rule); container-type: inline-size; }
+.typeplate span { font: italic 500 clamp(13px, 9cqi, 34px)/1.05 var(--serif); letter-spacing: -0.01em; text-align: center; color: var(--ink); background: var(--raised); padding: .15em .35em; max-width: 100%; overflow-wrap: anywhere; }
+
+/* members are monograms, never photos */
+.av { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--paper); color: var(--ink); border: 1px solid var(--ink); font: italic 600 15px/1 var(--serif); flex: none; }
+
+/* buttons: an ink block that turns to an outline when pressed */
+.btn { height: 42px; border-radius: var(--radius); padding: 0 18px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: 600 14px/1 var(--sans); letter-spacing: -0.005em; background: var(--ink); color: var(--paper); border: 1px solid var(--ink); cursor: pointer; white-space: nowrap; text-decoration: none; transition: background .15s, color .15s; }
+.btn:hover:not(:disabled) { background: transparent; color: var(--ink); }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn.ghost { background: transparent; color: var(--ink); }
+.btn.ghost:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+
+/* ---------- global error ---------- */
+.fatal { min-height: 100dvh; display: grid; place-content: center; justify-items: center; gap: 20px; padding: 24px; text-align: center; }

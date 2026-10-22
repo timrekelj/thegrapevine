@@ -15,7 +15,7 @@ function Preview({ name, paper, placeholder, today }: { name: string; paper: str
     <p className={styles.masthead} data-empty={!paper.trim()}>{paper.trim() || placeholder}</p>
     <div className={styles.rules} />
     <div className={styles.lead}>
-      <div className={`noimg ${styles.plate}`}><span>Your first link</span></div>
+      <div className={`typeplate ${styles.plate}`}><span>Your first link</span></div>
       <div>
         <p className={styles.headline}>Share a link and it becomes the lead story.</p>
         <div className="meta">{name.trim() || 'You'} · 1 member</div>

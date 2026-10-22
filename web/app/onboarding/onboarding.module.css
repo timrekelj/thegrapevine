@@ -1,18 +1,19 @@
 /* Onboarding: a preview of the paper being made, then one form. Shares field and button styles with sign-in. */
 .intro { display: grid; gap: 10px; }
-.intro :global(.display) { font-size: 40px; }
+.intro :global(.display) { font-size: 46px; line-height: .98; }
 
-/* ---------- the preview: a first edition lying on the table ---------- */
-.sheet { position: relative; margin: 8px 4px 0; padding: 16px 18px 18px; background: var(--raised); border: 1px solid var(--rule); border-radius: 4px; transform: rotate(-1deg); box-shadow: 0 1px 0 var(--rule), 0 20px 40px -24px rgb(46 19 64 / .35); }
+/* ---------- the preview: a first edition lying on the table, its nameplate set as you type ---------- */
+.sheet { position: relative; margin: 8px 4px 0; padding: 14px 18px 18px; background: var(--raised); border: 1px solid var(--rule); transform: rotate(-1deg); box-shadow: 0 1px 0 var(--rule), 0 24px 44px -26px rgb(0 0 0 / .4); }
 .sheetTop { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.sheetTop :global(.label) { font-size: 9px; color: var(--ink-2); }
 .sheetTop :global(.av) { width: 26px; height: 26px; font-size: 13px; transition: transform .2s; }
-.masthead { font: 400 30px/1.05 var(--serif); letter-spacing: -0.02em; margin: 10px 0 0; overflow-wrap: anywhere; }
+.masthead { font: 400 40px/1.05 var(--nameplate); text-align: center; margin: 10px 0 0; overflow-wrap: anywhere; }
 .masthead[data-empty="true"] { color: var(--ink-3); }
-.rules { height: 4px; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); margin: 10px 0 14px; }
+.rules { height: 5px; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); margin: 10px 0 14px; }
 .lead { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; align-items: center; }
-.plate { height: 72px; border-radius: 6px; }
+.plate { height: 72px; }
 .plate span { font-size: 12px; }
-.headline { font: 400 17px/1.12 var(--serif); margin: 0 0 6px; text-wrap: balance; }
+.headline { font: 600 18px/1.1 var(--serif); margin: 0 0 6px; text-wrap: balance; }
 .stamp { position: absolute; top: -12px; right: 14px; transform: rotate(4deg); }
 
 /* ---------- form ---------- */

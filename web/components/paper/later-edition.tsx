@@ -19,5 +19,5 @@ export default function LaterEdition({ groupId, order }: { groupId: string; orde
     }, 60_000);
     return () => { active = false; clearInterval(timer); };
   }, [groupId, order]);
-  return moved > 0 ? <button className={styles.later} onClick={() => router.refresh()}>↑ Later edition · {moved} {moved === 1 ? 'story' : 'stories'} moved</button> : null;
+  return moved > 0 ? <button className={styles.later} onClick={() => router.refresh()}>↑ Later edition · {moved} {moved === 1 ? 'story' : 'stories'} moved · Reload</button> : null;
 }
