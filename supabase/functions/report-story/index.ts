@@ -3,7 +3,7 @@ import { caller, requireMember, supabase } from '../_shared/supabase.ts';
 import { generate } from '../_shared/editorial.ts';
 import { embed } from '../_shared/mistral.ts';
 import { storyText } from '../_shared/clustering.ts';
-import { capture, featureEnabled, withTelemetry } from '../_shared/telemetry.ts';
+import { capture, featureEnabled, usageScope, withTelemetry } from '../_shared/telemetry.ts';
 
 Deno.serve(withTelemetry('report-story', async req => {
   if (req.method === 'OPTIONS') return json({});
@@ -17,6 +17,7 @@ Deno.serve(withTelemetry('report-story', async req => {
     if (storyError) throw storyError;
     if (!story) throw new HttpError(404, 'Story unavailable');
     await requireMember(story.group_id, user.id);
+    usageScope({ groupId: story.group_id, storyId: story.id });
     if (!await featureEnabled('story-corrections-enabled')) throw new HttpError(503, 'Corrections are temporarily unavailable.');
     const { data: report, error: reportError } = await supabase.from('reports').insert({
       story_id: story.id, reporter_id: user.id, target: input.target, note,
