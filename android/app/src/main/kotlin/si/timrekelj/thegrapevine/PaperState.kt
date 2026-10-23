@@ -17,6 +17,9 @@ class PaperState(private val api: Api) : ViewModel() {
         private set
     var seenAt by mutableStateOf<Instant?>(null)
         private set
+    /** Where the archive starts when older stories didn't make this edition, else null. */
+    var earlier by mutableStateOf<Instant?>(null)
+        private set
     var isLoading by mutableStateOf(false)
         private set
     var error by mutableStateOf<String?>(null)
@@ -37,6 +40,7 @@ class PaperState(private val api: Api) : ViewModel() {
                         )
                     }
                     // Only the columns the front page shows: article excerpts and reactions stay on the server.
+                    // Newest activity first and one row past the edition's maximum, so the cut knows if more exist.
                     val rows = async {
                         api.getMany<StoryRow>(
                             "rest/v1/stories",
@@ -44,12 +48,16 @@ class PaperState(private val api: Api) : ViewModel() {
                                 "select" to "id,title,summary,category,last_activity_at,created_at," +
                                     "sources($SOURCE_COLUMNS),messages($MESSAGE_COLUMNS)",
                                 "group_id" to "eq.${group.id}",
+                                "order" to "last_activity_at.desc",
+                                "limit" to "${Edition.MAX + 1}",
                             ),
                         )
                     }
                     seenAt = memberships.await().firstOrNull()?.last_seen_at
-                    val ranked = Ranking.rank(rows.await())
+                    val edition = Edition.cut(rows.await())
+                    val ranked = Ranking.rank(edition.stories)
                     if (ranked != stories) stories = ranked
+                    earlier = edition.earlier
                 }
 
                 // Record this edition as seen.
@@ -70,6 +78,7 @@ class PaperState(private val api: Api) : ViewModel() {
     fun clear() {
         stories = emptyList()
         seenAt = null
+        earlier = null
     }
 
     private companion object {

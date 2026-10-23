@@ -32,7 +32,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.foundation.lazy.LazyListState
 import si.timrekelj.thegrapevine.AppState
+import si.timrekelj.thegrapevine.ArchiveState
+import si.timrekelj.thegrapevine.InstantSerializer
 import si.timrekelj.thegrapevine.OneSignalManager
 import si.timrekelj.thegrapevine.PaperState
 import si.timrekelj.thegrapevine.R
@@ -67,13 +70,34 @@ private fun MainTabs(app: AppState) {
         }
     }
 
+    // Earlier editions open over the tabs from the front page; a story opens over either.
+    var openArchive by rememberSaveable { mutableStateOf<String?>(null) }
+    val archiveFrom = openArchive
+    val group = app.group?.id
+    // The archive keeps its place while a story from it is open.
+    val archiveList = rememberSaveable(archiveFrom, saver = LazyListState.Saver) { LazyListState() }
+
     val storyId = openStory
     if (storyId != null) {
-        BackHandler { openStory = null }
-        StoryScreen(storyId = storyId, app = app, onBack = {
+        val close = {
             openStory = null
-            paper.load(app)
-        })
+            if (archiveFrom == null) paper.load(app)
+        }
+        BackHandler(onBack = close)
+        StoryScreen(
+            storyId = storyId,
+            app = app,
+            onBack = close,
+            backLabel = if (archiveFrom != null) "← Archive" else "← Front page",
+        )
+        return
+    }
+    if (archiveFrom != null && group != null) {
+        val archive: ArchiveState = viewModel(key = "archive-$group-$archiveFrom") {
+            ArchiveState(api, group, InstantSerializer.parse(archiveFrom))
+        }
+        BackHandler { openArchive = null }
+        ArchiveScreen(archive, archiveList, onBack = { openArchive = null }, onOpen = { openStory = it })
         return
     }
 
@@ -120,7 +144,12 @@ private fun MainTabs(app: AppState) {
     ) { padding ->
         Box(Modifier.padding(padding).statusBarsPadding().clipToBounds()) {
             when (tab) {
-                0 -> FrontPageScreen(app, paper, onOpen = { openStory = it })
+                0 -> FrontPageScreen(
+                    app,
+                    paper,
+                    onOpen = { openStory = it },
+                    onEarlier = { openArchive = InstantSerializer.format(it) },
+                )
                 1 -> FriendsScreen(app)
                 else -> ProfileScreen(app, onSignOut = { paper.clear() })
             }

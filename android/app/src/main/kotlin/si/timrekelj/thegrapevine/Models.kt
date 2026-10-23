@@ -134,6 +134,24 @@ data class StoryRow(
     val messages: List<Message> = emptyList(),
 )
 
+/** PostgREST's answer to a `table(count)` embed: `[{"count": 3}]`. */
+@Serializable
+data class EmbedCount(val count: Int)
+
+/** An archive row: a story from an earlier edition, with only its counts. */
+@Serializable
+data class ArchivedStory(
+    val id: String,
+    val title: String,
+    val category: String? = null,
+    @Serializable(with = InstantSerializer::class) val last_activity_at: Instant,
+    val sources: List<EmbedCount> = emptyList(),
+    val messages: List<EmbedCount> = emptyList(),
+) {
+    val sourceCount: Int get() = sources.firstOrNull()?.count ?: 0
+    val messageCount: Int get() = messages.firstOrNull()?.count ?: 0
+}
+
 @Serializable
 data class Session(
     val accessToken: String,

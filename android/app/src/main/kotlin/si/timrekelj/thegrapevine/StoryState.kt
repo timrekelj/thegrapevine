@@ -4,10 +4,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+import java.time.Instant
 import java.util.UUID
+
+/** Messages from others since the reader's last visit: the first one, where the divider goes, and how many. */
+data class Unread(val firstMessageId: String, val count: Int)
+
+/** Null on a first visit (no `lastRead`) or when nothing is new; `messages` in timeline order. */
+fun unreadSince(messages: List<Message>, lastRead: Instant?, userId: String): Unread? {
+    if (lastRead == null) return null
+    val fresh = messages.filter { it.created_at.isAfter(lastRead) && it.author_id != userId }
+    return fresh.firstOrNull()?.let { Unread(it.id, fresh.size) }
+}
 
 /** Mirrors `StoryStore.swift`: one story's timeline, composer and corrections. */
 class StoryState(private val api: Api) : ViewModel() {
@@ -28,12 +41,40 @@ class StoryState(private val api: Api) : ViewModel() {
     var notice by mutableStateOf<String?>(null)
     var pendingMessageId by mutableStateOf<String?>(null)
         private set
+    /** When the reader last read this story before this visit; null on a first visit or if unknown. */
+    var lastRead by mutableStateOf<Instant?>(null)
+        private set
 
     /** Uploads already accepted by storage, so a retry resumes instead of re-uploading. */
     private val uploaded = mutableListOf<String>()
     private var trackedStoryId: String? = null
     /** `messageId:emoji` toggles still waiting on the server. */
     private val pendingReactions = mutableSetOf<String>()
+    /** Set once this visit's first read is recorded, so later marks can't overtake it. */
+    private var visiting = false
+
+    /**
+     * Starts a visit: records the read and keeps the previous read time for the "new since" divider.
+     * If the call fails there is simply no divider.
+     */
+    fun beginVisit(storyId: String) {
+        visiting = false
+        lastRead = null
+        // In the view model's scope, so a rotation mid-call doesn't lose the visit.
+        viewModelScope.launch {
+            lastRead = runCatching { recordRead(storyId) }.getOrNull()
+            visiting = true
+        }
+    }
+
+    /** Records that the reader is still here (or just left), so what they saw live isn't new next time. */
+    fun markRead(storyId: String) {
+        if (!visiting) return
+        viewModelScope.launch { runCatching { recordRead(storyId) } }
+    }
+
+    private suspend fun recordRead(storyId: String): Instant? =
+        api.rpc<String?>("mark_story_read", encodeBody(MarkReadBody(story = storyId)))?.let(InstantSerializer::parse)
 
     suspend fun load(storyId: String) {
         if (isLoading) return
@@ -221,6 +262,9 @@ class StoryState(private val api: Api) : ViewModel() {
             false
         }
     }
+
+    @kotlinx.serialization.Serializable
+    private data class MarkReadBody(val story: String)
 
     @kotlinx.serialization.Serializable
     private data class NewMessage(
