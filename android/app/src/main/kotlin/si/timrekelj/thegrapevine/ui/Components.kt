@@ -284,8 +284,7 @@ fun fieldColors() = OutlinedTextFieldDefaults.colors(
 
 /**
  * A photograph printed in colour through a halftone screen (see [Plate]), or — without a usable
- * picture — a type plate with the publisher's name. `screen = false` prints the photo clean,
- * for attachments people shared themselves.
+ * picture — a type plate with the publisher's name. `screen = false` prints the photo clean.
  */
 @Composable
 fun PlateView(url: String?, label: String, modifier: Modifier = Modifier, screen: Boolean = true) {

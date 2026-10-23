@@ -620,7 +620,15 @@ private fun MessageMedia(media: Media) {
             modifier = Modifier.clipping(Press.ink3, Press.raised).clickable(enabled = url != null) { url?.let(uriHandler::openWebLink) }.padding(horizontal = 16.dp, vertical = 14.dp),
         )
     } else {
-        PlateView(url, media.alt_text ?: "Shared image", Modifier.fillMaxWidth().aspectRatio(4f / 3f), screen = false)
+        // Printed through the screen like every photo on the web; a tap shows it clean (the web's hover).
+        // GIFs stay clean, as on the web.
+        var reveal by remember(media.id) { mutableStateOf(false) }
+        PlateView(
+            url,
+            media.alt_text ?: "Shared image",
+            Modifier.fillMaxWidth().aspectRatio(4f / 3f).clickable { reveal = !reveal },
+            screen = media.kind != "gif" && !reveal,
+        )
     }
 }
 

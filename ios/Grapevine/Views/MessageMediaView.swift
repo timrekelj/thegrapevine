@@ -7,6 +7,7 @@ struct MessageMediaView: View {
     @State private var url: URL?
     @State private var player: AVPlayer?
     @State private var error: String?
+    @State private var reveal = false
 
     var body: some View {
         SwiftUI.Group {
@@ -17,11 +18,15 @@ struct MessageMediaView: View {
                     GIFView(url: url).frame(height: 240)
                         .accessibilityLabel(media.alt_text ?? "Shared GIF")
                 } else {
-                    AsyncImage(url: url) { image in
-                        image.resizable().scaledToFit()
-                    } placeholder: { ProgressView() }
-                    .frame(maxHeight: 260)
-                    .accessibilityLabel(media.alt_text ?? "Shared image")
+                    // Printed through the screen like every photo on the web; a tap shows it clean (the web's hover).
+                    PlateView(url: url, label: "Attachment unavailable", screen: !reveal)
+                        .aspectRatio(4 / 3, contentMode: .fit)
+                        .frame(maxWidth: 440, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .onTapGesture { reveal.toggle() }
+                        .accessibilityElement()
+                        .accessibilityLabel(media.alt_text ?? "Shared image")
+                        .accessibilityAddTraits(.isImage)
                 }
             } else if let error {
                 Text(error).font(.caption)

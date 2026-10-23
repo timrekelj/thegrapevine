@@ -67,11 +67,12 @@ struct NewMark: View {
 }
 
 /// A photograph printed through the colour halftone screen, or — with no picture — a type plate
-/// with the publisher's name.
+/// with the publisher's name. `screen = false` shows the photo clean.
 struct PlateView: View {
     let url: URL?
     let label: String
     var height: CGFloat? = nil
+    var screen = true
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.displayScale) private var displayScale
@@ -82,7 +83,11 @@ struct PlateView: View {
         GeometryReader { geometry in
             ZStack {
                 if let printed {
-                    Image(uiImage: printed).resizable()
+                    if screen {
+                        Image(uiImage: printed).resizable()
+                    } else {
+                        Image(uiImage: printed).resizable().scaledToFill()
+                    }
                 } else if url == nil || failed {
                     TypePlate(label: label)
                 } else {
@@ -91,7 +96,7 @@ struct PlateView: View {
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
             .clipped()
-            .task(id: "\(url?.absoluteString ?? "")|\(Int(geometry.size.width))x\(Int(geometry.size.height))|\(colorScheme == .dark)") {
+            .task(id: "\(url?.absoluteString ?? "")|\(Int(geometry.size.width))x\(Int(geometry.size.height))|\(colorScheme == .dark)|\(screen)") {
                 await load(size: geometry.size)
             }
         }
@@ -101,6 +106,10 @@ struct PlateView: View {
 
     private func load(size: CGSize) async {
         guard let url, size.width > 1, size.height > 1 else { return }
+        if !screen {
+            do { printed = try await PhotoStore.shared.image(url) } catch { failed = true }
+            return
+        }
         let dark = colorScheme == .dark
         let scale = displayScale
         let key = "\(url.absoluteString)|\(Int(size.width))x\(Int(size.height))@\(scale)|\(dark)"
