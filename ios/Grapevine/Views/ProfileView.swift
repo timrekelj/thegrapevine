@@ -162,16 +162,16 @@ struct ProfileView: View {
             .background(Theme.paper)
             .scrollDismissesKeyboard(.interactively)
             .toolbarVisibility(.hidden, for: .navigationBar)
-            .confirmationDialog("Delete your account?", isPresented: $confirmDelete, titleVisibility: .visible) {
-                Button("Delete account", role: .destructive) { Task { await deleteAccount() } }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("This permanently deletes your sign-in. Your name comes off the paper; stories and comments you shared stay, without your name. A paper only you belong to is deleted. This cannot be undone.")
-            }
             .task(id: app.group?.id) {
                 name = app.profile?.display_name ?? ""
                 await loadPreferences()
             }
+        }
+        .confirmationDialog("Delete your account?", isPresented: $confirmDelete, titleVisibility: .visible) {
+            Button("Delete account", role: .destructive) { Task { await deleteAccount() } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently deletes your sign-in. Your name comes off the paper; stories and comments you shared stay, without your name. A paper only you belong to is deleted. This cannot be undone.")
         }
     }
 
@@ -232,10 +232,11 @@ struct ProfileView: View {
         emailMessage = nil
         defer { savingEmail = false }
         do { emailMessage = try await app.changeEmail(to: email) }
-        catch { emailError = error.localizedDescription }
+        catch { report(error, to: &emailError) }
     }
 
     private func deleteAccount() async {
+        guard !deleting else { return }
         deleting = true
         deleteError = nil
         defer { deleting = false }
@@ -245,7 +246,20 @@ struct ProfileView: View {
             paper.seenAt = nil
             app.signOut()
         } catch {
-            deleteError = error.localizedDescription
+            report(error, to: &deleteError)
+        }
+    }
+
+    /// An expired session can't be repaired from this screen, so it returns to sign-in with the reason.
+    private func report(_ error: Error, to message: inout String?) {
+        guard !error.isCancellation else { return }
+        if case APIError.unauthorized = error {
+            app.error = error.localizedDescription
+            paper.stories = []
+            paper.seenAt = nil
+            app.signOut()
+        } else {
+            message = error.localizedDescription
         }
     }
 
