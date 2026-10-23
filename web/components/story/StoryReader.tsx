@@ -49,6 +49,9 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
   const summary = useRef(initialStory.summary)
   const refreshing = useRef(false)
   const refreshAgain = useRef(false)
+  // Read by the realtime handler, which is subscribed once per story.
+  const messageIds = useRef(new Set(initialDetails.messages.map(message => message.id)))
+  useEffect(() => { messageIds.current = new Set(details.messages.map(message => message.id)) }, [details.messages])
   const messages = useRef(initialDetails.messages)
   const reactionBusy = useRef(new Set<string>())
   const longPress = useRef<number | undefined>(undefined)
@@ -74,19 +77,26 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
 
   useEffect(() => {
     capture('story_opened')
-    const key = `grapevine:story:${userId}:${initialStory.id}:viewed`
-    // Browser-only reading history must load after hydration to keep the server markup stable.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    try { const previous = localStorage.getItem(key); if (previous && Number.isFinite(Date.parse(previous))) setLastViewed(previous); localStorage.setItem(key, new Date().toISOString()) } catch { /* Private browsing may disable local storage. */ }
-    const saveView = () => { if (document.visibilityState === 'visible') { try { localStorage.setItem(key, new Date().toISOString()) } catch {} } }
+    const client = createClient()
+    // The reading position is kept per member on the server, so reading here clears "new" on the
+    // phone too. The first call returns the previous visit, which places the divider for this visit;
+    // later calls just move the position on. Without it there is simply no divider.
+    const markRead = () => client.rpc('mark_story_read', { story: initialStory.id })
+    void markRead().then(({ data }) => { if (typeof data === 'string') setLastViewed(data) })
+    const saveView = () => { if (document.visibilityState === 'visible') void markRead() }
     const media = window.matchMedia('(prefers-reduced-motion: reduce)')
     const motion = () => setReducedMotion(media.matches)
     motion(); media.addEventListener('change', motion)
-    const client = createClient()
     const channel = client.channel(`story:${initialStory.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `story_id=eq.${initialStory.id}` }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'stories', filter: `id=eq.${initialStory.id}` }, refresh)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'sources', filter: `story_id=eq.${initialStory.id}` }, refresh)
+      // Reactions carry no story id to filter on: refresh for this story's messages. A removal only
+      // carries the reaction's id, so any removal in the paper refreshes.
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reactions' }, payload => {
+        const messageId = (payload.new as { message_id?: string } | null)?.message_id
+        if (!messageId || messageIds.current.has(messageId)) void refresh()
+      })
       .subscribe()
     const poll = window.setInterval(() => { if (document.visibilityState === 'visible') { void refresh(); saveView() } }, 30000)
     return () => { saveView(); window.clearInterval(poll); media.removeEventListener('change', motion); void client.removeChannel(channel) }

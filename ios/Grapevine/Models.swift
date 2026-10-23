@@ -156,6 +156,24 @@ struct StoryRow: Codable, Identifiable {
     let messages: [Message]
 }
 
+/// An archive row: a story with only the counts of its sources and messages.
+struct ArchiveRow: Decodable, Identifiable, Equatable {
+    /// PostgREST's shape for a count embed: `"sources": [{"count": 3}]`.
+    struct Count: Decodable, Equatable { let count: Int }
+
+    let id: UUID
+    let title: String
+    let category: String?
+    let last_activity_at: Date
+    let sources: [Count]
+    let messages: [Count]
+
+    static let select = "id,title,category,last_activity_at,sources(count),messages(count)"
+
+    var sourceCount: Int { sources.first?.count ?? 0 }
+    var messageCount: Int { messages.first?.count ?? 0 }
+}
+
 struct Session: Codable {
     var accessToken: String
     var refreshToken: String
@@ -192,6 +210,12 @@ extension JSONDecoder {
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let string = try container.decode(String.self)
+            // Postgres writes microseconds, which ISO8601DateFormatter cuts to milliseconds: parse the
+            // whole seconds and add the fraction, so a time read back as a cursor matches the row exactly.
+            if let dot = string.firstIndex(of: "."), let end = string[dot...].dropFirst().firstIndex(where: { !$0.isNumber }),
+               let fraction = Double(string[dot..<end]), let whole = plain.date(from: String(string[..<dot] + string[end...])) {
+                return whole.addingTimeInterval(fraction)
+            }
             if let date = withFraction.date(from: string) ?? plain.date(from: string) { return date }
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid date: \(string)")
         }

@@ -64,6 +64,66 @@ class CoreTest {
     }
 
     @Test
+    fun editionKeepsThisWeekWithinItsBounds() {
+        val now = Instant.parse("2026-10-23T12:00:00Z")
+        val day = 86_400L
+        // Ages in days, newest first.
+        fun cut(ages: List<Double>) = Edition.cut(ages.map { now.minusSeconds((it * day).toLong()) }, now) { it }
+
+        // A quiet paper: everything is old, but the first EDITION_MIN still make the front page.
+        val quiet = cut(List(15) { 30.0 + it })
+        assertEquals(Edition.MIN, quiet.stories.size)
+        assertEquals(quiet.stories.last(), quiet.earlier)
+
+        // A busy week: all recent stories, cut at EDITION_MAX; the extra fetched row means more exist.
+        val busy = cut(List(Edition.MAX + 1) { it * 0.1 })
+        assertEquals(Edition.MAX, busy.stories.size)
+        assertEquals(busy.stories.last(), busy.earlier)
+
+        // A normal week: past the minimum, the first story older than a week ends the edition.
+        val week = cut(List(12) { it * 0.5 } + listOf(7.5, 8.0, 0.1))
+        assertEquals(12, week.stories.size)
+        assertEquals(now.minusSeconds((5.5 * day).toLong()), week.earlier)
+
+        // Everything fits: no archive link.
+        val small = cut(listOf(1.0, 20.0, 40.0))
+        assertEquals(3, small.stories.size)
+        assertEquals(null, small.earlier)
+        assertEquals(null, cut(emptyList()).earlier)
+        assertEquals(null, cut(List(Edition.MAX) { 0.0 }).earlier)
+    }
+
+    @Test
+    fun unreadCountsOthersMessagesSinceTheLastRead() {
+        val lastRead = Instant.parse("2026-10-23T10:00:00Z")
+        fun message(id: String, author: String, minutes: Long) =
+            Message(id = id, story_id = "s", author_id = author, body = "Hi", created_at = lastRead.plusSeconds(minutes * 60))
+        val messages = listOf(
+            message("old", "friend", -5),
+            message("at", "friend", 0),
+            message("mine", "me", 2),
+            message("first", "friend", 3),
+            message("second", "other", 9),
+        )
+        assertEquals(Unread("first", 2), unreadSince(messages, lastRead, "me"))
+        // A first visit, or nothing new from others, shows no divider.
+        assertEquals(null, unreadSince(messages, null, "me"))
+        assertEquals(null, unreadSince(messages.take(3), lastRead, "me"))
+    }
+
+    @Test
+    fun archiveRowsDecodeCountEmbeds() {
+        val json = """[{"id":"a","title":"T","category":null,"last_activity_at":"2026-10-16T09:30:00.123456+00:00",""" +
+            """"sources":[{"count":3}],"messages":[{"count":0}]}]"""
+        val row = SupabaseJson.decodeFromString<List<ArchivedStory>>(json).single()
+        assertEquals(3, row.sourceCount)
+        assertEquals(0, row.messageCount)
+        assertEquals(Instant.parse("2026-10-16T09:30:00.123456Z"), row.last_activity_at)
+        assertEquals(null, SupabaseJson.decodeFromString<String?>("null"))
+        assertEquals("2026-10-16T09:30:00Z", SupabaseJson.decodeFromString<String?>("\"2026-10-16T09:30:00+00:00\"")?.let { InstantSerializer.format(InstantSerializer.parse(it)) })
+    }
+
+    @Test
     fun attachmentLimits() {
         val image = Attachment(byteArrayOf(1), "image", "image/jpeg", "jpg")
         Attachment.validate(List(10) { image })

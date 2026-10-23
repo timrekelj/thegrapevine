@@ -13,6 +13,9 @@ final class StoryStore {
     var error: String?
     var notice: String?
     var pendingMessageId: UUID?
+    /// When the reader last read this story before this visit; nil on a first visit or if it couldn't be fetched.
+    var lastRead: Date?
+    private var visitStarted = false
     private var uploaded: [String] = []
     private var trackedStoryId: UUID?
     private var pendingReactions: Set<String> = []
@@ -67,6 +70,21 @@ final class StoryStore {
             self.error = error.localizedDescription
         }
         isLoading = false
+    }
+
+    struct ReadBody: Encodable { let story: UUID }
+
+    /// Records that the reader is reading the story now. The first call of a visit keeps the previous
+    /// read time for the "new since" divider; later calls (while reading, on leaving) only move it on.
+    func markRead(storyId: UUID) async {
+        let first = !visitStarted
+        visitStarted = true
+        do {
+            let previous = try await API.rpc(Date?.self, name: "mark_story_read", body: ReadBody(story: storyId))
+            if first { lastRead = previous }
+        } catch {
+            // No divider rather than an error: reading still works.
+        }
     }
 
     func postMessage(body: String, replyTo: UUID?, attachments: [Attachment] = []) async -> Bool {

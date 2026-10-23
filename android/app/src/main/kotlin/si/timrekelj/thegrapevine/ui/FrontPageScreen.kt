@@ -59,7 +59,7 @@ private val Gutter = 20.dp
 /** Mirrors the web's `FrontPage.tsx`: a broadsheet, one column wide. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FrontPageScreen(app: AppState, paper: PaperState, onOpen: (String) -> Unit) {
+fun FrontPageScreen(app: AppState, paper: PaperState, onOpen: (String) -> Unit, onEarlier: (Instant) -> Unit) {
     var sharing by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(app.group?.id) { paper.load(app) }
 
@@ -111,6 +111,7 @@ fun FrontPageScreen(app: AppState, paper: PaperState, onOpen: (String) -> Unit) 
                             Letter(message.body, app.members.firstOrNull { it.user_id == message.author_id }?.profiles?.display_name ?: "A member", story.title, message.created_at, Modifier.clickable { onOpen(story.id) })
                         }
                     }
+                    paper.earlier?.let { cursor -> item { EarlierEditions { onEarlier(cursor) } } }
                     item { Colophon(app.members.size) }
                 }
                 else -> item { EmptyEdition(onShare = { sharing = true }) }
@@ -289,6 +290,22 @@ private fun Letter(body: String?, author: String, story: String, at: Instant, mo
             style = MetaStyle,
         )
         Hairline(Modifier.padding(top = 10.dp))
+    }
+}
+
+/** The way into the archive, when older stories didn't make this edition. */
+@Composable
+private fun EarlierEditions(onClick: () -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Gutter).padding(top = 36.dp)) {
+        Hairline(color = Press.ink)
+        Row(
+            Modifier.fillMaxWidth().clickable(onClickLabel = "Open earlier editions", onClick = onClick).padding(vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("EARLIER EDITIONS", style = LabelStyle, modifier = Modifier.weight(1f))
+            Text("→", style = LabelStyle)
+        }
+        Hairline(color = Press.ink)
     }
 }
 

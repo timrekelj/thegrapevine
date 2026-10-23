@@ -5,7 +5,7 @@ struct FrontPageView: View {
     @Environment(AppState.self) private var app
     @Environment(PaperStore.self) private var paper
     @State private var share = false
-    @State private var path: [UUID] = []
+    @State private var path = NavigationPath()
 
     private var profiles: [Profile] { app.members.map(\.profiles) }
 
@@ -25,6 +25,9 @@ struct FrontPageView: View {
                         ProgressView().tint(Theme.ink).frame(maxWidth: .infinity).padding(48)
                     } else if let lead = paper.stories.first {
                         edition(lead: lead)
+                        if let before = paper.earlierBefore {
+                            earlierEditions(before: before)
+                        }
                     } else {
                         empty
                     }
@@ -35,12 +38,13 @@ struct FrontPageView: View {
             }
             .background(Theme.paper)
             .navigationDestination(for: UUID.self) { id in StoryView(storyId: id) }
+            .navigationDestination(for: ArchiveRoute.self) { route in ArchiveView(before: route.before) }
             .toolbarVisibility(.hidden, for: .navigationBar)
             .sheet(isPresented: $share, onDismiss: { Task { await paper.load(app: app) } }) { ShareView(group: app.group) }
             .refreshable { await paper.load(app: app) }
             .task(id: app.group?.id) { await paper.load(app: app) }
             .onChange(of: app.pendingStoryId, initial: true) {
-                if let id = app.pendingStoryId { path = [id]; app.pendingStoryId = nil }
+                if let id = app.pendingStoryId { path = NavigationPath([id]); app.pendingStoryId = nil }
             }
         }
     }
@@ -166,6 +170,19 @@ struct FrontPageView: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    /// The way into the archive, for stories older than this week's edition.
+    private func earlierEditions(before: Date) -> some View {
+        NavigationLink(value: ArchiveRoute(before: before)) {
+            Kicker(text: "Earlier editions →", size: 12)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .overlay(alignment: .top) { DoubleRule() }
+                .overlay(alignment: .bottom) { Rectangle().fill(Theme.ink).frame(height: 1) }
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.top, 48)
     }
 
     private var empty: some View {

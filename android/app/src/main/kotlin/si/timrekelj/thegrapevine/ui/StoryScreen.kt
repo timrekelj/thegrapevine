@@ -73,6 +73,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -111,6 +112,7 @@ import si.timrekelj.thegrapevine.Message
 import si.timrekelj.thegrapevine.Source
 import si.timrekelj.thegrapevine.StoryHistoryEntry
 import si.timrekelj.thegrapevine.StoryState
+import si.timrekelj.thegrapevine.unreadSince
 
 private sealed class Entry(val key: String, val createdAt: Instant) {
     class FromSource(val source: Source) : Entry("s${source.id}", source.created_at)
@@ -137,7 +139,7 @@ private val AddReactionIcon: ImageVector by lazy {
 /** Mirrors `StoryView.swift`. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit) {
+fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit, backLabel: String = "← Front page") {
     val api = LocalApi.current
     val store: StoryState = viewModel(key = "story-$storyId") { StoryState(api) }
     val scope = rememberCoroutineScope()
@@ -156,12 +158,25 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit) {
     // shortcut: poll while this story is visible; use Realtime subscriptions for larger groups.
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val isSending by rememberUpdatedState(sending)
+    // One visit per opening (not per rotation): its first read marks where "new since" starts.
+    var visitStarted by rememberSaveable(storyId) { mutableStateOf(false) }
     LaunchedEffect(storyId) {
+        if (!visitStarted) {
+            visitStarted = true
+            store.beginVisit(storyId)
+        }
         lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            store.load(storyId)
-            while (true) {
-                delay(10_000)
-                if (!isSending && store.pendingMessageId == null) store.load(storyId)
+            try {
+                store.load(storyId)
+                while (true) {
+                    delay(10_000)
+                    if (!isSending && store.pendingMessageId == null) store.load(storyId)
+                    // Messages seen live shouldn't show as new next time.
+                    store.markRead(storyId)
+                }
+            } finally {
+                // Leaving the story, or the app going to the background.
+                store.markRead(storyId)
             }
         }
     }
@@ -191,13 +206,14 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit) {
             .groupBy { it.createdAt.atZone(ZoneId.systemDefault()).toLocalDate() }
             .values.toList()
     }
+    val unread = remember(store.messages, store.lastRead, userId) { unreadSince(store.messages, store.lastRead, userId) }
 
     Scaffold(
         containerColor = Press.paper,
         topBar = {
             Column(Modifier.background(Press.paper).statusBarsPadding().padding(horizontal = 20.dp).padding(top = 8.dp)) {
                 Row(Modifier.fillMaxWidth().heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("← Front page", style = MetaStyle.copy(color = Press.ink), modifier = Modifier.weight(1f).clickable(onClick = onBack).padding(vertical = 8.dp))
+                    Text(backLabel, style = MetaStyle.copy(color = Press.ink), modifier = Modifier.weight(1f).clickable(onClick = onBack).padding(vertical = 8.dp))
                     Text("The Grapevine", style = nameplate(24))
                     Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
                         // Story links open the app on phones that have it, and the website everywhere else.
@@ -317,14 +333,20 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit) {
                     items(entries, key = { it.key }) { entry ->
                         when (entry) {
                             is Entry.FromSource -> SourceEntry(entry.source, store, userId, onOpen = { uriHandler.openWebLink(it) })
-                            is Entry.FromMessage -> MessageEntry(
-                                message = entry.message,
-                                store = store,
-                                userId = userId,
-                                replyEnabled = store.pendingMessageId == null,
-                                onReply = { replyTo = it },
-                                onReact = { emoji -> scope.launch { store.toggleReaction(entry.message.id, emoji) } },
-                            )
+                            is Entry.FromMessage -> Column {
+                                val lastRead = store.lastRead
+                                if (unread != null && lastRead != null && entry.message.id == unread.firstMessageId) {
+                                    NewSinceDivider("${unread.count} new since ${clock(lastRead)}")
+                                }
+                                MessageEntry(
+                                    message = entry.message,
+                                    store = store,
+                                    userId = userId,
+                                    replyEnabled = store.pendingMessageId == null,
+                                    onReply = { replyTo = it },
+                                    onReact = { emoji -> scope.launch { store.toggleReaction(entry.message.id, emoji) } },
+                                )
+                            }
                         }
                     }
                 }
@@ -389,6 +411,16 @@ private fun DayDivider(label: String) {
         Hairline(Modifier.weight(1f))
         Text(label, style = LabelStyle.copy(color = Press.ink3), modifier = Modifier.padding(horizontal = 12.dp))
         Hairline(Modifier.weight(1f))
+    }
+}
+
+/** Where this visit's unread messages start, like the web's `.story-new-divider`: red is "new to you". */
+@Composable
+private fun NewSinceDivider(label: String) {
+    Row(Modifier.padding(horizontal = 20.dp).padding(top = 26.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.weight(1f).height(2.dp).background(Press.red))
+        Text(label.uppercase(), style = LabelStyle.copy(color = Press.red), modifier = Modifier.padding(horizontal = 14.dp))
+        Box(Modifier.weight(1f).height(2.dp).background(Press.red))
     }
 }
 

@@ -39,6 +39,8 @@
 		601B5DA60D9540F83B768A7B /* FrontPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0F4EC19C9B801E1E2690AE1 /* FrontPageView.swift */; };
 		67B2B1F2B1649827E76CB863 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6AD76F6620CD0DDC4317B9A /* LoginView.swift */; };
 		6BE31BF6490D4D8B28E3B496 /* Newsreader-Display-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 5EDCF5031381291BE2696364 /* Newsreader-Display-SemiBold.ttf */; };
+		6D7DE02AB2C162190E2E71D4 /* ArchiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A5C8193729AF0E1ACC4019C /* ArchiveView.swift */; };
+		78B5E130CCB338151A7E50E6 /* Edition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A68D7D84A1FD022DBB869A7 /* Edition.swift */; };
 		7B5B0E136ABF9389F51B8D7A /* ShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 9A87474B1BE72D38231B54B7 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		8B5F1A99429DE5C2656349D7 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDB6677CAC2B83257AAA8859 /* Theme.swift */; };
 		8BDBAE67E758BF565921FE70 /* StoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8807C25BF3BBA7FC0BB51B29 /* StoryView.swift */; };
@@ -64,6 +66,7 @@
 		EA64CB4A55954FFA68BA31FE /* MessageMediaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE0D9D3FAFCADC940228C1BB /* MessageMediaView.swift */; };
 		ED470F227C86DC8252114DF5 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 131E7C88FFCD01C4402C7309 /* ProfileView.swift */; };
 		EFFA21025BE2C481BABA4EED /* OneSignalNotificationServiceExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 13C6FDA8A830AC6AA77D283E /* OneSignalNotificationServiceExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F4765961DABC422F63FA4279 /* ArchiveStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CB82B6F00DB83659F5ECE39 /* ArchiveStore.swift */; };
 		F7D20D0B39DBDD893EEEB36F /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 090A32009737A8ACB7374B07 /* Config.swift */; };
 /* End PBXBuildFile section */
 
@@ -124,8 +127,10 @@
 		2F5D75AD29C748D1E18B2A25 /* CoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreTests.swift; sourceTree = "<group>"; };
 		352886FC4DC27CE4B929366D /* OneSignalNotificationServiceExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = OneSignalNotificationServiceExtension.entitlements; sourceTree = "<group>"; };
 		3DE5D3B104F5C2FAFAC96267 /* Halftone.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Halftone.swift; sourceTree = "<group>"; };
+		4A68D7D84A1FD022DBB869A7 /* Edition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Edition.swift; sourceTree = "<group>"; };
 		4E20AFD12045BBE3FB988B7D /* UnifrakturMaguntia-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "UnifrakturMaguntia-Regular.ttf"; sourceTree = "<group>"; };
 		566E3CACEF666CB5432F2983 /* StoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryStore.swift; sourceTree = "<group>"; };
+		5CB82B6F00DB83659F5ECE39 /* ArchiveStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveStore.swift; sourceTree = "<group>"; };
 		5DE0EBD0A2F3F03BB166C0C0 /* IBMPlexMono-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "IBMPlexMono-OFL.txt"; sourceTree = "<group>"; };
 		5EDCF5031381291BE2696364 /* Newsreader-Display-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Newsreader-Display-SemiBold.ttf"; sourceTree = "<group>"; };
 		6128D364223594395C348FA2 /* Newsreader-OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Newsreader-OFL.txt"; sourceTree = "<group>"; };
@@ -136,6 +141,7 @@
 		8807C25BF3BBA7FC0BB51B29 /* StoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryView.swift; sourceTree = "<group>"; };
 		8AA540084F673BB60FCCF1DE /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		93DA6A2F97F5590E1DEEA2F1 /* Newsreader-Text-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Newsreader-Text-Italic.ttf"; sourceTree = "<group>"; };
+		9A5C8193729AF0E1ACC4019C /* ArchiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveView.swift; sourceTree = "<group>"; };
 		9A87474B1BE72D38231B54B7 /* ShareExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		9CB4D3D864AF68A30B38FC16 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
 		A16B340A581EACB81CB43627 /* GrapevineTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = GrapevineTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -193,6 +199,7 @@
 		22709AAAEC23AC020DDB8A55 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				9A5C8193729AF0E1ACC4019C /* ArchiveView.swift */,
 				2E08268B923B30869950C713 /* Components.swift */,
 				2DC1B16391CF7F7E95222560 /* FriendsView.swift */,
 				D0F4EC19C9B801E1E2690AE1 /* FrontPageView.swift */,
@@ -277,8 +284,10 @@
 			children = (
 				C63E5297B4E947A049701574 /* API.swift */,
 				8AA540084F673BB60FCCF1DE /* AppState.swift */,
+				5CB82B6F00DB83659F5ECE39 /* ArchiveStore.swift */,
 				BFC4CB83A7051D6FE9F40A2A /* Assets.xcassets */,
 				090A32009737A8ACB7374B07 /* Config.swift */,
+				4A68D7D84A1FD022DBB869A7 /* Edition.swift */,
 				7DB8EDC53C4F0E03749B0418 /* Grapevine.entitlements */,
 				27DEB58B2B6E443497BAC3BA /* GrapevineApp.swift */,
 				3DE5D3B104F5C2FAFAC96267 /* Halftone.swift */,
@@ -557,8 +566,11 @@
 			files = (
 				2607D9947DAE1511BF5B876C /* API.swift in Sources */,
 				D7CFD582E9AF77165A9F7488 /* AppState.swift in Sources */,
+				F4765961DABC422F63FA4279 /* ArchiveStore.swift in Sources */,
+				6D7DE02AB2C162190E2E71D4 /* ArchiveView.swift in Sources */,
 				59FB85F152C28994AB829C2F /* Components.swift in Sources */,
 				B9C89D3372A5D7799F84985E /* Config.swift in Sources */,
+				78B5E130CCB338151A7E50E6 /* Edition.swift in Sources */,
 				E4B329A63B2AF3F47662532B /* FriendsView.swift in Sources */,
 				601B5DA60D9540F83B768A7B /* FrontPageView.swift in Sources */,
 				4644AE20EF6C62FC9FDC3485 /* GrapevineApp.swift in Sources */,
