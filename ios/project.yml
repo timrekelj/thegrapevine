@@ -5,17 +5,17 @@ options:
   deploymentTarget:
     iOS: "26.0"
 settings:
-  SWIFT_VERSION: "5.10"
+  SWIFT_VERSION: "6.0"
   # Shared so the push extension's version always matches the app's.
   MARKETING_VERSION: 0.1.0
   CURRENT_PROJECT_VERSION: "1"
 packages:
   PostHog:
     url: https://github.com/PostHog/posthog-ios.git
-    exactVersion: 3.92.0
+    exactVersion: 3.92.1
   OneSignal:
     url: https://github.com/OneSignal/OneSignal-XCFramework
-    exactVersion: 5.5.1
+    exactVersion: 5.8.0
 targets:
   Grapevine:
     type: application

@@ -272,6 +272,8 @@ extension StoryView {
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
             HStack(spacing: 8) {
+                // PhotosPicker's label closure isn't main-actor isolated, so it reads a copy.
+                let loadingAttachments = loadingAttachments
                 PhotosPicker(selection: $selectedPhotos, maxSelectionCount: 10, matching: .any(of: [.images, .videos])) {
                     SwiftUI.Group {
                         if loadingAttachments {

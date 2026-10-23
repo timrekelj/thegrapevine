@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { PostHog } from 'npm:posthog-node@5.56.2';
+import { PostHog } from 'npm:posthog-node@5.56.4';
 import { recordUsage, type UsageCall } from './usage.ts';
 
 const scope = new AsyncLocalStorage<{
