@@ -13,6 +13,7 @@
 .intro :global(.display) { font-size: 46px; line-height: .98; }
 .intro :global(.summary) { font-size: 18px; line-height: 1.5; }
 .intro b { color: var(--ink); font-weight: 600; overflow-wrap: anywhere; }
+.notice { margin: 0; font: 500 15px/1.45 var(--sans); color: var(--ink); }
 
 .form { display: grid; gap: 8px; }
 .form > .primary { margin-top: 8px; }

@@ -7,6 +7,7 @@ import { connection } from 'next/server'
 import { captureServer } from '@/lib/telemetry-server'
 import { invitePreview } from '@/lib/metadata'
 import { dayline } from '@/lib/format'
+import { isEmail } from '@/lib/validate'
 import { CodeInput, ResendButton, SignInButton } from './code-input'
 import styles from './login.module.css'
 
@@ -46,6 +47,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
   const destination = safeRedirect(params.redirect)
   const sentTo = typeof params.email === 'string' ? params.email : ''
   const error = typeof params.error === 'string' ? params.error : ''
+  const deleted = params.notice === 'deleted'
   const today = dayline(new Date())
 
   async function signInWithProvider(formData: FormData) {
@@ -69,7 +71,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
     'use server'
     const email = String(formData.get('email') ?? '').trim()
     const query = new URLSearchParams({ redirect: destination })
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+    if (!isEmail(email)) {
       query.set('error', 'Enter a valid email address.')
       redirect(`/login?${query}`)
     }
@@ -115,6 +117,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
           <p className="summary" role={sentTo ? 'status' : undefined}>
             {sentTo ? <>We sent a 6-digit code to <b>{sentTo}</b> · <a href={`/login?${new URLSearchParams({ redirect: destination })}`}>Change</a></> : 'A private paper, curated by your friends.'}
           </p>
+          {deleted && <p role="status" className={styles.notice}>Your account has been deleted. Stories you shared stay in the paper, without your name.</p>}
         </div>
         {sentTo ? <>
           <form action={verifyCode} className={styles.form}>

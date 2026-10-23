@@ -5,3 +5,7 @@ export const safeUrl = (url: string | null | undefined) =>
 
 export const isUuid = (value: unknown): value is string =>
   typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+
+// The same check the sign-in form uses. Length is capped so a pasted novel never reaches Auth.
+export const isEmail = (value: string) =>
+  value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
