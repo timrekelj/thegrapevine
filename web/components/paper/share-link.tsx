@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import InkDots, { BusyLabel } from '@/components/print/InkDots';
 import styles from './paper.module.css';
 
 // The Supabase client loads on first use: `/` is also the landing page, which never needs it.
@@ -111,14 +112,14 @@ export default function ShareLink({ groupId, groupName }: { groupId: string; gro
         <label>Link<input type="url" required autoFocus placeholder="https://…" value={url} disabled={busy} onChange={e => setUrl(e.target.value)} /></label>
         <label><span>Your comment <span className={styles.optional}>(optional)</span></span><textarea value={comment} disabled={busy} onChange={e => setComment(e.target.value)} /></label>
         <p className="meta">Everyone in {groupName} sees this with your name.</p>
-        {status && <p className="meta" role="status">{status}</p>}
+        {status && <p className={`meta ${styles.filing}`} role="status"><InkDots size="sm" status={false} />{status}</p>}
         {error && <p className={styles.error} role="alert">{error}</p>}
         <div className={styles.dialogActions}>
           <button type="button" className={styles.cancel} disabled={busy} onClick={() => dialog.current?.close()}>Cancel</button>
-          <button className="btn" type="submit" disabled={busy}>{busy ? 'Filing…' : 'Post'}</button>
+          <button className="btn" type="submit" disabled={busy} aria-busy={busy}><BusyLabel busy={busy} label="Filing…">Post</BusyLabel></button>
         </div>
       </form>
     </dialog>
-    {toast && <div className={styles.toast} role="status">{toast.text}{toast.sourceId && <> · <button disabled={busy} onClick={undo}>Undo</button></>}</div>}
+    {toast && <div className={styles.toast} role="status">{toast.text}{toast.sourceId && <> · <button disabled={busy} aria-busy={busy} onClick={undo}><BusyLabel busy={busy} label="Undoing…">Undo</BusyLabel></button></>}</div>}
   </>;
 }

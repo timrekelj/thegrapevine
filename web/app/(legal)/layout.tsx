@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import Link from '@/components/print/PressLink'
 import styles from './legal.module.css'
 
 export default function LegalLayout({ children }: { children: React.ReactNode }) {

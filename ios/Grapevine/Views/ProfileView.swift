@@ -10,6 +10,14 @@ struct ProfileView: View {
     @State private var preferences: NotificationPreferences?
     @State private var savingPreferences = false
     @State private var preferenceError: String?
+    @State private var email = ""
+    @State private var savingEmail = false
+    @State private var emailMessage: String?
+    @State private var emailError: String?
+    @State private var confirmDelete = false
+    @State private var deleting = false
+    @State private var deleteError: String?
+    @FocusState private var emailFocused: Bool
 
     var body: some View {
         NavigationStack {
@@ -41,14 +49,51 @@ struct ProfileView: View {
                                 nameError = nil
                             }
                         Button { Task { await saveName() } } label: {
-                            Text(savingName ? "Saving…" : "Save name")
+                            Text("Save name")
                         }
-                        .buttonStyle(InkButtonStyle(enabled: canSaveName))
+                        .buttonStyle(InkButtonStyle(enabled: canSaveName, busy: savingName))
                         .disabled(!canSaveName)
-                        if name.trimmed.count > 80 { Text("Use a name up to 80 characters.").font(.caption).foregroundColor(Theme.danger) }
-                        if nameSaved { Text("Name saved").font(Theme.mono(12)).foregroundColor(Theme.ink2) }
-                        if let nameError { Text(nameError).font(.caption).foregroundColor(Theme.danger) }
+                        .busyAccessibility(savingName, "Saving…")
+                        if name.trimmed.count > 80 { Text("Use a name up to 80 characters.").font(.caption).foregroundColor(Theme.danger).arrives() }
+                        if nameSaved {
+                            Label("Name saved", systemImage: "checkmark").font(Theme.mono(12)).foregroundColor(Theme.ink2).arrives()
+                        }
+                        if let nameError { Text(nameError).font(.caption).foregroundColor(Theme.danger).arrives() }
                     }
+                    .animation(.snappy(duration: 0.3), value: nameSaved)
+                    .animation(.snappy(duration: 0.3), value: nameError)
+                    .animation(.snappy(duration: 0.3), value: name.trimmed.count > 80)
+                    .sensoryFeedback(.success, trigger: nameSaved) { _, now in now }
+
+                    VStack(alignment: .leading, spacing: 14) {
+                        SectionHead(title: "Your email")
+                        Text(emailIntro)
+                            .font(Theme.serif(17)).foregroundColor(Theme.ink2)
+                        TextField("New email address", text: $email)
+                            .keyboardType(.emailAddress)
+                            .textInputAutocapitalization(.never).autocorrectionDisabled()
+                            .textContentType(.emailAddress)
+                            .submitLabel(.send).onSubmit { Task { await changeEmail() } }
+                            .focused($emailFocused)
+                            .paperField(focused: emailFocused, invalid: emailError != nil)
+                            .disabled(savingEmail || deleting)
+                            .accessibilityLabel("New email address")
+                            .onChange(of: email) {
+                                emailMessage = nil
+                                emailError = nil
+                            }
+                        Button { Task { await changeEmail() } } label: {
+                            Text("Change email")
+                        }
+                        .buttonStyle(InkButtonStyle(enabled: canChangeEmail, busy: savingEmail))
+                        .disabled(!canChangeEmail)
+                        .busyAccessibility(savingEmail, "Sending…")
+                        if let emailMessage { Text(emailMessage).font(Theme.serif(17)).foregroundColor(Theme.ink2).arrives() }
+                        if let emailError { Text(emailError).font(.caption).foregroundColor(Theme.danger).arrives() }
+                    }
+                    .animation(.snappy(duration: 0.3), value: emailMessage)
+                    .animation(.snappy(duration: 0.3), value: emailError)
+                    .sensoryFeedback(.success, trigger: emailMessage) { _, now in now != nil }
 
                     VStack(alignment: .leading, spacing: 12) {
                         SectionHead(title: "Notifications")
@@ -61,11 +106,24 @@ struct ProfileView: View {
                             preferenceToggle("Replies to you", detail: "When someone replies to your message.", keyPath: \.direct_replies)
                             preferenceToggle("Mentions", detail: "When someone mentions you in a conversation.", keyPath: \.mentions)
                         } else if preferenceError == nil {
-                            ProgressView("Loading preferences…").tint(Theme.ink).padding(.vertical, 12)
+                            HStack(spacing: 12) {
+                                InkDots(size: 6).accessibilityHidden(true)
+                                Kicker(text: "Loading preferences…", color: Theme.ink2, size: 10)
+                            }
+                            .padding(.vertical, 12)
+                            .accessibilityElement(children: .combine)
+                            .transition(.opacity)
                         }
-                        if savingPreferences { ProgressView("Saving…").font(.caption).tint(Theme.ink) }
+                        if savingPreferences {
+                            HStack(spacing: 10) {
+                                InkDots(size: 5).accessibilityHidden(true)
+                                Kicker(text: "Saving…", color: Theme.ink2, size: 10)
+                            }
+                            .accessibilityElement(children: .combine)
+                            .arrives()
+                        }
                         if let preferenceError {
-                            Text(preferenceError).font(.caption).foregroundColor(Theme.danger)
+                            Text(preferenceError).font(.caption).foregroundColor(Theme.danger).arrives()
                             if preferences == nil {
                                 Button("Try again") { Task { await loadPreferences() } }.frame(minHeight: 44)
                             }
@@ -82,6 +140,10 @@ struct ProfileView: View {
                                 .font(.subheadline.weight(.medium)).frame(minHeight: 44)
                         }
                     }
+                    .animation(.snappy(duration: 0.3), value: savingPreferences)
+                    .animation(.easeOut(duration: 0.3), value: preferences == nil)
+                    .animation(.snappy(duration: 0.3), value: preferenceError)
+                    .sensoryFeedback(.selection, trigger: preferences) { old, new in old != nil && new != nil }
 
                     VStack(alignment: .leading, spacing: 12) {
                         SectionHead(title: "About & support")
@@ -99,13 +161,32 @@ struct ProfileView: View {
                     }
                     .font(.system(size: 15))
 
-                    Button("Sign out", role: .destructive) {
-                        paper.stories = []
-                        paper.seenAt = nil
-                        app.signOut()
+                    VStack(alignment: .leading, spacing: 12) {
+                        SectionHead(title: "Account")
+                        Text("Sign out of The Grapevine on this device.")
+                            .font(Theme.serif(17)).foregroundColor(Theme.ink2)
+                        Button("Sign out", role: .destructive) {
+                            paper.stories = []
+                            paper.seenAt = nil
+                            app.signOut()
+                        }
+                        .font(.system(size: 15, weight: .semibold)).frame(minHeight: 44)
+                        .disabled(accountBusy)
+
+                        Text("Deleting your account removes your sign-in and your name. Stories and comments you shared stay on the paper, without your name. A paper only you belong to is deleted. This cannot be undone.")
+                            .font(Theme.serif(17)).foregroundColor(Theme.ink2)
+                            .padding(.top, 8)
+                        Button(role: .destructive) {
+                            confirmDelete = true
+                        } label: {
+                            BusyLabel(text: "Delete account", busy: deleting, color: Theme.danger)
+                        }
+                        .font(.system(size: 15, weight: .semibold)).frame(minHeight: 44)
+                        .disabled(accountBusy)
+                        .busyAccessibility(deleting, "Deleting your account…")
+                        if let deleteError { Text(deleteError).font(.caption).foregroundColor(Theme.danger).arrives() }
                     }
-                    .font(.system(size: 15, weight: .semibold)).frame(minHeight: 44)
-                    .disabled(savingName || savingPreferences)
+                    .animation(.snappy(duration: 0.3), value: deleteError)
                 }
                 .padding(.horizontal, 20).padding(.bottom, 24)
             }
@@ -117,10 +198,29 @@ struct ProfileView: View {
                 await loadPreferences()
             }
         }
+        .confirmationDialog("Delete your account?", isPresented: $confirmDelete, titleVisibility: .visible) {
+            Button("Delete account", role: .destructive) { Task { await deleteAccount() } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently deletes your sign-in. Your name comes off the paper; stories and comments you shared stay, without your name. A paper only you belong to is deleted. This cannot be undone.")
+        }
     }
 
     private var canSaveName: Bool {
         !savingName && !name.trimmed.isEmpty && name.trimmed.count <= 80 && name.trimmed != app.profile?.display_name
+    }
+
+    private var accountBusy: Bool { savingName || savingPreferences || savingEmail || deleting }
+
+    private var emailIntro: String {
+        let current = app.session?.email.trimmed ?? ""
+        if current.isEmpty { return "Add the address that should receive sign-in codes and account mail." }
+        return "Sign-in codes and account mail go to \(current)."
+    }
+
+    private var canChangeEmail: Bool {
+        !accountBusy && emailMessage == nil && EmailChange.isPlausibleAddress(email)
+            && email.trimmed.compare(app.session?.email ?? "", options: .caseInsensitive) != .orderedSame
     }
 
     private func preferenceToggle(_ title: String, detail: String, keyPath: WritableKeyPath<NotificationPreferences, Bool>) -> some View {
@@ -154,6 +254,44 @@ struct ProfileView: View {
         preferences = nil
         do { preferences = try await app.loadNotificationPreferences() }
         catch { preferenceError = error.localizedDescription }
+    }
+
+    private func changeEmail() async {
+        guard canChangeEmail else { return }
+        savingEmail = true
+        emailError = nil
+        emailMessage = nil
+        defer { savingEmail = false }
+        do { emailMessage = try await app.changeEmail(to: email) }
+        catch { report(error, to: &emailError) }
+    }
+
+    private func deleteAccount() async {
+        guard !deleting else { return }
+        deleting = true
+        deleteError = nil
+        defer { deleting = false }
+        do {
+            try await app.deleteAccount()
+            paper.stories = []
+            paper.seenAt = nil
+            app.signOut()
+        } catch {
+            report(error, to: &deleteError)
+        }
+    }
+
+    /// An expired session can't be repaired from this screen, so it returns to sign-in with the reason.
+    private func report(_ error: Error, to message: inout String?) {
+        guard !error.isCancellation else { return }
+        if case APIError.unauthorized = error {
+            app.error = error.localizedDescription
+            paper.stories = []
+            paper.seenAt = nil
+            app.signOut()
+        } else {
+            message = error.localizedDescription
+        }
     }
 
     private func saveName() async {

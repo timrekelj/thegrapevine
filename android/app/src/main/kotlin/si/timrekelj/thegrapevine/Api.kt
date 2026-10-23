@@ -67,7 +67,9 @@ class Api(
     // ---------------------------------------------------------------- transport
 
     private suspend fun refreshIfNeeded(path: String) {
-        if (path.startsWith("auth/")) return
+        // Token, OTP and verify are how a session is born or renewed. Other auth calls, such as
+        // changing the email, still need a live access token.
+        if (path.startsWith("auth/v1/token") || path.startsWith("auth/v1/otp") || path.startsWith("auth/v1/verify")) return
         val stored = session ?: return
         if (!Jwt.isExpired(stored.accessToken)) return
         refreshMutex.withLock {
@@ -88,6 +90,8 @@ class Api(
         fileContentType: String = "application/octet-stream",
         preferRepresentation: Boolean = false,
         mergeDuplicates: Boolean = false,
+        /** Other calls turn a 401 into a session-expired error. Delete account keeps the body's `error`. */
+        mapUnauthorized: Boolean = true,
     ): String {
         refreshIfNeeded(path)
 
@@ -112,7 +116,7 @@ class Api(
 
         val text = response.bodyAsText()
         val status = response.status.value
-        if (status == 401) throw ApiError.Unauthorized
+        if (status == 401 && mapUnauthorized) throw ApiError.Unauthorized
         if (status >= 500) Telemetry.httpError(status)
         if (status !in 200..299) throw ApiError.Http(status, text)
         return text
@@ -261,6 +265,45 @@ class Api(
             ),
         )
 
+    /**
+     * Asks Supabase Auth to change the signed-in user's email.
+     * With `double_confirm_changes` (the project's auth setting) the address stays the same until
+     * both the current and the new inbox confirm. The returned [email] is the address in effect now;
+     * [newEmail] is the pending one when Auth reports it.
+     */
+    suspend fun updateEmail(email: String): AuthEmailUpdate {
+        val text = request(
+            path = "auth/v1/user",
+            method = HttpMethod.Put,
+            body = encodeBody(EmailUpdateBody(email.trim())),
+        )
+        val user = try {
+            SupabaseJson.decodeFromString<UserEmailPayload>(text)
+        } catch (_: kotlinx.serialization.SerializationException) {
+            throw ApiError.Decoding("Could not read the email change response.")
+        }
+        return AuthEmailUpdate(email = user.email, newEmail = user.new_email)
+    }
+
+    /**
+     * Permanently deletes the signed-in user via `POST functions/v1/delete-account`.
+     * [request] sends `apikey` (the project publishable key) and `Authorization: Bearer` of the
+     * current access token, and this call sends no body. Success is `200 {"deleted": true}`.
+     * A 4xx or 500 `{"error": "…"}` throws with that text and leaves the local session in place.
+     */
+    suspend fun deleteAccount() {
+        val text = request(path = DELETE_ACCOUNT_FUNCTION, method = HttpMethod.Post, mapUnauthorized = false)
+        if (!accountWasDeleted(text)) {
+            throw ApiError.Decoding("Your account could not be deleted. Please try again.")
+        }
+    }
+
+    @Serializable
+    private data class EmailUpdateBody(val email: String)
+
+    @Serializable
+    private data class UserEmailPayload(val email: String? = null, val new_email: String? = null)
+
     private fun session(tokenJson: String): Session {
         val response: TokenResponse = SupabaseJson.decodeFromString(tokenJson)
         return Session(
@@ -272,6 +315,9 @@ class Api(
     }
 
     companion object {
+        /** `POST /functions/v1/delete-account`, caller's JWT, publishable key, no body. */
+        const val DELETE_ACCOUNT_FUNCTION = "functions/v1/delete-account"
+
         private const val MAX_PICTURE_BYTES = 15 * 1024 * 1024
 
         fun defaultHttpClient(cache: Cache? = null): HttpClient = HttpClient(OkHttp) {

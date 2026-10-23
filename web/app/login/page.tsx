@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
+import Link from '@/components/print/PressLink'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { safeRedirect } from '@/lib/auth'
@@ -7,6 +7,8 @@ import { connection } from 'next/server'
 import { captureServer } from '@/lib/telemetry-server'
 import { invitePreview } from '@/lib/metadata'
 import { dayline } from '@/lib/format'
+import { isEmail } from '@/lib/validate'
+import SubmitButton from '@/components/print/SubmitButton'
 import { CodeInput, ResendButton, SignInButton } from './code-input'
 import styles from './login.module.css'
 
@@ -46,6 +48,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
   const destination = safeRedirect(params.redirect)
   const sentTo = typeof params.email === 'string' ? params.email : ''
   const error = typeof params.error === 'string' ? params.error : ''
+  const deleted = params.notice === 'deleted'
   const today = dayline(new Date())
 
   async function signInWithProvider(formData: FormData) {
@@ -69,7 +72,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
     'use server'
     const email = String(formData.get('email') ?? '').trim()
     const query = new URLSearchParams({ redirect: destination })
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+    if (!isEmail(email)) {
       query.set('error', 'Enter a valid email address.')
       redirect(`/login?${query}`)
     }
@@ -115,6 +118,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
           <p className="summary" role={sentTo ? 'status' : undefined}>
             {sentTo ? <>We sent a 6-digit code to <b>{sentTo}</b> · <a href={`/login?${new URLSearchParams({ redirect: destination })}`}>Change</a></> : 'A private paper, curated by your friends.'}
           </p>
+          {deleted && <p role="status" className={styles.notice}>Your account has been deleted. Stories you shared stay in the paper, without your name.</p>}
         </div>
         {sentTo ? <>
           <form action={verifyCode} className={styles.form}>
@@ -133,13 +137,13 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
             <input id="email" name="email" type="email" autoComplete="email" required maxLength={254} placeholder="you@example.com"
               className={styles.field} aria-invalid={!!error} aria-describedby={error ? 'login-error' : undefined} />
             {error && <ErrorMessage text={error} />}
-            <button className={styles.primary}>Email me a code</button>
+            <SubmitButton className={styles.primary} pending="Sending your code…">Email me a code</SubmitButton>
           </form>
           <div className={styles.or}>or</div>
           <form action={signInWithProvider} className={styles.providers}>
-            <button className={styles.provider} name="provider" value="google"><GoogleMark />Continue with Google</button>
-            <button className={styles.provider} name="provider" value="apple"><AppleMark />Sign in with Apple</button>
-            <button className={styles.provider} name="provider" value="x"><XMark />Continue with X</button>
+            <SubmitButton className={styles.provider} name="provider" value="google" pending="Opening Google…"><GoogleMark />Continue with Google</SubmitButton>
+            <SubmitButton className={styles.provider} name="provider" value="apple" pending="Opening Apple…"><AppleMark />Sign in with Apple</SubmitButton>
+            <SubmitButton className={styles.provider} name="provider" value="x" pending="Opening X…"><XMark />Continue with X</SubmitButton>
           </form>
         </>}
       </div>

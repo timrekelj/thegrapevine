@@ -31,7 +31,7 @@ struct ShareExtensionView: View {
             if let url {
                 ShareView(group: group, url: url, notice: notice, close: close)
             } else {
-                ProgressView().tint(Theme.ink).frame(maxWidth: .infinity, maxHeight: .infinity)
+                PressLoading(text: "Opening your paper…").frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .background(Theme.paper.ignoresSafeArea())

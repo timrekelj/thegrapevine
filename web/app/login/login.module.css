@@ -13,6 +13,7 @@
 .intro :global(.display) { font-size: 46px; line-height: .98; }
 .intro :global(.summary) { font-size: 18px; line-height: 1.5; }
 .intro b { color: var(--ink); font-weight: 600; overflow-wrap: anywhere; }
+.notice { margin: 0; font: 500 15px/1.45 var(--sans); color: var(--ink); }
 
 .form { display: grid; gap: 8px; }
 .form > .primary { margin-top: 8px; }
@@ -22,7 +23,7 @@
 .field:focus { outline: none; border-color: var(--ink); box-shadow: 3px 3px 0 var(--rule); }
 .field[aria-invalid="true"] { border-color: var(--danger); }
 
-.primary { height: 52px; width: 100%; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--ink); color: var(--paper); font: 600 15px/1 var(--sans); cursor: pointer; transition: background .15s, color .15s; }
+.primary { height: 52px; width: 100%; border: 1px solid var(--ink); border-radius: var(--radius); background: var(--ink); color: var(--paper); font: 600 15px/1 var(--sans); cursor: pointer; transition: background .15s, color .15s, transform 80ms ease-out; }
 .primary:hover:not(:disabled) { background: transparent; color: var(--ink); }
 .primary:disabled { opacity: .4; cursor: default; }
 .primary:focus-visible, .provider:focus-visible, .quiet:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
@@ -38,6 +39,7 @@
 .providers { display: grid; gap: 10px; }
 .provider { position: relative; height: 52px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 12px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--raised); color: var(--ink); font: 500 15px/1 var(--sans); cursor: pointer; }
 .provider:hover, .quiet:hover:not(:disabled) { border-color: var(--ink); }
+.provider:disabled:not([aria-busy="true"]) { opacity: .45; cursor: default; }
 .provider svg { width: 20px; height: 20px; flex: none; }
 
 /* ---------- the code: six cells over one real input ---------- */

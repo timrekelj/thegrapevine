@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -78,8 +77,8 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", on
             Text("YOUR COMMENT (OPTIONAL)", style = LabelStyle)
             PaperField(comment, { comment = it }, "Why it caught your eye", singleLine = false)
             app.group?.let { Text("Everyone in ${it.name} sees this with your name.", style = MetaStyle.copy(color = Press.ink3)) }
-            result?.let { Text(it, style = BodyStyle.copy(fontWeight = FontWeight.SemiBold)) }
-            InkButton(if (busy) "Posting…" else "Share with your paper", enabled = !busy && url.isNotBlank() && app.group != null) {
+            Insert(result) { Text(it, style = BodyStyle.copy(fontWeight = FontWeight.SemiBold)) }
+            InkButton("Share with your paper", enabled = !busy && url.isNotBlank() && app.group != null, busy = busy, busyLabel = "Posting…") {
                 val group = app.group ?: return@InkButton
                 scope.launch {
                     busy = true
@@ -103,9 +102,7 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", on
                     busy = false
                 }
             }
-            if (result != null) {
-                GhostButton("Done", onClick = onDismiss)
-            }
+            Insert(result) { GhostButton("Done", onClick = onDismiss) }
         }
     }
 }

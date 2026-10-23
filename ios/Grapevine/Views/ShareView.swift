@@ -13,6 +13,8 @@ struct ShareView: View {
     @State private var comment = ""
     @State private var busy = false
     @State private var result: String?
+    /// Set when the link is on the paper, for the success tap.
+    @State private var filed = false
     @FocusState private var editing: Bool
 
     init(group: Group?, url: String = "", notice: String? = nil, close: (() -> Void)? = nil) {
@@ -44,7 +46,9 @@ struct ShareView: View {
                     }
                 }
                 .padding(.horizontal, 24).padding(.vertical, 16)
+                .animation(.snappy(duration: 0.3), value: result)
             }
+            .sensoryFeedback(.success, trigger: filed) { _, now in now }
             .background(Theme.paper)
             .foregroundColor(Theme.ink)
             .tint(Theme.ink)
@@ -80,18 +84,21 @@ struct ShareView: View {
         Text("Everyone in \(group?.name ?? "your paper") sees this with your name.")
             .font(Theme.mono(11)).foregroundColor(Theme.ink3)
         if let result {
-            Text(result).font(Theme.serif(17)).padding(.vertical, 4)
+            Text(result).font(Theme.serif(17)).padding(.vertical, 4).arrives()
         }
         Button { Task { await post() } } label: {
-            Text(busy ? "Filing…" : "Share with your paper")
+            Text("Share with your paper")
         }
-        .buttonStyle(InkButtonStyle(enabled: !(busy || url.trimmed.isEmpty || group == nil)))
+        .buttonStyle(InkButtonStyle(enabled: !(busy || url.trimmed.isEmpty || group == nil), busy: busy))
         .disabled(busy || url.trimmed.isEmpty || group == nil)
+        .busyAccessibility(busy, "Filing…")
         .padding(.top, 6)
         if result != nil {
             Button("Done") { finish() }
                 .font(.system(size: 15, weight: .medium)).underline().foregroundColor(Theme.ink)
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .buttonStyle(PressStyle())
+                .arrives()
         }
     }
 
@@ -104,10 +111,12 @@ struct ShareView: View {
         busy = true
         editing = false
         result = nil
+        filed = false
         do {
             let submitted: SubmitResult = try await API.postObject(SubmitResult.self, path: "functions/v1/submit-source",
                 body: SubmitBody(group_id: group.id, url: url.trimmed,
                                 comment: comment.trimmed.isEmpty ? nil : comment.trimmed))
+            filed = submitted.status != "duplicate"
             let title = submitted.story_title.flatMap { $0.isEmpty ? nil : $0 } ?? "the story"
             switch submitted.status {
             case "duplicate":

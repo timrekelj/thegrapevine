@@ -181,6 +181,42 @@ struct Session: Codable {
     var email: String
 }
 
+/// What to tell a member after Supabase accepts an email change.
+/// Auth is configured with `double_confirm_changes`, so a pending change is confirmed from both inboxes.
+struct EmailChange: Equatable {
+    /// Shown under the field.
+    let message: String
+    /// Set only when the server applied the new address immediately.
+    let appliedEmail: String?
+
+    static func interpret(current: String, requested: String, email: String?, newEmail: String?) -> EmailChange {
+        let requested = requested.trimmed
+        let current = current.trimmed
+        if let applied = email?.trimmed, !applied.isEmpty,
+           applied.compare(requested, options: .caseInsensitive) == .orderedSame {
+            return EmailChange(message: "Your email is now \(applied).", appliedEmail: applied)
+        }
+        let sentTo = newEmail?.trimmed.nonEmpty ?? requested
+        if current.isEmpty {
+            return EmailChange(
+                message: "We sent a confirmation to \(sentTo). Open it to finish adding this email.",
+                appliedEmail: nil)
+        }
+        return EmailChange(
+            message: "We sent a confirmation to \(sentTo). Confirm it there, and also from \(current) — an email change is confirmed on both addresses. You keep signing in with \(current) until then.",
+            appliedEmail: nil)
+    }
+
+    /// Enough of a check to enable the button. Supabase rejects anything it doesn't accept.
+    static func isPlausibleAddress(_ email: String) -> Bool {
+        email.trimmed.range(of: #"^\S+@\S+\.\S+$"#, options: .regularExpression) != nil
+    }
+}
+
+private extension String {
+    var nonEmpty: String? { isEmpty ? nil : self }
+}
+
 extension String {
     var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }
 }

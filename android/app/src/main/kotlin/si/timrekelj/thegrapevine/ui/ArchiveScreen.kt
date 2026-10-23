@@ -1,9 +1,7 @@
 package si.timrekelj.thegrapevine.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,7 +15,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,7 +41,7 @@ fun ArchiveScreen(archive: ArchiveState, list: LazyListState, onBack: () -> Unit
     Column(Modifier.fillMaxSize().background(Press.paper)) {
         Column(Modifier.statusBarsPadding().padding(horizontal = Gutter).padding(top = 8.dp)) {
             Row(Modifier.fillMaxWidth().heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("← Front page", style = MetaStyle.copy(color = Press.ink), modifier = Modifier.weight(1f).clickable(onClick = onBack).padding(vertical = 8.dp))
+                Text("← Front page", style = MetaStyle.copy(color = Press.ink), modifier = Modifier.weight(1f).pressable(give = Give.Type, onClick = onBack).padding(vertical = 8.dp))
                 Text("The Grapevine", style = nameplate(24))
                 Spacer(Modifier.weight(1f))
             }
@@ -60,7 +57,9 @@ fun ArchiveScreen(archive: ArchiveState, list: LazyListState, onBack: () -> Unit
                         Hairline(Modifier.padding(top = 8.dp), color = Press.ink)
                     }
                 }
-                items(day, key = { it.id }) { story -> ArchivedRow(story, Modifier.clickable { onOpen(story.id) }) }
+                items(day, key = { it.id }) { story ->
+                    ArchivedRow(story, Modifier.animateItem().pressable(give = Give.Story, onClickLabel = "Open story") { onOpen(story.id) })
+                }
             }
             val error = archive.error
             when {
@@ -70,16 +69,18 @@ fun ArchiveScreen(archive: ArchiveState, list: LazyListState, onBack: () -> Unit
                         TextAction("Try again") { archive.loadPage() }
                     }
                 }
-                archive.isLoading -> item {
-                    Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = Press.ink, strokeWidth = 2.dp)
-                    }
-                }
+                // The first page comes up in galley proof; later pages ink the button's dots.
+                archive.isLoading && stories.isEmpty() -> item(key = "proof") { ArchiveProof(Modifier.animateItem()) }
                 archive.loaded && stories.isEmpty() -> item {
                     Text("Nothing older yet.", style = BodyStyle.copy(color = Press.ink2), modifier = Modifier.padding(Gutter))
                 }
-                archive.hasMore -> item {
-                    GhostButton("Load earlier", modifier = Modifier.fillMaxWidth().padding(horizontal = Gutter).padding(top = 24.dp)) { archive.loadPage() }
+                archive.hasMore || archive.isLoading -> item(key = "earlier") {
+                    GhostButton(
+                        "Load earlier",
+                        modifier = Modifier.animateItem().fillMaxWidth().padding(horizontal = Gutter).padding(top = 24.dp),
+                        busy = archive.isLoading,
+                        busyLabel = "Loading earlier stories…",
+                    ) { archive.loadPage() }
                 }
             }
             item { Spacer(Modifier.navigationBarsPadding().height(32.dp)) }

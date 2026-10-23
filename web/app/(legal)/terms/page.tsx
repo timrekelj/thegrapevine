@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
+import Link from '@/components/print/PressLink'
 
 export const metadata: Metadata = {
   title: 'Terms of Service | The Grapevine',
@@ -10,7 +10,7 @@ export default function TermsPage() {
   return (
     <>
       <h1>Terms of Service</h1>
-      <p className="meta">Last updated: October 18, 2026</p>
+      <p className="meta">Last updated: October 23, 2026</p>
       <p>These terms govern your use of The Grapevine website and mobile apps (the “service”), operated by Tim Rekelj. By creating an account or using the service, you agree to these terms. If you do not agree, do not use the service.</p>
 
       <h2>1. The service</h2>
@@ -40,7 +40,7 @@ export default function TermsPage() {
 
       <h2>6. Access, removal, and account closure</h2>
       <p>We may restrict access or remove content when reasonably necessary to address abuse, security risks, violations of these terms, or legal obligations. Where appropriate, we will explain the reason and allow you to contact us about the decision, unless doing so would create a security risk or be prohibited by law.</p>
-      <p>You may stop using the service at any time. To request account closure or deletion of your personal information, email <a href="mailto:hello@thegrapevine.si">hello@thegrapevine.si</a>, preferably from your account’s email address. Deletion requests are handled as described in the Privacy Policy; signing out or uninstalling the app does not delete your account.</p>
+      <p>You may stop using the service at any time. You can delete your account from Account on the website, as described in the <Link href="/privacy">Privacy Policy</Link>, or email <a href="mailto:hello@thegrapevine.si">hello@thegrapevine.si</a> to request account closure or deletion of your personal information. Signing out or uninstalling the app does not delete your account.</p>
 
       <h2>7. Availability and responsibility</h2>
       <p>We take reasonable care in operating the service, but cannot promise uninterrupted availability, error-free AI output, or that data will never be lost. Keep a separate copy of material that matters to you.</p>

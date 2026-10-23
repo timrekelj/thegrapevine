@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import Link from '@/components/print/PressLink'
 import { requireAdmin } from '@/lib/auth'
 import { adminRpc, formatDate, type AdminReport } from '@/lib/admin'
 import styles from '@/components/admin/admin.module.css'

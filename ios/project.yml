@@ -123,6 +123,7 @@ targets:
       - path: Grapevine/Keychain.swift
       - path: Grapevine/Models.swift
       - path: Grapevine/Theme.swift
+      - path: Grapevine/Press.swift
       - path: Grapevine/Views/ShareView.swift
       - path: Grapevine/Resources/Fonts
         excludes: ["*.txt"]

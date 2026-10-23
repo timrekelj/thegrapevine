@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import Link from '@/components/print/PressLink'
 import Plate from '@/components/print/Plate'
 import Avatar from '@/components/print/Avatar'
 import { dayline } from '@/lib/format'

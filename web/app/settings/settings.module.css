@@ -1,0 +1,52 @@
+/* Account: the same narrow column as sign-in, with a section for each thing you can change. */
+.page { min-height: 100dvh; max-width: 520px; margin: 0 auto; padding: max(24px, env(safe-area-inset-top)) 20px max(32px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; }
+.page a:not(.dangerLink) { color: inherit; }
+
+.nameplate { text-align: center; }
+.nameplate > a { display: block; font-size: 52px; line-height: 1; padding-bottom: 10px; text-decoration: none; white-space: nowrap; }
+.dateline { display: flex; justify-content: space-between; gap: 12px; margin: 0; padding: 7px 0; border-bottom: 1px solid var(--ink); font: 500 10px/1.4 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+
+.body { padding-top: 32px; display: grid; gap: 22px; }
+
+.who { display: flex; align-items: center; gap: 14px; text-align: left; }
+.who :global(.av) { width: 56px; height: 56px; }
+.who :global(.headline) { font-size: 28px; }
+.who :global(.meta) { overflow-wrap: anywhere; }
+
+.section { display: grid; gap: 12px; padding-top: 22px; border-top: 1px solid var(--rule); }
+.section :global(.summary) { font-size: 16px; }
+.section ul { margin: 0; padding-left: 1.15em; }
+.section li { font: 400 16px/1.45 var(--serif); color: var(--ink-2); }
+.section li + li { margin-top: 6px; }
+.section b { color: var(--ink); font-weight: 600; overflow-wrap: anywhere; }
+
+.form { display: grid; gap: 8px; }
+.form label { font: 600 11px/14px var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+.form :global(.meta) { margin: 0; }
+.field { height: 52px; width: 100%; padding: 0 16px; font: 400 18px/1 var(--serif); letter-spacing: 0; text-transform: none; color: var(--ink); background: var(--raised); border: 1px solid var(--rule); border-radius: var(--radius); }
+.field::placeholder { color: var(--ink-3); }
+.field:focus { outline: none; border-color: var(--ink); box-shadow: 3px 3px 0 var(--rule); }
+.field[aria-invalid="true"] { border-color: var(--danger); }
+
+.primary, .quiet, .danger, .dangerLink { height: 48px; width: 100%; border-radius: var(--radius); font: 600 15px/1 var(--sans); cursor: pointer; }
+.primary { border: 1px solid var(--ink); background: var(--ink); color: var(--paper); }
+.primary:hover:not(:disabled) { background: transparent; color: var(--ink); }
+.quiet { border: 1px solid var(--rule); background: transparent; color: var(--ink); }
+.quiet:hover:not(:disabled) { border-color: var(--ink); }
+.danger, .dangerLink { display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--danger); background: transparent; color: var(--danger); text-decoration: none; }
+.danger:hover:not(:disabled), .dangerLink:hover { background: var(--danger); color: var(--paper); }
+.primary:disabled, .quiet:disabled, .danger:disabled { opacity: .45; cursor: default; }
+.primary:focus-visible, .quiet:focus-visible, .danger:focus-visible, .dangerLink:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.keep { justify-self: center; font: 500 14px/1 var(--sans); text-underline-offset: 3px; }
+
+.error, .status { margin: 0; display: flex; gap: 8px; align-items: flex-start; font: 500 14px/1.4 var(--sans); }
+.error { color: var(--danger); }
+.status { color: var(--ink); }
+
+@media (min-width: 600px) {
+  .nameplate > a { font-size: 60px; }
+}
+
+/* galley proof (loading.tsx): the summary's lines at its type size */
+.proofLines { font-size: 16px; }

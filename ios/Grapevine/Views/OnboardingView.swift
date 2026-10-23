@@ -36,6 +36,7 @@ struct OnboardingView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .animation(.snappy(duration: 0.25), value: joining)
+        .animation(.snappy(duration: 0.25), value: localError ?? app.error)
         .onAppear { if displayName.isEmpty { displayName = app.profile?.display_name ?? "" } }
         .onChange(of: app.pendingInviteCode, initial: true) {
             if let code = app.pendingInviteCode { inviteCode = code; joining = true }
@@ -55,9 +56,10 @@ struct OnboardingView: View {
                     .focused($focus, equals: .code)
                     .submitLabel(.join).onSubmit { Task { await join() } }
                 errors
-                Button(busy ? "Joining…" : "Join your friends") { Task { await join() } }
-                    .buttonStyle(InkButtonStyle(enabled: ready && !inviteCode.trimmed.isEmpty))
+                Button("Join your friends") { Task { await join() } }
+                    .buttonStyle(InkButtonStyle(enabled: ready && !inviteCode.trimmed.isEmpty, busy: busy))
                     .disabled(busy || !ready || inviteCode.trimmed.isEmpty)
+                    .busyAccessibility(busy, "Joining…")
                     .padding(.top, 8)
                 quietButton("Start a new paper instead") { joining = false; localError = nil }
             } else {
@@ -66,9 +68,10 @@ struct OnboardingView: View {
                     .focused($focus, equals: .paper)
                     .submitLabel(.go).onSubmit { Task { await create() } }
                 errors
-                Button(busy ? "Starting…" : "Start the paper") { Task { await create() } }
-                    .buttonStyle(InkButtonStyle(enabled: ready && !groupName.trimmed.isEmpty))
+                Button("Start the paper") { Task { await create() } }
+                    .buttonStyle(InkButtonStyle(enabled: ready && !groupName.trimmed.isEmpty, busy: busy))
                     .disabled(busy || !ready || groupName.trimmed.isEmpty)
+                    .busyAccessibility(busy, "Starting…")
                     .padding(.top, 8)
                 quietButton("Have an invite code? Join your friends") { joining = true; localError = nil }
             }
@@ -95,7 +98,7 @@ struct OnboardingView: View {
                 .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.rule, lineWidth: 1))
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain).disabled(busy)
+        .buttonStyle(PressStyle()).disabled(busy)
         .padding(.top, 8)
     }
 
@@ -103,6 +106,7 @@ struct OnboardingView: View {
         if let message = localError ?? app.error {
             Label(message, systemImage: "exclamationmark.circle")
                 .font(.system(size: 14, weight: .medium)).foregroundColor(Theme.danger)
+                .arrives()
             if localError == nil {
                 Button("Retry loading your paper") { Task { await app.loadProfileAndGroup() } }
                     .font(.subheadline.weight(.medium)).foregroundColor(Theme.ink)

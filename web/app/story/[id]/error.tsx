@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import Link from '@/components/print/PressLink'
 import { useEffect } from 'react'
 import { captureError } from '@/lib/telemetry'
 

@@ -84,21 +84,7 @@ struct Hairline: View {
     var body: some View { Rectangle().fill(color).frame(height: 1).accessibilityHidden(true) }
 }
 
-/// The ink block button. Dims only the fill when disabled, so the label stays readable.
-struct InkButtonStyle: ButtonStyle {
-    var enabled = true
-    var height: CGFloat = 50
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 16, weight: .semibold))
-            .frame(maxWidth: .infinity, minHeight: height)
-            .background(Theme.ink.opacity(enabled ? (configuration.isPressed ? 0.8 : 1) : 0.4),
-                        in: RoundedRectangle(cornerRadius: Theme.radius))
-            .foregroundColor(Theme.paper)
-            .contentShape(RoundedRectangle(cornerRadius: Theme.radius))
-    }
-}
+// The ink block button, `InkButtonStyle`, is with the rest of the press in Press.swift.
 
 /// A paper field: raised, hairline, square corners, set in the serif.
 struct PaperFieldStyle: ViewModifier {

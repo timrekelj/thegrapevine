@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import Link from '@/components/print/PressLink'
 import { requireAdmin } from '@/lib/auth'
 import { adminRpc, fillDays, formatDate, formatTokens, formatUsd, num, parseWindow, WINDOWS, type AIRequest, type AISummary } from '@/lib/admin'
 import { isUuid } from '@/lib/validate'

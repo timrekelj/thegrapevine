@@ -1,7 +1,6 @@
 package si.timrekelj.thegrapevine.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,10 +19,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshState
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -63,10 +66,14 @@ fun FrontPageScreen(app: AppState, paper: PaperState, onOpen: (String) -> Unit, 
     var sharing by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(app.group?.id) { paper.load(app) }
 
+    val refreshing = paper.isLoading && paper.stories.isNotEmpty()
+    val pull = rememberPullToRefreshState()
     PullToRefreshBox(
-        isRefreshing = paper.isLoading && paper.stories.isNotEmpty(),
+        isRefreshing = refreshing,
         onRefresh = { paper.load(app) },
         modifier = Modifier.fillMaxSize().clipToBounds(),
+        state = pull,
+        indicator = { InkingIndicator(pull, refreshing, Modifier.align(Alignment.TopCenter)) },
     ) {
         val stories = paper.stories
         val seenAt = paper.seenAt
@@ -88,27 +95,24 @@ fun FrontPageScreen(app: AppState, paper: PaperState, onOpen: (String) -> Unit, 
                         TextAction("Try again") { paper.load(app) }
                     }
                 }
-                paper.isLoading && stories.isEmpty() -> item {
-                    Box(Modifier.fillMaxWidth().padding(48.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = Press.ink, strokeWidth = 2.dp)
-                    }
-                }
+                // First load: the page in galley proof; the stories fade in over it as they arrive.
+                paper.isLoading && stories.isEmpty() -> item(key = "proof") { FrontPageProof(Modifier.animateItem()) }
                 lead != null -> {
-                    item(key = lead.id) { LeadStory(lead, app.members, seenAt, Modifier.clickable { onOpen(lead.id) }) }
+                    item(key = lead.id) { LeadStory(lead, app.members, seenAt, Modifier.animateItem().opens { onOpen(lead.id) }) }
                     if (side.isNotEmpty()) item {
                         Box(Modifier.padding(horizontal = Gutter).padding(top = 28.dp).fillMaxWidth().height(3.dp).background(Press.ink))
                     }
                     items(side, key = { it.id }) { story ->
-                        SideStory(story, seenAt, pictured = story == side.first(), Modifier.clickable { onOpen(story.id) })
+                        SideStory(story, seenAt, pictured = story == side.first(), Modifier.animateItem().opens { onOpen(story.id) })
                     }
                     if (inside.isNotEmpty()) {
                         item { SectionHead("Also in this edition", Modifier.padding(horizontal = Gutter).padding(top = 36.dp, bottom = 6.dp)) }
-                        items(inside, key = { it.id }) { story -> InsideStory(story, seenAt, Modifier.clickable { onOpen(story.id) }) }
+                        items(inside, key = { it.id }) { story -> InsideStory(story, seenAt, Modifier.animateItem().opens { onOpen(story.id) }) }
                     }
                     if (letters.isNotEmpty()) {
                         item { SectionHead("Letters from the table", Modifier.padding(horizontal = Gutter).padding(top = 36.dp, bottom = 4.dp)) }
                         items(letters, key = { "letter-${it.first.id}" }) { (message, story) ->
-                            Letter(message.body, app.members.firstOrNull { it.user_id == message.author_id }?.profiles?.display_name ?: "A member", story.title, message.created_at, Modifier.clickable { onOpen(story.id) })
+                            Letter(message.body, app.members.firstOrNull { it.user_id == message.author_id }?.profiles?.display_name ?: "A member", story.title, message.created_at, Modifier.animateItem().opens { onOpen(story.id) })
                         }
                     }
                     paper.earlier?.let { cursor -> item { EarlierEditions { onEarlier(cursor) } } }
@@ -124,6 +128,47 @@ fun FrontPageScreen(app: AppState, paper: PaperState, onOpen: (String) -> Unit, 
             sharing = false
             paper.load(app)
         })
+    }
+}
+
+/**
+ * Pull to refresh, on paper: a slip comes down from the top and its three dots ink up as it is
+ * pulled; once let go they print in turn until the new edition is in.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun InkingIndicator(state: PullToRefreshState, refreshing: Boolean, modifier: Modifier) {
+    Box(
+        modifier
+            .graphicsLayer {
+                val pulled = state.distanceFraction.coerceIn(0f, 1.4f)
+                translationY = pulled * 64.dp.toPx() - size.height
+                alpha = pulled.coerceIn(0f, 1f)
+            }
+            .size(width = 64.dp, height = 30.dp)
+            .background(Press.paper, Corner)
+            .border(1.dp, Press.ink, Corner),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (refreshing) {
+            InkDots(dotSize = 5.dp, contentDescription = "Refreshing the front page")
+        } else {
+            val ink = Press.ink
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                repeat(3) { index ->
+                    Box(
+                        Modifier.size(5.dp)
+                            .graphicsLayer {
+                                val t = (state.distanceFraction * 3f - index).coerceIn(0f, 1f)
+                                alpha = 0.25f + 0.75f * t
+                                scaleX = 0.4f + 0.6f * t
+                                scaleY = 0.4f + 0.6f * t
+                            }
+                            .background(ink, CircleShape),
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -192,6 +237,9 @@ private fun Masthead(app: AppState, stories: List<StoryRow>, seenAt: Instant?, o
         Hairline(color = Press.ink)
     }
 }
+
+/** A story on the page gives a little under the finger. */
+private fun Modifier.opens(onOpen: () -> Unit) = pressable(give = Give.Story, onClickLabel = "Open story", onClick = onOpen)
 
 private fun isNew(createdAt: Instant, seenAt: Instant?) = seenAt == null || seenAt.isBefore(createdAt)
 
@@ -299,7 +347,7 @@ private fun EarlierEditions(onClick: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(horizontal = Gutter).padding(top = 36.dp)) {
         Hairline(color = Press.ink)
         Row(
-            Modifier.fillMaxWidth().clickable(onClickLabel = "Open earlier editions", onClick = onClick).padding(vertical = 14.dp),
+            Modifier.fillMaxWidth().pressable(give = Give.Type, onClickLabel = "Open earlier editions", onClick = onClick).padding(vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text("EARLIER EDITIONS", style = LabelStyle, modifier = Modifier.weight(1f))

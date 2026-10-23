@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import Link from '@/components/print/PressLink'
 import { requireAdmin } from '@/lib/auth'
 import { adminRpc, fillDays, formatTokens, formatUsd, num, type AISummary, type Overview } from '@/lib/admin'
 import SpendChart from '@/components/admin/SpendChart'

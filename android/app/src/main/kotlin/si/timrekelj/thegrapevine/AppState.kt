@@ -138,6 +138,36 @@ class AppState(
         api.session = null
     }
 
+    /**
+     * Starts an email change. Returns whether Auth applied it immediately or left it waiting on
+     * the confirmation messages (`double_confirm_changes` in this project).
+     */
+    suspend fun changeEmail(email: String): EmailChange {
+        val current = session ?: throw ApiError.Unauthorized
+        val trimmed = email.trim()
+        if (!isSignInEmail(trimmed)) throw ApiError.Network("Enter a valid email address.")
+        if (trimmed.equals(current.email, ignoreCase = true)) throw ApiError.Network("That is already your sign-in email.")
+        val updated = api.updateEmail(trimmed)
+        val applied = updated.email?.takeIf { it.equals(trimmed, ignoreCase = true) }
+        if (applied != null) {
+            val next = current.copy(email = applied)
+            store.save(next)
+            session = next
+            api.session = next
+        }
+        return EmailChange(
+            requested = updated.newEmail?.takeIf { it.isNotBlank() } ?: trimmed,
+            appliedNow = applied != null,
+            appliedEmail = applied,
+        )
+    }
+
+    /** Deletes the account on the server. The screen signs the user out locally after this returns. */
+    suspend fun deleteAccount() {
+        if (session == null) throw ApiError.Unauthorized
+        api.deleteAccount()
+    }
+
     suspend fun loadProfileAndGroup() {
         val current = session ?: return
         try {

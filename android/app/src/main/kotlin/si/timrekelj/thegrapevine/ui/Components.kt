@@ -71,8 +71,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.times
 import androidx.compose.ui.zIndex
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
@@ -142,7 +147,7 @@ fun Stamp(text: String, modifier: Modifier = Modifier) {
 @Composable
 fun NewMark(text: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Box(Modifier.size(7.dp).background(Press.red, CircleShape))
+        NewDot()
         Text(text, style = MetaStyle.copy(color = Press.ink, fontWeight = FontWeight.SemiBold))
     }
 }
@@ -195,33 +200,75 @@ fun Modifier.clipping(color: Color, fill: Color): Modifier = drawBehind {
 
 // ---------- buttons & fields ----------
 
-/** An ink block; the main action. */
+/**
+ * An ink block; the main action. It sinks like a stamp when pressed and taps the haptic engine.
+ * While [busy] the label stays set but unseen, so the block keeps its size, and ink dots in paper
+ * colour print over it; [busyLabel] ("Sending…") is what TalkBack reads meanwhile.
+ */
 @Composable
-fun InkButton(text: String, enabled: Boolean = true, modifier: Modifier = Modifier.fillMaxWidth(), height: Dp = 50.dp, onClick: () -> Unit) {
+fun InkButton(
+    text: String,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier.fillMaxWidth(),
+    height: Dp = 50.dp,
+    busy: Boolean = false,
+    busyLabel: String? = null,
+    fill: Color = Press.ink,
+    onFill: Color = Press.paper,
+    onClick: () -> Unit,
+) {
+    val live = enabled || busy
     Box(
-        modifier.heightIn(min = height).clip(Corner)
-            .background(if (enabled) Press.ink else Press.ink.copy(alpha = 0.4f))
-            .clickable(enabled = enabled, onClick = onClick)
+        modifier
+            .pressable(enabled = enabled && !busy, haptic = true, role = Role.Button, onClick = onClick)
+            .semantics { if (busy) contentDescription = busyLabel ?: text }
+            .heightIn(min = height).clip(Corner)
+            .background(if (live) fill else fill.copy(alpha = 0.4f))
             .padding(horizontal = 18.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Press.paper, maxLines = 1)
+        Busy(busy, onFill) {
+            Text(text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = onFill, maxLines = 1)
+        }
     }
 }
 
-/** A ruled outline; the secondary action. */
+/** A ruled outline; the secondary action. Busy the same way as [InkButton], in ink. */
 @Composable
-fun GhostButton(text: String, enabled: Boolean = true, modifier: Modifier = Modifier.fillMaxWidth(), onClick: () -> Unit) {
+fun GhostButton(
+    text: String,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier.fillMaxWidth(),
+    busy: Boolean = false,
+    busyLabel: String? = null,
+    onClick: () -> Unit,
+) {
+    val live = enabled || busy
     Box(
-        modifier.heightIn(min = 46.dp).clip(Corner).border(1.dp, if (enabled) Press.rule else Color.Transparent, Corner)
-            .clickable(enabled = enabled, onClick = onClick).padding(horizontal = 16.dp),
+        modifier
+            .pressable(enabled = enabled && !busy, role = Role.Button, onClick = onClick)
+            .semantics { if (busy) contentDescription = busyLabel ?: text }
+            .heightIn(min = 46.dp).clip(Corner).border(1.dp, if (live) Press.rule else Color.Transparent, Corner)
+            .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = if (enabled) Press.ink else Press.ink3, textAlign = TextAlign.Center)
+        Busy(busy, Press.ink) {
+            Text(text, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = if (live) Press.ink else Press.ink3, textAlign = TextAlign.Center)
+        }
     }
 }
 
-/** An underlined text action, like the web's `.story-text-button`. */
+/** The label crossfades to ink dots while busy; the label still sets the size underneath. */
+@Composable
+private fun Busy(busy: Boolean, ink: Color, label: @Composable () -> Unit) {
+    val shown by animateFloatAsState(if (busy) 0f else 1f, tween(180), label = "busy")
+    Box(contentAlignment = Alignment.Center) {
+        Box(Modifier.graphicsLayer { alpha = shown }.then(if (busy) Modifier.clearAndSetSemantics {} else Modifier)) { label() }
+        if (shown < 1f) InkDots(Modifier.graphicsLayer { alpha = 1f - shown }, color = ink, contentDescription = null)
+    }
+}
+
+/** An underlined text action, like the web's `.story-text-button`. The ink lifts when pressed. */
 @Composable
 fun TextAction(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
     Text(
@@ -231,7 +278,7 @@ fun TextAction(text: String, modifier: Modifier = Modifier, enabled: Boolean = t
             fontWeight = FontWeight.SemiBold,
             textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
         ),
-        modifier = modifier.clickable(enabled = enabled, interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)
+        modifier = modifier.pressable(enabled = enabled, give = Give.Type, role = Role.Button, onClick = onClick)
             .padding(vertical = 6.dp),
     )
 }
@@ -284,8 +331,7 @@ fun fieldColors() = OutlinedTextFieldDefaults.colors(
 
 /**
  * A photograph printed in colour through a halftone screen (see [Plate]), or — without a usable
- * picture — a type plate with the publisher's name. `screen = false` prints the photo clean,
- * for attachments people shared themselves.
+ * picture — a type plate with the publisher's name. `screen = false` prints the photo clean.
  */
 @Composable
 fun PlateView(url: String?, label: String, modifier: Modifier = Modifier, screen: Boolean = true) {

@@ -8,6 +8,7 @@ struct ArchiveRoute: Hashable {
 /// "Earlier editions": older stories, newest first, under the day they were last active.
 struct ArchiveView: View {
     @Environment(AppState.self) private var app
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var store = ArchiveStore()
     let before: Date
 
@@ -21,12 +22,15 @@ struct ArchiveView: View {
                         Text(error).font(Theme.serif(17))
                         Button("Try again") { Task { await load(force: true) } }
                             .font(.system(size: 15, weight: .semibold)).underline()
+                            .buttonStyle(PressStyle())
                     }
                     .padding(.vertical, 32)
+                    .transition(.opacity)
                 } else if !store.loaded {
-                    ProgressView().tint(Theme.ink).frame(maxWidth: .infinity).padding(48)
+                    ArchiveProof().transition(.opacity)
                 } else if store.stories.isEmpty {
                     Text("Nothing older yet.").font(Theme.serif(17)).foregroundColor(Theme.ink2).padding(.vertical, 24)
+                        .transition(.opacity)
                 } else {
                     ForEach(store.days, id: \.day) { day, stories in
                         Kicker(text: dayLabel(day), color: Theme.ink2, size: 10)
@@ -36,7 +40,8 @@ struct ArchiveView: View {
                             .accessibilityAddTraits(.isHeader)
                         ForEach(stories) { story in
                             NavigationLink(value: story.id) { ArchiveRowView(story: story) }
-                                .buttonStyle(.plain)
+                                .buttonStyle(PressStyle())
+                                .transition(.opacity)
                             Hairline()
                         }
                     }
@@ -46,6 +51,9 @@ struct ArchiveView: View {
                 }
             }
             .padding(.horizontal, 20).padding(.bottom, 24)
+            // The first page inks in over its proof; later pages fade in below.
+            .animation(.easeOut(duration: reduceMotion ? 0.2 : 0.4), value: store.loaded)
+            .animation(.easeOut(duration: 0.3), value: store.stories.count)
         }
         .background(Theme.paper)
         .toolbarVisibility(.visible, for: .navigationBar)
@@ -74,17 +82,18 @@ struct ArchiveView: View {
             guard let group = app.group?.id else { return }
             Task { await store.loadEarlier(group: group) }
         } label: {
-            HStack(spacing: 10) {
-                if store.isLoading { ProgressView().tint(Theme.ink).controlSize(.small) }
-                Kicker(text: store.isLoading ? "Loading…" : "Load earlier", size: 12)
-            }
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .overlay(alignment: .top) { DoubleRule() }
-            .overlay(alignment: .bottom) { Rectangle().fill(Theme.ink).frame(height: 1) }
-            .contentShape(Rectangle())
+            Kicker(text: "Load earlier", size: 12)
+                .opacity(store.isLoading ? 0 : 1)
+                .overlay { if store.isLoading { InkDots(size: 6).transition(.opacity) } }
+                .animation(.easeOut(duration: 0.18), value: store.isLoading)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .overlay(alignment: .top) { DoubleRule() }
+                .overlay(alignment: .bottom) { Rectangle().fill(Theme.ink).frame(height: 1) }
+                .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressStyle())
         .disabled(store.isLoading)
+        .busyAccessibility(store.isLoading, "Loading…")
     }
 }
 

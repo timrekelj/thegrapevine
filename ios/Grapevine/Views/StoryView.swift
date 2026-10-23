@@ -20,6 +20,7 @@ struct StoryView: View {
     @State private var attachments: [Attachment] = []
     @State private var loadingAttachments = false
     @FocusState private var composing: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var readableSources: Int {
         store.sources.filter { $0.extraction_status == "ok" }.count
@@ -57,21 +58,32 @@ struct StoryView: View {
             LazyVStack(alignment: .leading, spacing: 0) {
                 DoubleRule().padding(.bottom, 22)
                 if let story = store.story {
-                    article(story)
-                    clippings.padding(.top, 8)
-                    conversation.padding(.top, 36)
-                    if let notice = store.notice {
-                        MetaRow(text: notice).padding(.top, 12)
+                    SwiftUI.Group {
+                        article(story)
+                        clippings.padding(.top, 8)
+                        conversation.padding(.top, 36)
+                        if let notice = store.notice {
+                            MetaRow(text: notice).padding(.top, 12)
+                        }
                     }
-                } else if store.isLoading {
-                    ProgressView().tint(Theme.ink).frame(maxWidth: .infinity).padding(60)
-                } else if let error = store.error {
-                    Text(error).font(Theme.serif(17)).padding(.vertical)
-                    Button("Try again") { Task { await store.load(storyId: storyId) } }
-                        .font(.system(size: 15, weight: .semibold)).underline()
+                    .transition(.opacity)
+                } else if let error = store.error, !store.isLoading {
+                    SwiftUI.Group {
+                        Text(error).font(Theme.serif(17)).padding(.vertical)
+                        Button("Try again") { Task { await store.load(storyId: storyId) } }
+                            .font(.system(size: 15, weight: .semibold)).underline()
+                            .buttonStyle(PressStyle())
+                    }
+                    .transition(.opacity)
+                } else {
+                    // Also before the first load starts, so the page never shows blank.
+                    StoryProof().transition(.opacity)
                 }
             }
             .padding(.horizontal, 20).padding(.bottom, 24)
+            // The story inks in over its proof; new messages slide up into the conversation.
+            .animation(.easeOut(duration: reduceMotion ? 0.2 : 0.45), value: store.story == nil)
+            .animation(reduceMotion ? .easeOut(duration: 0.2) : .snappy(duration: 0.4), value: store.messages.map(\.id))
         }
         .background(Theme.paper)
         .scrollDismissesKeyboard(.interactively)
@@ -157,7 +169,7 @@ extension StoryView {
                 .overlay(alignment: .top) { Rectangle().fill(Theme.ink).frame(height: 1) }
                 .overlay(alignment: .bottom) { Hairline() }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressStyle())
         PlateView(url: heroURL, label: lead?.displayPublisher ?? "The paper")
             .aspectRatio(16 / 9, contentMode: .fit)
             .padding(.top, 20)
@@ -179,7 +191,7 @@ extension StoryView {
                 .fontWeight(.semibold).underline().foregroundColor(Theme.ink)
         }
         .font(Theme.mono(12))
-        .buttonStyle(.plain)
+        .buttonStyle(PressStyle(scale: 0.96))
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .top) { Hairline() }
@@ -224,6 +236,7 @@ extension StoryView {
                 TimelineEntryView(entry: entry, store: store,
                                   userId: app.session?.userId ?? UUID(),
                                   onReply: { replyTo = $0 })
+                    .transition(reduceMotion ? .opacity : .asymmetric(insertion: .opacity.combined(with: .offset(y: 18)), removal: .opacity))
             }
         }
     }
@@ -232,6 +245,7 @@ extension StoryView {
         VStack(alignment: .leading, spacing: 8) {
             if let error = store.error {
                 Text(error).font(.system(size: 13, weight: .medium)).foregroundColor(Theme.danger)
+                    .arrives()
             }
             if !attachments.isEmpty {
                 HStack {
@@ -242,6 +256,7 @@ extension StoryView {
                         .disabled(sending || store.pendingMessageId != nil)
                 }
                 .padding(.horizontal, 10).padding(.vertical, 7).background(Theme.tint)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
             if let replyTo {
                 HStack {
@@ -254,13 +269,22 @@ extension StoryView {
                         .disabled(sending || store.pendingMessageId != nil)
                 }
                 .padding(.horizontal, 10).padding(.vertical, 7).background(Theme.tint)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
             HStack(spacing: 8) {
                 PhotosPicker(selection: $selectedPhotos, maxSelectionCount: 10, matching: .any(of: [.images, .videos])) {
-                    Image(systemName: "plus").font(.system(size: 16, weight: .medium))
-                        .frame(width: 44, height: 44)
-                        .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.rule, lineWidth: 1))
+                    SwiftUI.Group {
+                        if loadingAttachments {
+                            InkDots(size: 5)
+                        } else {
+                            Image(systemName: "plus").font(.system(size: 16, weight: .medium))
+                        }
+                    }
+                    .frame(width: 44, height: 44)
+                    .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.rule, lineWidth: 1))
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(PressStyle(scale: 0.94))
                 .foregroundColor(Theme.ink)
                 .accessibilityLabel("Attach images or video")
                 .disabled(sending || loadingAttachments || store.pendingMessageId != nil)
@@ -285,15 +309,18 @@ extension StoryView {
                         sending = false
                     }
                 } label: {
-                    Text(sending ? "Sending…" : "Send").padding(.horizontal, 16)
+                    Text("Send").padding(.horizontal, 16)
                 }
-                .buttonStyle(InkButtonStyle(enabled: canSend, height: 44))
+                .buttonStyle(InkButtonStyle(enabled: canSend, busy: sending, height: 44))
                 .fixedSize()
                 .disabled(!canSend)
-                .accessibilityLabel("Send message")
+                .accessibilityLabel(sending ? "Sending…" : "Send message")
             }
         }
         .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 8)
+        .animation(.snappy(duration: 0.25), value: replyTo?.id)
+        .animation(.snappy(duration: 0.25), value: attachments.count)
+        .animation(.snappy(duration: 0.25), value: store.error)
         .background(Theme.paper.opacity(0.94))
         .background(.ultraThinMaterial)
         .overlay(alignment: .top) { Rectangle().fill(Theme.ink).frame(height: 1) }
@@ -423,6 +450,7 @@ struct MessageEntryView: View {
     let userId: UUID
     let onReply: (Message) -> Void
     @State private var picking = false
+    @State private var replyTaps = 0
 
     static let emojis = ["👍", "❤️", "😂", "😮", "😢", "🔥", "👏", "🚀", "👀", "🎉"]
 
@@ -472,22 +500,10 @@ struct MessageEntryView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 4) {
                             ForEach(used, id: \.self) { emoji in
-                                let count = message.reactions?.filter { $0.emoji == emoji }.count ?? 0
-                                let mine = isMine(emoji)
-                                Button { toggle(emoji) } label: {
-                                    HStack(spacing: 4) {
-                                        Text(emoji).font(.system(size: 13))
-                                        Text("\(count)").font(Theme.mono(12, bold: true))
-                                    }
-                                    .padding(.horizontal, 8).frame(minHeight: 30)
-                                    .background(mine ? Theme.ink : Color.clear)
-                                    .foregroundColor(mine ? Theme.paper : Theme.ink)
-                                    .clipShape(Capsule())
-                                    .overlay(Capsule().stroke(mine ? Theme.ink : Theme.rule, lineWidth: 1))
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel("\(emoji), \(count) \(count == 1 ? "reaction" : "reactions")")
-                                .accessibilityAddTraits(mine ? .isSelected : [])
+                                ReactionChip(emoji: emoji,
+                                             count: message.reactions?.filter { $0.emoji == emoji }.count ?? 0,
+                                             mine: isMine(emoji)) { toggle(emoji) }
+                                    .transition(.scale(scale: 0.6).combined(with: .opacity))
                             }
                             Button { picking = true } label: {
                                 Image(systemName: "face.smiling")
@@ -501,8 +517,9 @@ struct MessageEntryView: View {
                                     }
                                     .foregroundColor(Theme.ink3)
                                     .padding(.horizontal, 8).frame(minHeight: 30)
+                                    .contentShape(Rectangle())
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(PressStyle(scale: 0.9))
                             .accessibilityLabel("Add reaction")
                             .popover(isPresented: $picking) {
                                 ReactionPicker(isMine: isMine) { emoji in
@@ -513,14 +530,17 @@ struct MessageEntryView: View {
                             }
                         }
                         .padding(.vertical, 1)
+                        .animation(.snappy(duration: 0.3), value: used)
                     }
-                    Button { onReply(message) } label: {
+                    Button { replyTaps += 1; onReply(message) } label: {
                         Image(systemName: "arrowshape.turn.up.left")
                             .font(.system(size: 15, weight: .regular))
                             .foregroundColor(Theme.ink2)
                             .frame(width: 40, height: 40)
+                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(PressStyle(scale: 0.9))
+                    .sensoryFeedback(.selection, trigger: replyTaps)
                     .accessibilityLabel("Reply to message")
                     .disabled(store.pendingMessageId != nil)
                 }
@@ -530,6 +550,45 @@ struct MessageEntryView: View {
         .contentShape(Rectangle())
         .onLongPressGesture { picking = true }
         .sensoryFeedback(.impact(weight: .medium), trigger: picking) { _, open in open }
+    }
+}
+
+/// One reaction and its count. A tap pops the chip like a rubber stamp coming down and rolls the
+/// count over; the count also rolls when friends' reactions arrive.
+struct ReactionChip: View {
+    let emoji: String
+    let count: Int
+    let mine: Bool
+    let action: () -> Void
+    @State private var taps = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Button { taps += 1; action() } label: {
+            HStack(spacing: 4) {
+                Text(emoji).font(.system(size: 13))
+                Text("\(count)").font(Theme.mono(12, bold: true))
+                    .contentTransition(.numericText(value: Double(count)))
+            }
+            .padding(.horizontal, 8).frame(minHeight: 30)
+            .background(mine ? Theme.ink : Color.clear)
+            .foregroundColor(mine ? Theme.paper : Theme.ink)
+            .clipShape(Capsule())
+            .overlay(Capsule().stroke(mine ? Theme.ink : Theme.rule, lineWidth: 1))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(PressStyle(scale: 0.92))
+        .keyframeAnimator(initialValue: 1.0, trigger: taps) { content, scale in
+            content.scaleEffect(scale)
+        } keyframes: { _ in
+            SpringKeyframe(reduceMotion ? 1 : 1.18, duration: 0.12, spring: .snappy)
+            SpringKeyframe(1, duration: 0.35, spring: .bouncy)
+        }
+        .animation(.snappy(duration: 0.25), value: count)
+        .animation(.easeOut(duration: 0.15), value: mine)
+        .sensoryFeedback(.impact(weight: .light), trigger: taps)
+        .accessibilityLabel("\(emoji), \(count) \(count == 1 ? "reaction" : "reactions")")
+        .accessibilityAddTraits(mine ? .isSelected : [])
     }
 }
 
@@ -548,7 +607,7 @@ struct ReactionPicker: View {
                         .background(isMine(emoji) ? Theme.tint : Color.clear, in: RoundedRectangle(cornerRadius: 3))
                         .overlay(RoundedRectangle(cornerRadius: 3).stroke(isMine(emoji) ? Theme.ink : .clear, lineWidth: 1))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressStyle(scale: 0.85))
                 .accessibilityLabel(isMine(emoji) ? "Remove \(emoji)" : "React \(emoji)")
             }
         }
@@ -599,16 +658,19 @@ struct ReportSheet: View {
                 Section("Note (optional)") {
                     TextField("…", text: $note, axis: .vertical)
                 }
-                Button(busy ? "Reporting…" : "Report") {
+                Button {
                     Task {
                         busy = true
                         let success = await store.report(target: target, note: note)
                         busy = false
                         if success { dismiss() }
                     }
+                } label: {
+                    BusyLabel(text: "Report", busy: busy)
                 }
                 .disabled(busy)
-                if let error = store.error { Text(error).font(.caption) }
+                .busyAccessibility(busy, "Reporting…")
+                if let error = store.error { Text(error).font(.caption).arrives() }
             }
             .scrollContentBackground(.hidden).background(Theme.paper)
             .navigationTitle("Report a correction")
