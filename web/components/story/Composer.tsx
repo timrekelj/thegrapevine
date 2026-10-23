@@ -90,7 +90,7 @@ export default function Composer({ story, userId, reply, clearReply, refresh, gi
       <div className="story-gif-results">{gifs.map(item => <button key={item.id} aria-label={item.title} onClick={() => { setGif(item); setSearchOpen(false) }}>
         {/* GIPHY's own stills, already sized for a grid. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={item.still} alt={item.title} loading="lazy" />
+        <img src={item.still} alt={item.title} referrerPolicy="no-referrer" loading="lazy" />
       </button>)}</div>
       <small className="meta">Powered by GIPHY</small>
     </section>}

@@ -28,10 +28,12 @@ function StoryMeta({ story, publishers = false }: { story: RankedStory; publishe
 const title = (story: RankedStory) => story.title || 'A link from the table'
 const label = (story: RankedStory) => story.publishers[0] || 'The paper'
 
-export default function FrontPage({ group, members, stories, loadedAt }: {
+export default function FrontPage({ group, members, stories, earlier = null, loadedAt }: {
   group: { id: string; name: string; created_at: string }
   members: PaperMember[]
   stories: RankedStory[]
+  /** Archive cursor, when stories older than this edition exist. */
+  earlier?: string | null
   loadedAt: Date
 }) {
   const [lead, ...rest] = stories
@@ -120,6 +122,8 @@ export default function FrontPage({ group, members, stories, loadedAt }: {
         <div className="meta"><b>{name(message.author_id)}</b> on {message.story.title} · <time dateTime={message.created_at}>{clock(message.created_at)}</time></div>
       </Link>)}</div></div>
     </section>}
+
+    {earlier && <Link className={styles.earlier} href={`/archive?${new URLSearchParams({ before: earlier })}`}>Earlier editions →</Link>}
 
     <footer className={styles.colophon}>
       <span className="masthead">The Grapevine</span>

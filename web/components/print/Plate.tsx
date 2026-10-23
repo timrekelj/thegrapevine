@@ -15,12 +15,13 @@ export default function Plate({ src, label, className = '', alt = '', screen = t
   const url = safeUrl(src)
   if (!url || failed) return <div className={`typeplate ${className}`} style={style}><span>{label}</span></div>
   return <div className={`plate ${inkIn ? 'ink-in' : ''} ${className}`} style={style}>
-    {/* Publisher preview domains are arbitrary; the plate handles sizing. */}
+    {/* Publisher preview domains are arbitrary; the plate handles sizing. No referrer: publishers
+        don't learn which paper a reader came from (and some hotlink checks let it through). */}
     {/* eslint-disable-next-line @next/next/no-img-element */}
-    <img className="photo" src={url} alt={alt} loading={eager ? 'eager' : 'lazy'} decoding="async" onError={() => setFailed(true)} />
+    <img className="photo" src={url} alt={alt} referrerPolicy="no-referrer" loading={eager ? 'eager' : 'lazy'} decoding="async" onError={() => setFailed(true)} />
     {screen && <div className="screen" aria-hidden="true">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={url} alt="" loading={eager ? 'eager' : 'lazy'} decoding="async" />
+      <img src={url} alt="" referrerPolicy="no-referrer" loading={eager ? 'eager' : 'lazy'} decoding="async" />
     </div>}
   </div>
 }
