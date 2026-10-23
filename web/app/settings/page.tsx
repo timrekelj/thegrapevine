@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
+import Link from '@/components/print/PressLink'
 import { redirect } from 'next/navigation'
 import { connection } from 'next/server'
 import { requireUser } from '@/lib/auth'
@@ -8,7 +8,7 @@ import { dayline } from '@/lib/format'
 import { isEmail } from '@/lib/validate'
 import { captureServer } from '@/lib/telemetry-server'
 import Avatar from '@/components/print/Avatar'
-import { PendingButton } from './pending-button'
+import SubmitButton from '@/components/print/SubmitButton'
 import styles from './settings.module.css'
 
 export const metadata: Metadata = { title: 'Your account · The Grapevine' }
@@ -79,7 +79,7 @@ export default async function SettingsPage({ searchParams }: PageProps<'/setting
   }
 
   return (
-    <main className={styles.page}>
+    <main className={`fresh-ink ${styles.page}`}>
       <header className={styles.nameplate}>
         <Link href="/" className="nameplate">The Grapevine</Link>
         <div className="double-rule" />
@@ -104,7 +104,7 @@ export default async function SettingsPage({ searchParams }: PageProps<'/setting
             <label htmlFor="email">New email address</label>
             <input id="email" name="email" type="email" autoComplete="email" required maxLength={254} placeholder="you@example.com"
               className={styles.field} aria-invalid={!!error && !confirming} aria-describedby={!confirming ? describedBy : undefined} />
-            <PendingButton className={styles.primary} idle="Send confirmation" pending="Sending…" />
+            <SubmitButton className={styles.primary} pending="Sending…">Send confirmation</SubmitButton>
           </form>
         </section>
 
@@ -112,7 +112,7 @@ export default async function SettingsPage({ searchParams }: PageProps<'/setting
           <h2 id="session-heading" className="label">This browser</h2>
           <p className="summary">Signing out here leaves your account as it is, including on a phone where you are also signed in.</p>
           <form action={signOut}>
-            <PendingButton className={styles.quiet} idle="Sign out" pending="Signing out…" />
+            <SubmitButton className={styles.quiet} pending="Signing out…">Sign out</SubmitButton>
           </form>
         </section>
 
@@ -131,7 +131,7 @@ export default async function SettingsPage({ searchParams }: PageProps<'/setting
               <p className="meta">The address on this account is <b>{user.email}</b>.</p>
               <input id="confirm" name="confirm" type="text" autoComplete="off" autoCapitalize="none" spellCheck={false} required maxLength={254}
                 className={styles.field} aria-invalid={!!error} aria-describedby={describedBy} />
-              <PendingButton className={styles.danger} idle="Delete account permanently" pending="Deleting…" />
+              <SubmitButton className={styles.danger} pending="Deleting…">Delete account permanently</SubmitButton>
             </form> : <p className="summary">This account has no email address, so it can’t be deleted from here. Write to <a href="mailto:hello@thegrapevine.si">hello@thegrapevine.si</a> and we will close it.</p>}
             <Link className={styles.keep} href="/settings">Keep my account</Link>
           </> : <>

@@ -60,14 +60,15 @@ struct NewMark: View {
     let text: String
     var body: some View {
         HStack(spacing: 5) {
-            Circle().fill(Theme.red).frame(width: 7, height: 7)
+            Circle().fill(Theme.red).frame(width: 7, height: 7).inkPulse()
             Text(text).font(Theme.mono(12, bold: true)).foregroundColor(Theme.ink)
         }
     }
 }
 
 /// A photograph printed through the colour halftone screen, or — with no picture — a type plate
-/// with the publisher's name. `screen = false` shows the photo clean.
+/// with the publisher's name. `screen = false` shows the photo clean. While the photo is on its way
+/// the plate is a proof of swelling dots; a freshly printed plate inks in, soft then sharp.
 struct PlateView: View {
     let url: URL?
     let label: String
@@ -76,6 +77,7 @@ struct PlateView: View {
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.displayScale) private var displayScale
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var printed: UIImage?
     @State private var failed = false
 
@@ -83,15 +85,18 @@ struct PlateView: View {
         GeometryReader { geometry in
             ZStack {
                 if let printed {
-                    if screen {
-                        Image(uiImage: printed).resizable()
-                    } else {
-                        Image(uiImage: printed).resizable().scaledToFill()
+                    SwiftUI.Group {
+                        if screen {
+                            Image(uiImage: printed).resizable()
+                        } else {
+                            Image(uiImage: printed).resizable().scaledToFill()
+                        }
                     }
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .inkIn))
                 } else if url == nil || failed {
                     TypePlate(label: label)
                 } else {
-                    Theme.tint
+                    ProofPlate().transition(.opacity)
                 }
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
@@ -110,6 +115,8 @@ struct PlateView: View {
             do { printed = try await PhotoStore.shared.image(url) } catch { failed = true }
             return
         }
+        // A plate already printed (scrolled back into view, or reprinted) shows at once; only fresh ink inks in.
+        let fresh = printed == nil
         let dark = colorScheme == .dark
         let scale = displayScale
         let key = "\(url.absoluteString)|\(Int(size.width))x\(Int(size.height))@\(scale)|\(dark)"
@@ -119,8 +126,24 @@ struct PlateView: View {
             let result = await Task.detached(priority: .userInitiated) {
                 Halftone.print(photo, size: size, scale: scale, dark: dark, key: key)
             }.value
-            if let result { printed = result } else { failed = true }
+            if let result {
+                withAnimation(fresh ? .easeOut(duration: 0.55) : nil) { printed = result }
+            } else { failed = true }
         } catch { failed = true }
+    }
+}
+
+extension AnyTransition {
+    /// A plate inking in: the dots arrive blurred and a touch large, then settle onto the paper.
+    static var inkIn: AnyTransition {
+        .modifier(active: InkIn(amount: 1), identity: InkIn(amount: 0))
+    }
+}
+
+private struct InkIn: ViewModifier {
+    let amount: CGFloat
+    func body(content: Content) -> some View {
+        content.blur(radius: 5 * amount).scaleEffect(1 + 0.03 * amount)
     }
 }
 

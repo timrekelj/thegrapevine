@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useFormStatus } from 'react-dom'
+import { BusyLabel } from '@/components/print/InkDots'
 import styles from './login.module.css'
 
 // Must match `otp_length` in supabase/config.toml and the hosted project.
@@ -35,18 +36,19 @@ export function CodeInput({ invalid, describedBy }: { invalid: boolean; describe
 /** Disabled while the code is being checked, which also blocks Enter from submitting the form again. */
 export function SignInButton({ className }: { className: string }) {
   const { pending } = useFormStatus()
-  return <button className={className} disabled={pending}>{pending ? 'Signing in…' : 'Sign in'}</button>
+  return <button className={className} disabled={pending} aria-busy={pending}><BusyLabel busy={pending} label="Signing in…">Sign in</BusyLabel></button>
 }
 
 /** A new code can be requested once the countdown from the last send runs out. */
 export function ResendButton({ seconds }: { seconds: number }) {
   const [left, setLeft] = useState(seconds)
+  const { pending } = useFormStatus()
   useEffect(() => {
     if (left <= 0) return
     const timer = setTimeout(() => setLeft(left - 1), 1000)
     return () => clearTimeout(timer)
   }, [left])
-  return <button className={`${styles.quiet} tnum`} disabled={left > 0}>
-    {left > 0 ? `Send a new code in 0:${String(left).padStart(2, '0')}` : 'Send a new code'}
+  return <button className={`${styles.quiet} tnum`} disabled={left > 0 || pending} aria-busy={pending}>
+    <BusyLabel busy={pending} label="Sending a new code…">{left > 0 ? `Send a new code in 0:${String(left).padStart(2, '0')}` : 'Send a new code'}</BusyLabel>
   </button>
 }

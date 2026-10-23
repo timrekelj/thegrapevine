@@ -18,13 +18,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -35,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -117,7 +116,7 @@ fun ProfileScreen(app: AppState, onSignOut: () -> Unit) {
             Text("This is how you appear to your friends.", style = MetaStyle)
             PaperField(name, { name = it; nameSaved = false; nameError = null }, "Display name", enabled = !savingName)
             val canSave = !savingName && !accountBusy && name.trim().isNotEmpty() && name.trim().length <= 80 && name.trim() != app.profile?.display_name
-            InkButton(if (savingName) "Saving…" else "Save name", enabled = canSave) {
+            InkButton("Save name", enabled = canSave, busy = savingName, busyLabel = "Saving…") {
                 savingName = true
                 nameError = null
                 scope.launch {
@@ -130,8 +129,8 @@ fun ProfileScreen(app: AppState, onSignOut: () -> Unit) {
                 }
             }
             if (name.trim().length > 80) Text("Use a name up to 80 characters.", color = MaterialTheme.colorScheme.error, style = MetaStyle)
-            if (nameSaved) Text("Name saved", style = MetaStyle)
-            nameError?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
+            Insert(if (nameSaved) "Name saved" else null) { Text(it, style = MetaStyle) }
+            Insert(nameError) { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
         }
         Column(
             Modifier.fillMaxWidth().padding(top = 4.dp),
@@ -156,10 +155,17 @@ fun ProfileScreen(app: AppState, onSignOut: () -> Unit) {
                     savePreferences(current.copy(mentions = it))
                 }
             } else if (preferenceError == null) {
-                CircularProgressIndicator(color = Press.ink, strokeWidth = 2.dp)
-                Text("Loading preferences…", style = MetaStyle)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    InkDots(contentDescription = null)
+                    Text("Loading preferences…", style = MetaStyle)
+                }
             }
-            if (savingPreferences) Text("Saving…", style = MetaStyle)
+            Insert(if (savingPreferences) "Saving…" else null) { label ->
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    InkDots(dotSize = 5.dp, contentDescription = null)
+                    Text(label, style = MetaStyle)
+                }
+            }
             preferenceError?.let { error ->
                 Text(error, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
                 if (preferences == null) TextAction("Try again") { scope.launch { loadPreferences() } }
@@ -191,8 +197,10 @@ fun ProfileScreen(app: AppState, onSignOut: () -> Unit) {
 
 @Composable
 private fun PreferenceToggle(title: String, detail: String, checked: Boolean, enabled: Boolean, onChange: (Boolean) -> Unit) {
+    val source = remember { MutableInteractionSource() }
     Row(
-        Modifier.fillMaxWidth().toggleable(checked, enabled = enabled, role = Role.Switch, onValueChange = onChange)
+        Modifier.fillMaxWidth().sink(source, Give.Story)
+            .toggleable(checked, source, indication = null, enabled = enabled, role = Role.Switch, onValueChange = onChange)
             .padding(vertical = 6.dp).alpha(if (enabled) 1f else 0.5f),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -213,11 +221,12 @@ private fun PreferenceToggle(title: String, detail: String, checked: Boolean, en
 
 @Composable
 private fun SettingsLink(title: String, onClick: () -> Unit) {
-    TextButton(onClick = onClick, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
-        Row(Modifier.fillMaxWidth().heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(title, style = BodyStyle.copy(fontSize = 16.sp), modifier = Modifier.weight(1f))
-            Spacer(Modifier.padding(4.dp))
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Press.ink)
-        }
+    Row(
+        Modifier.fillMaxWidth().pressable(give = Give.Story, role = Role.Button, onClick = onClick).heightIn(min = 44.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(title, style = BodyStyle.copy(fontSize = 16.sp), modifier = Modifier.weight(1f))
+        Spacer(Modifier.padding(4.dp))
+        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Press.ink)
     }
 }

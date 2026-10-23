@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
+import Link from '@/components/print/PressLink'
 
 export const metadata: Metadata = {
   title: 'Terms of Service | The Grapevine',

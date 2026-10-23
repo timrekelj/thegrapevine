@@ -24,13 +24,21 @@ struct MessageMediaView: View {
                         .frame(maxWidth: 440, alignment: .leading)
                         .contentShape(Rectangle())
                         .onTapGesture { reveal.toggle() }
+                        .sensoryFeedback(.selection, trigger: reveal)
                         .accessibilityElement()
                         .accessibilityLabel(media.alt_text ?? "Shared image")
                         .accessibilityAddTraits(.isImage)
                 }
             } else if let error {
                 Text(error).font(.caption)
-            } else { ProgressView() }
+            } else {
+                // A proof plate where the attachment will print.
+                ProofPlate()
+                    .aspectRatio(4 / 3, contentMode: .fit)
+                    .frame(maxWidth: 440, alignment: .leading)
+                    .accessibilityElement()
+                    .accessibilityLabel("Loading attachment")
+            }
         }
         .task(id: media.url) {
             do {

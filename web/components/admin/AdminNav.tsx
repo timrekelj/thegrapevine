@@ -1,5 +1,5 @@
 'use client'
-import Link from 'next/link'
+import Link from '@/components/print/PressLink'
 import { usePathname } from 'next/navigation'
 import styles from './admin.module.css'
 

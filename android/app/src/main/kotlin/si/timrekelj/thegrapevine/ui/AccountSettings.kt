@@ -2,7 +2,6 @@ package si.timrekelj.thegrapevine.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -24,7 +22,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -95,7 +94,7 @@ fun AccountSettings(
         if (edited && trimmed.isNotEmpty() && !isSignInEmail(trimmed)) {
             Text("Enter a valid email address.", color = Press.danger, style = MetaStyle)
         }
-        InkButton(if (sending) "Sending…" else "Send confirmation", enabled = canSend) {
+        InkButton("Send confirmation", enabled = canSend, busy = sending, busyLabel = "Sending…") {
             sending = true
             emailError = null
             emailNotice = null
@@ -113,27 +112,15 @@ fun AccountSettings(
                 sending = false
             }
         }
-        emailNotice?.let { Text(it, style = MetaStyle.copy(lineHeight = 18.sp)) }
-        emailError?.let { Text(it, color = Press.danger, fontSize = 13.sp) }
-        TextButton(
-            onClick = {
-                onSignedOut()
-                app.signOut()
-            },
-            enabled = enabled && !sending && !deleting,
-            modifier = Modifier.heightIn(min = 44.dp),
-        ) {
-            Text("Sign out", style = MetaStyle.copy(color = Press.danger, fontWeight = FontWeight.SemiBold))
+        Insert(emailNotice) { Text(it, style = MetaStyle.copy(lineHeight = 18.sp)) }
+        Insert(emailError) { Text(it, color = Press.danger, fontSize = 13.sp) }
+        DangerLink("Sign out", enabled = enabled && !sending && !deleting) {
+            onSignedOut()
+            app.signOut()
         }
-        TextButton(
-            onClick = {
-                deleteError = null
-                confirmDelete = true
-            },
-            enabled = enabled && !sending && !deleting,
-            modifier = Modifier.heightIn(min = 44.dp),
-        ) {
-            Text("Delete account", style = MetaStyle.copy(color = Press.danger, fontWeight = FontWeight.SemiBold))
+        DangerLink("Delete account", enabled = enabled && !sending && !deleting) {
+            deleteError = null
+            confirmDelete = true
         }
     }
 
@@ -160,8 +147,8 @@ fun AccountSettings(
                     "This permanently deletes your account and signs you out of The Grapevine. Your name comes off the paper. Stories and links you shared stay, without your name. This cannot be undone.",
                     style = BodyStyle.copy(color = Press.ink2),
                 )
-                deleteError?.let { Text(it, color = Press.danger, fontSize = 13.sp) }
-                DangerButton(if (deleting) "Deleting…" else "Delete account", enabled = !deleting) {
+                Insert(deleteError) { Text(it, color = Press.danger, fontSize = 13.sp) }
+                DangerButton("Delete account", busy = deleting) {
                     deleting = true
                     deleteError = null
                     scope.launch {
@@ -188,15 +175,20 @@ fun AccountSettings(
     }
 }
 
+/** The one irreversible action: an ink button in the danger ink. */
 @Composable
-private fun DangerButton(text: String, enabled: Boolean, onClick: () -> Unit) {
+private fun DangerButton(text: String, busy: Boolean, onClick: () -> Unit) {
+    InkButton(text, busy = busy, busyLabel = "Deleting…", fill = Press.danger, onFill = Press.onRed, onClick = onClick)
+}
+
+/** A quiet word in the danger ink, with room enough for a thumb. */
+@Composable
+private fun DangerLink(text: String, enabled: Boolean, onClick: () -> Unit) {
     Box(
-        Modifier.fillMaxWidth().heightIn(min = 50.dp).clip(Corner)
-            .background(if (enabled) Press.danger else Press.danger.copy(alpha = 0.4f))
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 18.dp),
-        contentAlignment = Alignment.Center,
+        Modifier.heightIn(min = 44.dp).pressable(enabled = enabled, give = Give.Type, role = Role.Button, onClick = onClick)
+            .alpha(if (enabled) 1f else 0.4f).padding(horizontal = 12.dp),
+        contentAlignment = Alignment.CenterStart,
     ) {
-        Text(text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Press.onRed, maxLines = 1)
+        Text(text, style = MetaStyle.copy(color = Press.danger, fontWeight = FontWeight.SemiBold))
     }
 }

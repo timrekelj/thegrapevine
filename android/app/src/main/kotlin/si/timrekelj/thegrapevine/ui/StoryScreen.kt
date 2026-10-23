@@ -8,10 +8,24 @@ import android.webkit.MimeTypeMap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -49,7 +63,6 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -213,7 +226,7 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit, backLabel: S
         topBar = {
             Column(Modifier.background(Press.paper).statusBarsPadding().padding(horizontal = 20.dp).padding(top = 8.dp)) {
                 Row(Modifier.fillMaxWidth().heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(backLabel, style = MetaStyle.copy(color = Press.ink), modifier = Modifier.weight(1f).clickable(onClick = onBack).padding(vertical = 8.dp))
+                    Text(backLabel, style = MetaStyle.copy(color = Press.ink), modifier = Modifier.weight(1f).pressable(give = Give.Type, onClick = onBack).padding(vertical = 8.dp))
                     Text("The Grapevine", style = nameplate(24))
                     Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
                         // Story links open the app on phones that have it, and the website everywhere else.
@@ -231,11 +244,11 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit, backLabel: S
             Column(Modifier.background(Press.paper).navigationBarsPadding().imePadding()) {
                 Hairline(color = Press.ink)
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    store.error?.let { Text(it, style = MetaStyle.copy(color = Press.danger)) }
-                    if (attachments.isNotEmpty()) {
-                        ComposerNote(plural(attachments.size, "attachment"), "Remove", enabled = !locked) { attachments = emptyList() }
+                    Insert(store.error) { Text(it, style = MetaStyle.copy(color = Press.danger)) }
+                    Insert(attachments.size.takeIf { it > 0 }) { count ->
+                        ComposerNote(plural(count, "attachment"), "Remove", enabled = !locked) { attachments = emptyList() }
                     }
-                    replyTo?.let { parent ->
+                    Insert(replyTo) { parent ->
                         ComposerNote(
                             "Replying to ${store.profiles[parent.author_id]?.display_name ?: "…"}: ${parent.body ?: "attachment"}",
                             "Cancel",
@@ -244,15 +257,23 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit, backLabel: S
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(
-                            Modifier.size(48.dp).border(1.dp, Press.rule, Corner)
-                                .clickable(enabled = !locked && !loadingAttachments) {
+                            Modifier
+                                .pressable(enabled = !locked && !loadingAttachments, onClickLabel = "Attach images or video") {
                                     picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
-                                },
+                                }
+                                .size(48.dp).border(1.dp, Press.rule, Corner),
                             contentAlignment = Alignment.Center,
-                        ) { Icon(Icons.Filled.Add, contentDescription = "Attach images or video", tint = Press.ink) }
+                        ) {
+                            // Reading the picked files off the disk: dots where the plus was.
+                            if (loadingAttachments) {
+                                InkDots(dotSize = 4.dp, contentDescription = "Reading attachments")
+                            } else {
+                                Icon(Icons.Filled.Add, contentDescription = "Attach images or video", tint = Press.ink)
+                            }
+                        }
                         PaperField(draft, { draft = it }, "Write to the table…", modifier = Modifier.weight(1f), singleLine = false)
                         val canSend = !sending && !loadingAttachments && (draft.isNotBlank() || attachments.isNotEmpty())
-                        InkButton(if (sending) "Sending…" else "Send", enabled = canSend, modifier = Modifier, height = 48.dp) {
+                        InkButton("Send", enabled = canSend, modifier = Modifier, height = 48.dp, busy = sending, busyLabel = "Sending…") {
                             scope.launch {
                                 sending = true
                                 if (store.postMessage(draft, replyTo?.id, attachments)) {
@@ -273,8 +294,8 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit, backLabel: S
             if (story != null) {
                 val readable = store.sources.count { it.extraction_status == "ok" }
                 val lead = store.sources.firstOrNull { it.image_url != null }
-                item {
-                    Column(Modifier.padding(horizontal = 20.dp).padding(top = 22.dp)) {
+                item(key = "head") {
+                    Column(Modifier.animateItem().padding(horizontal = 20.dp).padding(top = 22.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text((story.category ?: "Unfiled").uppercase(), style = LabelStyle)
                             Text("Updated ${clock(store.history.firstOrNull()?.created_at ?: story.last_activity_at)}", style = MetaStyle.copy(color = Press.ink3))
@@ -311,8 +332,8 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit, backLabel: S
                         }
                     }
                 }
-                if (store.sources.isNotEmpty()) item {
-                    Column(Modifier.padding(top = 20.dp)) {
+                if (store.sources.isNotEmpty()) item(key = "clippings") {
+                    Column(Modifier.animateItem().padding(top = 20.dp)) {
                         Row(Modifier.padding(horizontal = 20.dp).padding(bottom = 8.dp)) {
                             Text("CLIPPINGS", style = LabelStyle, modifier = Modifier.weight(1f))
                             MetaRow("${store.sources.size}")
@@ -325,39 +346,39 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit, backLabel: S
                         ) { items(store.sources, key = { it.id }) { SourceClip(it) } }
                     }
                 }
-                item { SectionHead("The conversation", Modifier.padding(horizontal = 20.dp).padding(top = 36.dp)) }
+                item(key = "conversation") { SectionHead("The conversation", Modifier.animateItem().padding(horizontal = 20.dp).padding(top = 36.dp)) }
 
-                if (timeline.isEmpty()) item { Text("Start the conversation.", style = BodyStyle.copy(color = Press.ink2), modifier = Modifier.padding(20.dp)) }
+                if (timeline.isEmpty()) item(key = "empty") { Text("Start the conversation.", style = BodyStyle.copy(color = Press.ink2), modifier = Modifier.animateItem().padding(20.dp)) }
                 timeline.forEach { entries ->
-                    item(key = "day-${entries.first().key}") { DayDivider(dayLabel(entries.first().createdAt)) }
+                    item(key = "day-${entries.first().key}") { Box(Modifier.animateItem()) { DayDivider(dayLabel(entries.first().createdAt)) } }
+                    // New messages and sources are set in: they fade in while the rest of the column makes room.
                     items(entries, key = { it.key }) { entry ->
-                        when (entry) {
-                            is Entry.FromSource -> SourceEntry(entry.source, store, userId, onOpen = { uriHandler.openWebLink(it) })
-                            is Entry.FromMessage -> Column {
-                                val lastRead = store.lastRead
-                                if (unread != null && lastRead != null && entry.message.id == unread.firstMessageId) {
-                                    NewSinceDivider("${unread.count} new since ${clock(lastRead)}")
+                        Box(Modifier.animateItem()) {
+                            when (entry) {
+                                is Entry.FromSource -> SourceEntry(entry.source, store, userId, onOpen = { uriHandler.openWebLink(it) })
+                                is Entry.FromMessage -> Column {
+                                    val lastRead = store.lastRead
+                                    if (unread != null && lastRead != null && entry.message.id == unread.firstMessageId) {
+                                        NewSinceDivider("${unread.count} new since ${clock(lastRead)}")
+                                    }
+                                    MessageEntry(
+                                        message = entry.message,
+                                        store = store,
+                                        userId = userId,
+                                        replyEnabled = store.pendingMessageId == null,
+                                        onReply = { replyTo = it },
+                                        onReact = { emoji -> scope.launch { store.toggleReaction(entry.message.id, emoji) } },
+                                    )
                                 }
-                                MessageEntry(
-                                    message = entry.message,
-                                    store = store,
-                                    userId = userId,
-                                    replyEnabled = store.pendingMessageId == null,
-                                    onReply = { replyTo = it },
-                                    onReact = { emoji -> scope.launch { store.toggleReaction(entry.message.id, emoji) } },
-                                )
                             }
                         }
                     }
                 }
-                store.notice?.let { notice -> item { MetaRow(notice, Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) } }
-                item { Spacer(Modifier.height(24.dp)) }
-            } else if (store.isLoading) {
-                item {
-                    Box(Modifier.fillMaxWidth().padding(60.dp), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = Press.ink, strokeWidth = 2.dp)
-                    }
-                }
+                store.notice?.let { notice -> item(key = "notice") { MetaRow(notice, Modifier.animateItem().padding(horizontal = 20.dp, vertical = 12.dp)) } }
+                item(key = "foot") { Spacer(Modifier.height(24.dp)) }
+            } else if (store.error == null) {
+                // Before the story first comes back: the page in galley proof, which the story fades in over.
+                item(key = "proof") { StoryProof(Modifier.animateItem()) }
             } else {
                 store.error?.let { error ->
                     item {
@@ -501,6 +522,11 @@ private fun MessageEntry(
     // Only reactions someone used, in picker order; unknown emoji keep their first-seen order after.
     val used = reactions.map { it.emoji }.distinct()
         .sortedBy { EMOJIS.indexOf(it).takeIf { index -> index >= 0 } ?: EMOJIS.size }
+    val react = { emoji: String ->
+        val adding = reactions.none { it.emoji == emoji && it.user_id == userId }
+        haptics.performHapticFeedback(if (adding) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+        onReact(emoji)
+    }
     Row(
         Modifier
             .pointerInput(Unit) {
@@ -537,28 +563,24 @@ private fun MessageEntry(
             message.message_media.orEmpty().sortedBy { it.position }.forEach { MessageMedia(it) }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 LazyRow(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    items(used) { emoji ->
-                        val count = reactions.count { it.emoji == emoji }
-                        val mine = reactions.any { it.emoji == emoji && it.user_id == userId }
-                        Text(
-                            "$emoji $count",
-                            style = MetaStyle.copy(fontSize = 13.sp, color = if (mine) Press.paper else Press.ink),
-                            modifier = Modifier
-                                .background(if (mine) Press.ink else Press.paper, CircleShape)
-                                .border(BorderStroke(1.dp, if (mine) Press.ink else Press.rule), CircleShape)
-                                .clickable(onClickLabel = if (mine) "Remove $emoji" else "React $emoji") { onReact(emoji) }
-                                .padding(horizontal = 9.dp, vertical = 5.dp),
+                    items(used, key = { it }) { emoji ->
+                        ReactionChip(
+                            emoji = emoji,
+                            count = reactions.count { it.emoji == emoji },
+                            mine = reactions.any { it.emoji == emoji && it.user_id == userId },
+                            modifier = Modifier.animateItem(),
+                            onClick = { react(emoji) },
                         )
                     }
-                    item {
-                        Box {
+                    item(key = "add") {
+                        Box(Modifier.animateItem()) {
                             Icon(
                                 AddReactionIcon,
                                 contentDescription = "Add reaction",
                                 tint = Press.ink3,
                                 modifier = Modifier
+                                    .pressable(give = Give.Chip, onClickLabel = "Add reaction") { picking = true }
                                     .clip(CircleShape)
-                                    .clickable { picking = true }
                                     .padding(horizontal = 8.dp, vertical = 5.dp)
                                     .size(18.dp),
                             )
@@ -571,7 +593,7 @@ private fun MessageEntry(
                             ) {
                                 ReactionPicker(mine = reactions.filter { it.user_id == userId }.map { it.emoji }.toSet()) { emoji ->
                                     picking = false
-                                    onReact(emoji)
+                                    react(emoji)
                                 }
                             }
                         }
@@ -580,6 +602,49 @@ private fun MessageEntry(
                 TextAction("↩ Reply", enabled = replyEnabled) { onReply(message) }
             }
         }
+    }
+}
+
+/**
+ * A reaction's count, in a pill. Pressing gives; a change pops it like a fresh impression, and the
+ * count rolls up or down like a counter on the press.
+ */
+@Composable
+private fun ReactionChip(emoji: String, count: Int, mine: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val reduced = rememberReducedMotion()
+    val pop = remember { Animatable(1f) }
+    val settled = remember { booleanArrayOf(false) }
+    LaunchedEffect(mine, count) {
+        // Not on first showing; only when it changes under the reader.
+        if (!settled[0]) { settled[0] = true; return@LaunchedEffect }
+        if (reduced) return@LaunchedEffect
+        pop.animateTo(1.18f, tween(90, easing = LinearOutSlowInEasing))
+        pop.animateTo(1f, spring(dampingRatio = 0.38f, stiffness = Spring.StiffnessMedium))
+    }
+    val fill by animateColorAsState(if (mine) Press.ink else Press.paper, tween(180), label = "reaction fill")
+    val type by animateColorAsState(if (mine) Press.paper else Press.ink, tween(180), label = "reaction type")
+    val edge by animateColorAsState(if (mine) Press.ink else Press.rule, tween(180), label = "reaction edge")
+    Row(
+        modifier
+            .graphicsLayer { scaleX = pop.value; scaleY = pop.value }
+            .pressable(give = Give.Chip, onClickLabel = if (mine) "Remove $emoji" else "React $emoji", onClick = onClick)
+            .background(fill, CircleShape)
+            .border(BorderStroke(1.dp, edge), CircleShape)
+            .padding(horizontal = 9.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        val style = MetaStyle.copy(fontSize = 13.sp, color = type)
+        Text("$emoji ", style = style)
+        AnimatedContent(
+            count,
+            transitionSpec = {
+                val up = targetState > initialState
+                (slideInVertically { if (up) it else -it } + fadeIn(tween(160)))
+                    .togetherWith(slideOutVertically { if (up) -it else it } + fadeOut(tween(120)))
+                    .using(SizeTransform(clip = true))
+            },
+            label = "reaction count",
+        ) { Text("$it", style = style) }
     }
 }
 
@@ -597,7 +662,7 @@ private fun ReactionPicker(mine: Set<String>, onPick: (String) -> Unit) {
                             .clip(RoundedCornerShape(3.dp))
                             .background(if (selected) Press.tint else Color.Transparent)
                             .border(BorderStroke(1.dp, if (selected) Press.ink else Color.Transparent), RoundedCornerShape(3.dp))
-                            .clickable(onClickLabel = if (selected) "Remove $emoji" else "React $emoji") { onPick(emoji) },
+                            .pressable(give = Give.Chip, onClickLabel = if (selected) "Remove $emoji" else "React $emoji") { onPick(emoji) },
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(emoji, fontSize = 22.sp)
@@ -617,7 +682,7 @@ private fun MessageMedia(media: Media) {
         Text(
             "▶  Play video",
             style = MetaStyle.copy(color = Press.ink),
-            modifier = Modifier.clipping(Press.ink3, Press.raised).clickable(enabled = url != null) { url?.let(uriHandler::openWebLink) }.padding(horizontal = 16.dp, vertical = 14.dp),
+            modifier = Modifier.pressable(enabled = url != null, give = Give.Story) { url?.let(uriHandler::openWebLink) }.clipping(Press.ink3, Press.raised).padding(horizontal = 16.dp, vertical = 14.dp),
         )
     } else {
         // Printed through the screen like every photo on the web; a tap shows it clean (the web's hover).
@@ -626,7 +691,7 @@ private fun MessageMedia(media: Media) {
         PlateView(
             url,
             media.alt_text ?: "Shared image",
-            Modifier.fillMaxWidth().aspectRatio(4f / 3f).clickable { reveal = !reveal },
+            Modifier.fillMaxWidth().aspectRatio(4f / 3f).pressable(give = Give.Story, onClickLabel = if (reveal) "Print through the screen" else "Show the clean photo") { reveal = !reveal },
             screen = media.kind != "gif" && !reveal,
         )
     }
@@ -653,15 +718,16 @@ private fun ReportSheet(store: StoryState, initialTarget: String, onDismiss: () 
                     Text(
                         label,
                         style = MetaStyle.copy(color = if (selected) Press.paper else Press.ink, fontWeight = FontWeight.SemiBold),
-                        modifier = Modifier.background(if (selected) Press.ink else Press.paper, Corner)
+                        modifier = Modifier.pressable(give = Give.Chip, role = Role.RadioButton) { target = value }
+                            .background(animateColorAsState(if (selected) Press.ink else Press.paper, label = "target").value, Corner)
                             .border(1.dp, if (selected) Press.ink else Press.rule, Corner)
-                            .clickable { target = value }.padding(horizontal = 14.dp, vertical = 9.dp),
+                            .padding(horizontal = 14.dp, vertical = 9.dp),
                     )
                 }
             }
             Text("NOTE (OPTIONAL)", style = LabelStyle)
             PaperField(note, { note = it }, "…", singleLine = false)
-            InkButton(if (busy) "Reporting…" else "Report", enabled = !busy) {
+            InkButton("Report", busy = busy, busyLabel = "Reporting…") {
                 scope.launch {
                     busy = true
                     val success = store.report(target, note)
@@ -669,7 +735,7 @@ private fun ReportSheet(store: StoryState, initialTarget: String, onDismiss: () 
                     if (success) onDismiss()
                 }
             }
-            store.error?.let { Text(it, style = MetaStyle.copy(color = Press.danger)) }
+            Insert(store.error) { Text(it, style = MetaStyle.copy(color = Press.danger)) }
         }
     }
 }

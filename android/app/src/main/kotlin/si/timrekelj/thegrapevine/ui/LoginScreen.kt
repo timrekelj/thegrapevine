@@ -2,7 +2,6 @@ package si.timrekelj.thegrapevine.ui
 
 import android.content.Intent
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.background
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -33,8 +31,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.draw.clip
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -96,13 +94,16 @@ fun LoginScreen(app: AppState) {
     var sent by rememberSaveable { mutableStateOf(false) }
     var code by rememberSaveable { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
+    /** Which action is at the press, so only its button prints the dots. */
+    var working by remember { mutableStateOf<String?>(null) }
     var resendLeft by rememberSaveable { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    fun run(action: suspend () -> Unit) {
+    fun run(what: String? = null, action: suspend () -> Unit) {
         scope.launch {
             busy = true
+            working = what
             app.error = null
             try {
                 action()
@@ -112,12 +113,13 @@ fun LoginScreen(app: AppState) {
                 app.error = e.message
             }
             busy = false
+            working = null
         }
     }
 
     fun sendCode() {
         if (busy || email.isBlank()) return
-        run {
+        run("code") {
             app.signIn(email)
             code = ""
             resendLeft = RESEND_SECONDS
@@ -125,7 +127,7 @@ fun LoginScreen(app: AppState) {
         }
     }
 
-    fun verifyCode() = run {
+    fun verifyCode() = run("verify") {
         try {
             app.verifyCode(email, code)
         } catch (e: Exception) {
@@ -181,13 +183,14 @@ fun LoginScreen(app: AppState) {
                     })
                     ErrorLine(app.error)
                     Spacer(Modifier.height(16.dp))
-                    PrimaryButton(if (busy) "Signing in…" else "Sign in", enabled = !busy && code.length == SIGN_IN_CODE_LENGTH) { verifyCode() }
+                    PrimaryButton("Sign in", enabled = !busy && code.length == SIGN_IN_CODE_LENGTH, busy = working == "verify", busyLabel = "Signing in…") { verifyCode() }
                     Spacer(Modifier.height(16.dp))
                     QuietButton(
                         if (resendLeft > 0) "Send a new code in 0:%02d".format(resendLeft) else "Send a new code",
                         enabled = !busy && resendLeft == 0,
+                        busy = working == "resend",
                     ) {
-                        run {
+                        run("resend") {
                             app.signIn(email)
                             code = ""
                             resendLeft = RESEND_SECONDS
@@ -211,7 +214,7 @@ fun LoginScreen(app: AppState) {
                     )
                     ErrorLine(app.error)
                     Spacer(Modifier.height(16.dp))
-                    PrimaryButton(if (busy) "Sending…" else "Email me a code", enabled = !busy && email.isNotBlank()) { sendCode() }
+                    PrimaryButton("Email me a code", enabled = !busy && email.isNotBlank(), busy = working == "code", busyLabel = "Sending…") { sendCode() }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -223,8 +226,8 @@ fun LoginScreen(app: AppState) {
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         AuthProvider.entries.forEach { provider ->
-                            ProviderButton(provider, enabled = !busy) {
-                                run { context.startActivity(Intent(Intent.ACTION_VIEW, app.startOAuth(provider).toUri())) }
+                            ProviderButton(provider, enabled = !busy, busy = working == provider.name) {
+                                run(provider.name) { context.startActivity(Intent(Intent.ACTION_VIEW, app.startOAuth(provider).toUri())) }
                             }
                         }
                     }
@@ -249,7 +252,10 @@ private fun Nameplate(onBack: (() -> Unit)?) {
             Hairline(color = Press.ink)
         }
         if (onBack != null) {
-            IconButton(onClick = onBack, modifier = Modifier.padding(start = 0.dp).size(40.dp).align(Alignment.TopStart)) {
+            Box(
+                Modifier.align(Alignment.TopStart).size(40.dp).pressable(give = Give.Chip, role = Role.Button, onClick = onBack),
+                contentAlignment = Alignment.Center,
+            ) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Use a different email", tint = Press.ink)
             }
         }
@@ -293,42 +299,40 @@ private fun CodeCells(code: String, invalid: Boolean, onChange: (String) -> Unit
 }
 
 @Composable
-fun PrimaryButton(text: String, enabled: Boolean, onClick: () -> Unit) {
-    InkButton(text, enabled = enabled, height = 52.dp, onClick = onClick)
+fun PrimaryButton(text: String, enabled: Boolean, busy: Boolean = false, busyLabel: String? = null, onClick: () -> Unit) {
+    InkButton(text, enabled = enabled, height = 52.dp, busy = busy, busyLabel = busyLabel, onClick = onClick)
 }
 
 @Composable
-private fun QuietButton(text: String, enabled: Boolean, onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
-        enabled = enabled,
-        shape = Corner,
-        border = BorderStroke(1.dp, if (enabled) Press.rule else Color.Transparent),
-        modifier = Modifier.fillMaxWidth().heightIn(min = 46.dp),
+private fun QuietButton(text: String, enabled: Boolean, busy: Boolean = false, onClick: () -> Unit) {
+    GhostButton(text, enabled = enabled, busy = busy, busyLabel = "Sending a new code…", onClick = onClick)
+}
+
+/** A sign-in provider on a raised card; while its browser is being opened, ink dots replace its name. */
+@Composable
+private fun ProviderButton(provider: AuthProvider, enabled: Boolean, busy: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier.fillMaxWidth()
+            .pressable(enabled = enabled, role = Role.Button, onClickLabel = provider.title, onClick = onClick)
+            .heightIn(min = 52.dp).alpha(if (enabled || busy) 1f else 0.5f)
+            .clip(Corner).background(Press.raised).border(1.dp, Press.rule, Corner)
+            .padding(horizontal = 16.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        Text(text, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = if (enabled) Press.ink else Press.ink2)
+        if (busy) InkDots(contentDescription = "Opening ${provider.title}")
+        Row(Modifier.alpha(if (busy) 0f else 1f), verticalAlignment = Alignment.CenterVertically) { ProviderLabel(provider) }
     }
 }
 
 @Composable
-private fun ProviderButton(provider: AuthProvider, enabled: Boolean, onClick: () -> Unit) {
-    OutlinedButton(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).alpha(if (enabled) 1f else 0.5f),
-        shape = Corner,
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        border = BorderStroke(1.dp, Press.rule),
-        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(containerColor = Press.raised, contentColor = Press.ink),
-    ) {
+private fun ProviderLabel(provider: AuthProvider) {
         when (provider) {
             AuthProvider.Google -> Image(painterResource(R.drawable.google_sign_in), contentDescription = null, modifier = Modifier.size(20.dp))
             AuthProvider.Apple -> Icon(painterResource(R.drawable.apple_logo), contentDescription = null, tint = Press.ink, modifier = Modifier.size(20.dp))
             AuthProvider.X -> Icon(painterResource(R.drawable.x_sign_in), contentDescription = null, tint = Press.ink, modifier = Modifier.size(18.dp))
         }
         Spacer(Modifier.width(12.dp))
-        Text(provider.title, fontSize = 15.sp, lineHeight = 20.sp, fontWeight = FontWeight.Medium)
-    }
+        Text(provider.title, fontSize = 15.sp, lineHeight = 20.sp, fontWeight = FontWeight.Medium, color = Press.ink)
 }
 
 @Composable

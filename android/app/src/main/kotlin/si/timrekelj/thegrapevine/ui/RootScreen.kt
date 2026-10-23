@@ -14,7 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -40,15 +41,25 @@ import si.timrekelj.thegrapevine.OneSignalManager
 import si.timrekelj.thegrapevine.PaperState
 import si.timrekelj.thegrapevine.R
 
-/** Mirrors `ContentView` in GrapevineApp.swift. */
+private enum class Stage { Checking, SignedOut, Onboarding, Paper }
+
+/** Mirrors `ContentView` in GrapevineApp.swift. One stage fades into the next, like a page turned under the light. */
 @Composable
 fun RootScreen(app: AppState) {
-    Box(Modifier.fillMaxSize().background(Press.paper)) {
-        when {
-            !app.checked -> CircularProgressIndicator(color = Press.ink, strokeWidth = 2.dp, modifier = Modifier.align(Alignment.Center))
-            app.session == null -> LoginScreen(app)
-            app.group == null -> OnboardingScreen(app)
-            else -> MainTabs(app)
+    val stage = when {
+        !app.checked -> Stage.Checking
+        app.session == null -> Stage.SignedOut
+        app.group == null -> Stage.Onboarding
+        else -> Stage.Paper
+    }
+    Crossfade(stage, Modifier.fillMaxSize().background(Press.paper), animationSpec = tween(320), label = "stage") { current ->
+        Box(Modifier.fillMaxSize()) {
+            when (current) {
+                Stage.Checking -> GoingToPress(modifier = Modifier.align(Alignment.Center))
+                Stage.SignedOut -> LoginScreen(app)
+                Stage.Onboarding -> OnboardingScreen(app)
+                Stage.Paper -> MainTabs(app)
+            }
         }
     }
     val signedIn = app.checked && app.session != null
@@ -142,7 +153,8 @@ private fun MainTabs(app: AppState) {
             }
         },
     ) { padding ->
-        Box(Modifier.padding(padding).statusBarsPadding().clipToBounds()) {
+        // Tabs change like turning to another section: a short crossfade.
+        Crossfade(tab, Modifier.padding(padding).statusBarsPadding().clipToBounds(), animationSpec = tween(220), label = "tab") { tab ->
             when (tab) {
                 0 -> FrontPageScreen(
                     app,

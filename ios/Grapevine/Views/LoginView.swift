@@ -37,6 +37,8 @@ struct LoginView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .animation(.snappy(duration: 0.25), value: sent)
+        .animation(.snappy(duration: 0.25), value: app.error)
+        .sensoryFeedback(.error, trigger: app.error) { _, now in now != nil }
     }
 
     // MARK: - Sections
@@ -98,7 +100,7 @@ struct LoginView: View {
                     .paperField(focused: focus == .email, invalid: app.error != nil)
                     .accessibilityLabel("Email address")
                 errorText
-                primaryButton(busy ? "Sending…" : "Email me a code", enabled: !email.trimmed.isEmpty, action: sendCode)
+                primaryButton("Email me a code", busyText: "Sending…", enabled: !email.trimmed.isEmpty, action: sendCode)
                     .padding(.top, 8)
             }
             HStack(spacing: 12) {
@@ -148,7 +150,7 @@ struct LoginView: View {
                         .background(Color.white, in: field)
                         .overlay(field.stroke(Theme.rule, lineWidth: 1))
                     }
-                    .buttonStyle(.plain).disabled(busy).opacity(busy ? 0.5 : 1)
+                    .buttonStyle(PressStyle()).disabled(busy).opacity(busy ? 0.5 : 1)
                 }
             }
         }
@@ -175,6 +177,8 @@ struct LoginView: View {
                         let active = focus == .code && index == min(digits.count, signInCodeLength - 1)
                         Text(index < digits.count ? String(digits[index]) : "")
                             .font(Theme.headline(30)).monospacedDigit()
+                            // Each digit is set into its cell like a sort dropped into the forme.
+                            .contentTransition(.numericText())
                             .foregroundColor(Theme.ink)
                             .frame(maxWidth: .infinity, minHeight: 62)
                             .background(Theme.raised, in: field)
@@ -184,11 +188,13 @@ struct LoginView: View {
                 }
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
+                .animation(.snappy(duration: 0.2), value: code)
+                .animation(.snappy(duration: 0.2), value: focus)
             }
             .contentShape(Rectangle())
             .onTapGesture { focus = .code }
             errorText
-            primaryButton(busy ? "Signing in…" : "Sign in", enabled: code.count == signInCodeLength, action: verifyCode)
+            primaryButton("Sign in", busyText: "Signing in…", enabled: code.count == signInCodeLength, action: verifyCode)
                 .padding(.top, 8)
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 let left = max(0, Int(resendAt.timeIntervalSince(context.date).rounded(.up)))
@@ -199,7 +205,7 @@ struct LoginView: View {
                         .foregroundColor(left > 0 ? Theme.ink2 : Theme.ink)
                         .overlay(field.stroke(left > 0 ? .clear : Theme.rule, lineWidth: 1))
                 }
-                .buttonStyle(.plain).disabled(busy || left > 0)
+                .buttonStyle(PressStyle()).disabled(busy || left > 0)
             }
             .padding(.top, 8)
         }
@@ -221,13 +227,16 @@ struct LoginView: View {
         if let error = app.error {
             Label(error, systemImage: "exclamationmark.circle")
                 .font(.system(size: 14, weight: .medium)).foregroundColor(Theme.danger)
+                .arrives()
         }
     }
 
-    private func primaryButton(_ title: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+    /// The ink button; while signing in it prints dots and reads `busyText` to VoiceOver.
+    private func primaryButton(_ title: String, busyText: String, enabled: Bool, action: @escaping () -> Void) -> some View {
         Button(title, action: action)
-            .buttonStyle(InkButtonStyle(enabled: enabled))
+            .buttonStyle(InkButtonStyle(enabled: enabled, busy: busy && enabled))
             .disabled(busy || !enabled)
+            .busyAccessibility(busy, busyText)
     }
 
     // MARK: - Actions

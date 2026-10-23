@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto'
-import Link from 'next/link'
+import Link from '@/components/print/PressLink'
 import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
 import { connection } from 'next/server'
 import { createPaper } from '@/lib/papers'
 import { isUuid } from '@/lib/validate'
+import SubmitButton from '@/components/print/SubmitButton'
 import styles from '@/components/print/card.module.css'
 
 export default async function NewGroupPage({ searchParams }: PageProps<'/group/new'>) {
@@ -33,7 +34,7 @@ export default async function NewGroupPage({ searchParams }: PageProps<'/group/n
         <form action={createGroup} className={styles.form}>
           <label htmlFor="name">Paper name</label>
           <input id="name" name="name" required maxLength={100} placeholder="The Sunday Club" defaultValue={typeof params.name === 'string' ? params.name : ''} />
-          <button className="btn">Create the paper</button>
+          <SubmitButton className="btn" pending="Creating the paper…">Create the paper</SubmitButton>
         </form>
         {typeof params.error === 'string' && <p role="alert" className={styles.error}>{params.error}</p>}
       </div>

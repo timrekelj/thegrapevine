@@ -22,7 +22,7 @@
 
 /* ---------- later edition ---------- */
 .later { display: block; width: 100%; margin-top: 10px; padding: 9px; border: 0; border-top: 2px solid var(--red); border-bottom: 2px solid var(--red); background: transparent; color: var(--ink); font: 600 12px/16px var(--mono); letter-spacing: .04em; text-transform: uppercase; cursor: pointer; }
-.later:hover { background: var(--tint); }
+.later:hover:not(:disabled) { background: var(--tint); }
 
 /* ---------- above the fold ---------- */
 .fold { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); margin-top: 28px; }
@@ -113,8 +113,29 @@
 .dialogActions { display: flex; justify-content: flex-end; align-items: center; gap: 16px; margin-top: 20px; }
 .cancel { border: 0; background: transparent; color: var(--ink); font: 500 14px/1 var(--sans); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); z-index: 50; max-width: calc(100% - 32px); width: max-content; padding: 13px 20px; background: var(--ink); color: var(--paper); font: 500 13px/19px var(--mono); box-shadow: 5px 5px 0 var(--rule); }
-.toast button { background: transparent; border: 0; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; padding: 0 0 0 8px; }
+.toast button { color: inherit; background: transparent; border: 0; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; padding: 0 0 0 8px; }
 .error { color: var(--danger); font: 500 14px/1.4 var(--sans); }
+/* the filing line ("Reading example.com…"), with ink dots ahead of it while the press works */
+.filing { display: flex; align-items: center; gap: 10px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .later { animation: later-in .4s cubic-bezier(.2, .7, .2, 1) both; }
+  .toast { animation: toast-in .3s cubic-bezier(.2, .7, .2, 1) both; }
+  /* the dialog is laid down on the table like a proof */
+  .dialog[open] { animation: proof-down .26s cubic-bezier(.2, .7, .2, 1) both; }
+  .dialog[open]::backdrop { animation: fresh-ink .26s ease-out both; }
+}
+@keyframes later-in { from { opacity: 0; transform: translateY(-6px); } }
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 10px); } }
+@keyframes proof-down { from { opacity: 0; transform: translateY(10px) rotate(-.6deg); box-shadow: 0 0 0 var(--ink); } }
+
+/* ---------- galley proofs (app/(paper)/loading.tsx, app/archive/loading.tsx) ---------- */
+.proofNameplate { display: grid; justify-items: center; padding: 14px 0 22px; }
+.proofStack { display: grid; gap: 14px; align-content: start; }
+.proofLead { display: grid; gap: 12px; margin: 2px 0 8px; }
+.proofLead > span { height: clamp(30px, 4vw, 58px); }
+.proofSummary { margin: 8px 0 4px; font-size: 19px; }
+.dateline > :global(.ink-press) { justify-self: center; }
 
 @media (max-width: 1200px) {
   .paper { padding: 24px 32px 32px; }

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
+import Link from '@/components/print/PressLink'
 import { requireAdmin } from '@/lib/auth'
 import AdminNav from '@/components/admin/AdminNav'
 import styles from '@/components/admin/admin.module.css'
