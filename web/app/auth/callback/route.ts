@@ -16,5 +16,11 @@ export async function GET(request: Request) {
       redirect(membershipError || memberships?.length ? destination : `/onboarding?${new URLSearchParams({ redirect: destination })}`)
     }
   }
+  // An email-change link that fails should land back on the account page when this browser is still signed in.
+  if (destination.startsWith('/settings')) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) redirect(`/settings?${new URLSearchParams({ error: 'That link could not be confirmed. Request a new one from your account page.' })}`)
+  }
   redirect(`/login?${new URLSearchParams({ redirect: destination, error: 'Sign-in was cancelled or could not be completed. Please try again.' })}`)
 }

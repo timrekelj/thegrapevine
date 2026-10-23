@@ -10,7 +10,7 @@ export default function PrivacyPage() {
   return (
     <>
       <h1>Privacy Policy</h1>
-      <p className="meta">Last updated: October 18, 2026</p>
+      <p className="meta">Last updated: October 23, 2026</p>
       <p>The Grapevine is a private newspaper curated by friends. This policy explains how personal information is handled across our website and iOS and Android apps. Tim Rekelj operates the service and is the controller of personal information processed for its operation. Contact: <a href="mailto:hello@thegrapevine.si">hello@thegrapevine.si</a>.</p>
 
       <h2>1. Information we process</h2>
@@ -51,7 +51,7 @@ export default function PrivacyPage() {
 
       <h2>6. Retention and deletion</h2>
       <p>Account and group information is retained while needed to provide the service. Shared stories, discussions, and story history are not automatically removed merely because you sign out, uninstall the app, or stop participating. Diagnostic and security records, support correspondence, provider logs, and backups may have different retention periods based on their purpose, provider settings, legal requirements, and security needs. We do not promise a single automatic deletion period for all data.</p>
-      <p>To request account deletion or removal of personal information, email <a href="mailto:hello@thegrapevine.si">hello@thegrapevine.si</a>, preferably from the email address associated with your account. We may need to verify your identity. We will assess what must be deleted, anonymized, or retained, including information in shared group records and any legal obligations, and explain applicable limits. Backup copies may remain until they expire through the backup lifecycle; copies independently saved by other members are outside our control.</p>
+      <p>You can delete your account from Account on the website. Deletion removes your profile, messages, reactions, and files you uploaded. Stories and links you shared stay in the paper without your name. A paper with no remaining members is deleted; if you owned a paper that others still belong to, ownership passes to the longest-standing other member. To ask for deletion another way, or for removal of other personal information, email <a href="mailto:hello@thegrapevine.si">hello@thegrapevine.si</a>, preferably from the email address associated with your account. We may need to verify your identity. We will assess what must be deleted, anonymized, or retained, including information in shared group records and any legal obligations, and explain applicable limits. Backup copies may remain until they expire through the backup lifecycle; copies independently saved by other members are outside our control.</p>
 
       <h2>7. International processing and security</h2>
       <p>Our providers may process information in countries outside your country of residence, including outside the European Economic Area. Where applicable law requires safeguards for a transfer, appropriate safeguards, such as standard contractual clauses or a recognized adequacy framework, are required. Contact us for information about the safeguards applicable to your data.</p>

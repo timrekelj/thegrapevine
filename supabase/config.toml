@@ -396,6 +396,11 @@ allow_dynamic_registration = false
 [functions.send-notification]
 verify_jwt = false
 
+# delete-account is called by the signed-in user with their own JWT and an empty body.
+# The gateway checks the JWT; the function deletes only that caller.
+[functions.delete-account]
+verify_jwt = true
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
