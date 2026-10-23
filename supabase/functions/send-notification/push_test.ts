@@ -30,9 +30,16 @@ Deno.test('push targets the canonical user, preserves retry key and opens the st
     const payload = pushPayload({ ...notification, kind });
     assert(payload.include_aliases.external_id[0] === notification.user_id.toLowerCase());
     assert(payload.idempotency_key === notification.id);
-    assert(payload.url.endsWith(`/story/${notification.story_id}`));
+    assert(payload.url?.endsWith(`/story/${notification.story_id}`));
     assert(payload.contents.en.length > 0 && payload.target_channel === 'push');
   }
+});
+
+Deno.test('filing receipts open the story, or just the app when no source was saved', () => {
+  const filed = pushPayload({ ...notification, kind: 'source_filed' });
+  assert(filed.url?.endsWith(`/story/${notification.story_id}`));
+  const lost = pushPayload({ ...notification, kind: 'source_failed', story_id: null });
+  assert(!('url' in lost) && lost.contents.en !== pushPayload({ ...notification, kind: 'source_failed' }).contents.en);
 });
 
 Deno.test('webhook rejects missing/wrong secret before querying the database', async () => {
@@ -40,7 +47,7 @@ Deno.test('webhook rejects missing/wrong secret before querying the database', a
   assert((await handleNotification(request('wrong'))).status === 401);
 });
 
-Deno.test('delivery checks membership and preferences; skips read, old, muted and duplicate events', async () => {
+Deno.test('delivery checks membership and preferences (not for receipts); skips read, old, muted and duplicate events', async () => {
   const original = globalThis.fetch;
   try {
     const cases = [
@@ -52,6 +59,10 @@ Deno.test('delivery checks membership and preferences; skips read, old, muted an
       { row: { ...notification, kind: 'digest' }, member: true, enabled: true, send: false },
       { row: { ...notification, kind: 'mention' }, member: true, enabled: true, send: false },
       { row: notification, member: true, enabled: true, send: true, fail: true },
+      { row: { ...notification, kind: 'source_filed' }, member: true, enabled: false, send: true },
+      { row: { ...notification, kind: 'source_failed', story_id: null }, member: true, enabled: false, send: true },
+      { row: { ...notification, kind: 'source_filed' }, member: false, enabled: true, send: false },
+      { row: { ...notification, story_id: null }, member: true, enabled: true, send: false },
     ];
     for (const example of cases) {
       let sent = 0;

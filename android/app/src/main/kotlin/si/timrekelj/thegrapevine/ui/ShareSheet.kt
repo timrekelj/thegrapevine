@@ -16,6 +16,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -29,7 +31,7 @@ import si.timrekelj.thegrapevine.encodeBody
 private data class SubmitBody(val group_id: String, val url: String, val comment: String?)
 
 @Serializable
-private data class SubmitResult(val status: String, val story_id: String? = null, val story_title: String? = null)
+private data class SubmitResult(val status: String, val story_id: String? = null)
 
 /**
  * Mirrors `ShareView.swift`. Also opened over other apps from the system share
@@ -40,6 +42,7 @@ private data class SubmitResult(val status: String, val story_id: String? = null
 fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", onOpenApp: (() -> Unit)? = null) {
     val api = LocalApi.current
     val scope = rememberCoroutineScope()
+    val haptics = LocalHapticFeedback.current
     var url by remember { mutableStateOf(initialUrl) }
     var comment by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
@@ -80,6 +83,8 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", on
             Insert(result) { Text(it, style = BodyStyle.copy(fontWeight = FontWeight.SemiBold)) }
             InkButton("Share with your paper", enabled = !busy && url.isNotBlank() && app.group != null, busy = busy, busyLabel = "Posting…") {
                 val group = app.group ?: return@InkButton
+                // The server accepts the link and files it in the background, then sends a push when
+                // it's on the paper. So the sheet closes right away, returning to the app the link came from.
                 scope.launch {
                     busy = true
                     result = null
@@ -88,15 +93,14 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", on
                             "functions/v1/submit-source",
                             encodeBody(SubmitBody(group.id, url.trim(), comment.trim().ifEmpty { null })),
                         )
-                        // A 429 (too many links in ten minutes) arrives as ApiError with the server's message.
-                        val title = submitted.story_title?.takeIf { it.isNotBlank() } ?: "the story"
-                        when (submitted.status) {
-                            "duplicate" -> "Your contribution was not added because it was a duplicate."
-                            "joined" -> "Filed under $title."
-                            "new_story" -> "New story: $title."
-                            else -> "Posted."
+                        if (submitted.status != "duplicate") {
+                            haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                            onDismiss()
+                            return@launch
                         }
+                        "Your contribution was not added because it was a duplicate."
                     } catch (e: Exception) {
+                        // A 429 (too many links in ten minutes) arrives as ApiError with the server's message.
                         e.message
                     }
                     busy = false

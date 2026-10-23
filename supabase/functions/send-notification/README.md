@@ -4,6 +4,14 @@ iOS and Android use the lowercase Supabase user UUID as the OneSignal external
 ID on sign-in and session restoration, and detach the device on sign-out.
 Existing database triggers create new-story, direct-reply and mention events,
 including events created from the web. Existing preferences and group mute apply.
+
+`submit-source` answers as soon as a link is accepted and files it in the
+background. When it finishes it inserts a receipt for the submitter
+(`source_filed`, or `source_failed`), which this function pushes like any other
+notification. Receipts answer the member's own action, so preferences and mute
+do not apply to them. A `source_failed` receipt without a story (the source was
+never saved) opens the app instead of a story. The web share form listens for
+receipts over Realtime instead of push.
 Digests remain off: there is no scheduled digest generator yet.
 
 ## Deploy

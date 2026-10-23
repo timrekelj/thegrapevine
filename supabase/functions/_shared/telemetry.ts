@@ -4,8 +4,11 @@ import { recordUsage, type UsageCall } from './usage.ts';
 
 const scope = new AsyncLocalStorage<{
   client?: PostHog; userId: string; traceId: string; flags?: ReturnType<PostHog['evaluateFlags']>;
-  actorId?: string; groupId?: string; storyId?: string; usage: UsageCall[];
+  actorId?: string; groupId?: string; storyId?: string; usage: UsageCall[]; background: Promise<unknown>[];
 }>();
+
+// The Supabase edge runtime keeps a worker alive for promises passed to waitUntil.
+declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void } | undefined;
 const token = 'phc_kXSTZhnAXUB44jnt3FK8k88YnoLtXuVVZsumUBptu6j9';
 
 export function telemetryUser(id: string) {
@@ -27,6 +30,13 @@ export function capture(event: string, properties: Record<string, unknown> = {})
   context?.client?.capture({ distinctId: context.userId, event, properties });
 }
 
+// Work that continues after the response is sent. Its events and AI usage still belong to this
+// request, which is finalized once the work settles. Outside the edge runtime (tests), the
+// response waits for it instead.
+export function inBackground(task: Promise<unknown>) {
+  scope.getStore()?.background.push(task);
+}
+
 export async function featureEnabled(key: string, fallback = true): Promise<boolean> {
   const context = scope.getStore();
   try {
@@ -39,7 +49,7 @@ export async function featureEnabled(key: string, fallback = true): Promise<bool
 
 export function withTelemetry(operation: string, handler: (req: Request) => Promise<Response>) {
   return (req: Request) => scope.run({
-    userId: crypto.randomUUID(), traceId: crypto.randomUUID(), usage: [],
+    userId: crypto.randomUUID(), traceId: crypto.randomUUID(), usage: [], background: [],
     client: Deno.env.get('POSTHOG_ENABLED') === 'true' ? new PostHog(token, {
       host: 'https://eu.i.posthog.com', flushAt: 20, flushInterval: 0,
       requestTimeout: 2000, featureFlagsRequestTimeoutMs: 2000, fetchRetryCount: 0,
@@ -62,9 +72,14 @@ export function withTelemetry(operation: string, handler: (req: Request) => Prom
       context.client?.captureException(new Error(`${operation} failed`), context.userId, { operation });
       throw error;
     } finally {
-      await recordUsage({ requestId: context.traceId, functionName: operation, userId: context.actorId,
-        groupId: context.groupId, storyId: context.storyId }, context.usage);
-      try { await context.client?.shutdown(); } catch { console.warn('PostHog delivery unavailable'); }
+      const finalize = async () => {
+        await Promise.allSettled(context.background);
+        await recordUsage({ requestId: context.traceId, functionName: operation, userId: context.actorId,
+          groupId: context.groupId, storyId: context.storyId }, context.usage);
+        try { await context.client?.shutdown(); } catch { console.warn('PostHog delivery unavailable'); }
+      };
+      if (context.background.length && typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(finalize());
+      else await finalize();
     }
   });
 }

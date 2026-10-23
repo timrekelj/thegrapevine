@@ -2,31 +2,34 @@
 
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import InkDots, { BusyLabel } from '@/components/print/InkDots';
+import { BusyLabel } from '@/components/print/InkDots';
 import styles from './paper.module.css';
 
 // The Supabase client loads on first use: `/` is also the landing page, which never needs it.
 const supabase = () => import('@/lib/supabase/client').then(({ createClient }) => createClient());
 
-type Submission = { status: 'new_story' | 'joined' | 'duplicate'; source_id?: string; story_id?: string; story_title?: string; title?: string };
+type Submission = { status: 'accepted' | 'duplicate' };
+type Receipt = { kind: 'source_filed' | 'source_failed'; story_id: string | null };
+
+// Filing continues on the server after it accepts the link; the receipt arrives as a notification.
+const RECEIPT_WAIT_MS = 3 * 60_000;
 
 export default function ShareLink({ groupId, groupName }: { groupId: string; groupName: string }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const headingId = useId();
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const listening = useRef(new Set<() => void>());
   const router = useRouter();
   const [url, setUrl] = useState('');
   const [comment, setComment] = useState('');
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState('');
   const [error, setError] = useState('');
-  const [toast, setToast] = useState<{ text: string; sourceId?: string } | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   useEffect(() => {
     if (!toast) return;
     const dismiss = setTimeout(() => setToast(null), 10_000);
     return () => clearTimeout(dismiss);
   }, [toast]);
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  useEffect(() => { const stops = listening.current; return () => stops.forEach(stop => stop()); }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -41,67 +44,65 @@ export default function ShareLink({ groupId, groupName }: { groupId: string; gro
       return;
     }
     setBusy(true);
-    setStatus(`Reading ${parsed.hostname}…`);
-    timer.current = setTimeout(() => setStatus('Looking for the same event…'), 1400);
+    const client = await supabase();
+    // Listen before posting, so a quick receipt is not missed.
+    const listen = await receipts(client);
     try {
-      const client = await supabase();
       const { data, error: invokeError } = await client.functions.invoke<Submission>('submit-source', {
         body: { group_id: groupId, url: parsed.href, comment: comment.trim() || undefined },
       });
       if (invokeError) {
         if (invokeError.context instanceof Response) {
           const failure = await invokeError.context.json().catch(() => null);
-          if (failure?.status === 'ai_failed') {
-            router.refresh();
-            setToast({ text: 'Source saved. AI organization failed; open the story to report it and retry.' });
-            dialog.current?.close();
-            setUrl('');
-            setComment('');
-            return;
-          }
           if (typeof failure?.error === 'string') throw new Error(failure.error);
         }
         throw invokeError;
       }
-      if (!data || !['new_story', 'joined', 'duplicate'].includes(data.status)) {
+      if (!data || !['accepted', 'duplicate'].includes(data.status)) {
         throw new Error('The filing result could not be confirmed. Your link and comment are still here.');
       }
       if (data.status === 'duplicate') {
-        setToast({ text: 'Your contribution was not added because it was a duplicate.' });
+        listen.stop();
+        setToast('Your contribution was not added because it was a duplicate.');
       } else {
-        let title = data.story_title || data.title;
-        if (!title && data.story_id) {
-          const result = await client.from('stories').select('title').eq('id', data.story_id).maybeSingle();
-          title = result.data?.title;
-        }
-        setToast(data.status === 'joined'
-          ? { text: `Filed under ${title || 'the story'}`, sourceId: data.source_id }
-          : { text: `New story: ${title || 'Your shared link'}` });
-        router.refresh();
+        listening.current.add(listen.stop);
+        setToast(`Filing ${parsed.hostname}… It will be on the paper in a moment.`);
+        listen.receipt.then(receipt => {
+          listening.current.delete(listen.stop);
+          router.refresh();
+          if (!receipt) return;
+          setToast(receipt.kind === 'source_filed' ? 'Your link is on the paper.'
+            : receipt.story_id ? 'Your link was saved, but it could not be summarized. Open the story to report it and retry.'
+            : 'Your link could not be shared. Please try again.');
+        });
       }
       dialog.current?.close();
       setUrl('');
       setComment('');
     } catch (failure) {
+      listen.stop();
       setError(failure instanceof Error ? failure.message : 'Could not post. Your link and comment are still here.');
     } finally {
-      if (timer.current) clearTimeout(timer.current);
       setBusy(false);
-      setStatus('');
     }
   }
 
-  async function undo() {
-    if (!toast?.sourceId || busy) return;
-    setBusy(true);
-    try {
-      const { data, error } = await (await supabase()).from('sources').delete().eq('id', toast.sourceId).select('id');
-      if (error || !data?.length) throw new Error('Could not undo this contribution.');
-      setToast({ text: 'Contribution removed.' });
-      router.refresh();
-    } catch (failure) {
-      setToast({ text: failure instanceof Error ? failure.message : 'Could not undo this contribution.', sourceId: toast.sourceId });
-    } finally { setBusy(false); }
+  /** The next filing receipt for this member, or null if none arrives in time or listening stops. */
+  async function receipts(client: Awaited<ReturnType<typeof supabase>>) {
+    let settle!: (receipt: Receipt | null) => void;
+    const receipt = new Promise<Receipt | null>(resolve => { settle = resolve; });
+    const channel = client.channel(`receipts:${crypto.randomUUID()}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: 'kind=in.(source_filed,source_failed)' },
+        payload => stop(payload.new as Receipt));
+    const timeout = setTimeout(() => stop(null), RECEIPT_WAIT_MS);
+    function stop(value: Receipt | null = null) {
+      clearTimeout(timeout);
+      settle(value);
+      void client.removeChannel(channel);
+    }
+    // Any outcome will do: if listening fails, the paper still refreshes when the wait runs out.
+    await new Promise<void>(resolve => channel.subscribe(() => resolve()));
+    return { receipt, stop: () => stop() };
   }
 
   return <>
@@ -112,7 +113,6 @@ export default function ShareLink({ groupId, groupName }: { groupId: string; gro
         <label>Link<input type="url" required autoFocus placeholder="https://…" value={url} disabled={busy} onChange={e => setUrl(e.target.value)} /></label>
         <label><span>Your comment <span className={styles.optional}>(optional)</span></span><textarea value={comment} disabled={busy} onChange={e => setComment(e.target.value)} /></label>
         <p className="meta">Everyone in {groupName} sees this with your name.</p>
-        {status && <p className={`meta ${styles.filing}`} role="status"><InkDots size="sm" status={false} />{status}</p>}
         {error && <p className={styles.error} role="alert">{error}</p>}
         <div className={styles.dialogActions}>
           <button type="button" className={styles.cancel} disabled={busy} onClick={() => dialog.current?.close()}>Cancel</button>
@@ -120,6 +120,6 @@ export default function ShareLink({ groupId, groupName }: { groupId: string; gro
         </div>
       </form>
     </dialog>
-    {toast && <div className={styles.toast} role="status">{toast.text}{toast.sourceId && <> · <button disabled={busy} aria-busy={busy} onClick={undo}><BusyLabel busy={busy} label="Undoing…">Undo</BusyLabel></button></>}</div>}
+    {toast && <div className={styles.toast} role="status">{toast}</div>}
   </>;
 }

@@ -1,5 +1,5 @@
 import { costUsd, usageRows } from './usage.ts';
-import { observeAI, telemetryUser, usageScope, withTelemetry } from './telemetry.ts';
+import { inBackground, observeAI, telemetryUser, usageScope, withTelemetry } from './telemetry.ts';
 
 function assert(value: unknown, message = 'Assertion failed') { if (!value) throw new Error(message); }
 
@@ -55,6 +55,40 @@ Deno.test('each request writes its own calls once, attributed to its user, paper
   } finally {
     globalThis.fetch = originalFetch;
     for (const [name, value] of [['SUPABASE_URL', saved.url], ['SUPABASE_SERVICE_ROLE_KEY', saved.key], ['POSTHOG_ENABLED', saved.posthog]] as const) {
+      if (value === undefined) Deno.env.delete(name); else Deno.env.set(name, value);
+    }
+  }
+});
+
+Deno.test('background work answers first and is still recorded with its request', async () => {
+  const originalFetch = globalThis.fetch;
+  const saved = { url: Deno.env.get('SUPABASE_URL'), key: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') };
+  Deno.env.set('SUPABASE_URL', 'https://db.test');
+  Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'service-key');
+  const runtime = globalThis as { EdgeRuntime?: { waitUntil(promise: Promise<unknown>): void } };
+  const kept: Promise<unknown>[] = [];
+  runtime.EdgeRuntime = { waitUntil: promise => { kept.push(promise); } };
+  const inserts: Record<string, unknown>[][] = [];
+  let release!: () => void;
+  try {
+    globalThis.fetch = (async (_input: unknown, init?: RequestInit) => {
+      inserts.push(JSON.parse(String(init?.body)));
+      return new Response(null, { status: 201 });
+    }) as typeof fetch;
+    const response = await withTelemetry('submit-source', async () => {
+      telemetryUser('00000000-0000-0000-0000-000000000001');
+      inBackground(new Promise<void>(resolve => { release = resolve; }).then(() =>
+        observeAI('mistral', 'mistral-large-latest', 'chat/completions', async () => ({ usage: { prompt_tokens: 10, completion_tokens: 1 } }))));
+      return new Response(null, { status: 202 });
+    })(new Request('https://test', { method: 'POST' }));
+    assert(response.status === 202 && kept.length === 1 && inserts.length === 0, 'answers before the work finishes');
+    release();
+    await Promise.all(kept);
+    assert(inserts.length === 1 && inserts[0][0].user_id === '00000000-0000-0000-0000-000000000001');
+  } finally {
+    delete runtime.EdgeRuntime;
+    globalThis.fetch = originalFetch;
+    for (const [name, value] of [['SUPABASE_URL', saved.url], ['SUPABASE_SERVICE_ROLE_KEY', saved.key]] as const) {
       if (value === undefined) Deno.env.delete(name); else Deno.env.set(name, value);
     }
   }

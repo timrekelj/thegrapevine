@@ -115,8 +115,6 @@
 .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); z-index: 50; max-width: calc(100% - 32px); width: max-content; padding: 13px 20px; background: var(--ink); color: var(--paper); font: 500 13px/19px var(--mono); box-shadow: 5px 5px 0 var(--rule); }
 .toast button { color: inherit; background: transparent; border: 0; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; padding: 0 0 0 8px; }
 .error { color: var(--danger); font: 500 14px/1.4 var(--sans); }
-/* the filing line ("Reading example.com…"), with ink dots ahead of it while the press works */
-.filing { display: flex; align-items: center; gap: 10px; }
 
 @media (prefers-reduced-motion: no-preference) {
   .later { animation: later-in .4s cubic-bezier(.2, .7, .2, 1) both; }

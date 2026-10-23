@@ -4,7 +4,7 @@ import { fetchSource, normalizeUrl } from '../_shared/fetch-source.ts';
 import { cosineSimilarity, decide, sourceText, storyText, vector } from '../_shared/clustering.ts';
 import { embed } from '../_shared/mistral.ts';
 import { EDITORIAL_SOURCE, generate } from '../_shared/editorial.ts';
-import { capture, featureEnabled, usageScope, withTelemetry } from '../_shared/telemetry.ts';
+import { capture, featureEnabled, inBackground, usageScope, withTelemetry } from '../_shared/telemetry.ts';
 
 // Each submission costs a fetch and several model calls; this is generous for a friend group.
 const SUBMISSIONS_PER_WINDOW = 30;
@@ -13,11 +13,14 @@ const SUBMISSIONS_PER_DAY = 200;
 
 type Candidate = { id: string; title: string; summary: string; embedding: string | number[] | null };
 
+type Receipt = { kind: 'source_filed' | 'source_failed'; storyId: string | null };
+
+// Answers once the link is accepted (valid, from a member, not already on the paper, within the
+// rate limit). Reading the page and the AI work take tens of seconds, so they continue after the
+// response; the member is told how it went with a receipt notification, pushed to their devices.
 Deno.serve(withTelemetry('submit-source', async req => {
   if (req.method === 'OPTIONS') return json({});
   if (req.method !== 'POST') return json({ error: 'POST required' }, 405);
-  let placeholderId: string | undefined;
-  let savedSource: { id: string; story_id: string } | undefined;
   try {
     const user = await caller(req);
     const input = await body(req);
@@ -25,27 +28,46 @@ Deno.serve(withTelemetry('submit-source', async req => {
     const groupId: string = input.group_id;
     const url = normalizeUrl(input.url);
     const comment = optionalText(input.comment);
-    const duplicate = () => check(supabase.from('sources').select('id,story_id')
-      .eq('group_id', groupId).eq('url', url).maybeSingle());
     // Membership is checked before anything about the paper (including a duplicate) is returned.
-    const [, existing] = await Promise.all([requireMember(groupId, user.id), duplicate()]);
+    const [, existing] = await Promise.all([requireMember(groupId, user.id), duplicate(groupId, url)]);
     usageScope({ groupId });
     if (existing) {
       capture('source_submitted', { result: 'duplicate' });
       return json({ status: 'duplicate', story_id: existing.story_id, source_id: existing.id });
     }
     await rateLimit('submit-source', user.id, SUBMISSIONS_PER_WINDOW, WINDOW_MINUTES, SUBMISSIONS_PER_DAY);
+    inBackground(file(user.id, groupId, url, comment).then(receipt => notify(user.id, groupId, receipt)));
+    return json({ status: 'accepted' }, 202);
+  } catch (error) {
+    return errorResponse(error);
+  }
+}));
+
+function duplicate(groupId: string, url: string) {
+  return check(supabase.from('sources').select('id,story_id').eq('group_id', groupId).eq('url', url).maybeSingle());
+}
+
+async function notify(userId: string, groupId: string, { kind, storyId }: Receipt) {
+  const { error } = await supabase.from('notifications').insert({ user_id: userId, group_id: groupId, kind, story_id: storyId });
+  if (error) console.error('Could not record the filing receipt', error.code);
+}
+
+// Never throws: every outcome becomes a receipt.
+async function file(userId: string, groupId: string, url: string, comment: string | undefined): Promise<Receipt> {
+  let placeholderId: string | undefined;
+  let savedSource: { id: string; story_id: string } | undefined;
+  try {
     const fetched = await fetchSource(url);
     // sources.story_id is required: preserve the card before any AI call, then discard this story if joined.
     // The placeholder is flagged, so it is announced to the paper only once it is published below.
     const placeholder = (await check(supabase.from('stories').insert({
-      group_id: groupId, created_by: user.id, title: fetched.title || fetched.domain,
+      group_id: groupId, created_by: userId, title: fetched.title || fetched.domain,
       summary: 'Summary failed', flagged: true,
     }).select('id,title').single()))!;
     placeholderId = placeholder.id;
     usageScope({ storyId: placeholder.id });
     const { data: source, error: sourceError } = await supabase.from('sources').insert({
-      story_id: placeholder.id, group_id: groupId, url, submitted_by: user.id,
+      story_id: placeholder.id, group_id: groupId, url, submitted_by: userId,
       submitter_comment: comment, domain: fetched.domain, publisher: fetched.publisher,
       source_title: fetched.title, excerpt: fetched.excerpt, image_url: fetched.image_url,
       author: fetched.author, extraction_status: fetched.status,
@@ -54,8 +76,9 @@ Deno.serve(withTelemetry('submit-source', async req => {
       await check(supabase.from('stories').delete().eq('id', placeholder.id));
       placeholderId = undefined;
       if (sourceError.code === '23505') {
-        const other = await duplicate();
-        if (other) return json({ status: 'duplicate', story_id: other.story_id, source_id: other.id });
+        // The same link was filed concurrently: it is on the paper either way.
+        const other = await duplicate(groupId, url);
+        if (other) return { kind: 'source_filed', storyId: other.story_id };
       }
       throw sourceError;
     }
@@ -125,17 +148,17 @@ Deno.serve(withTelemetry('submit-source', async req => {
         last_activity_at: new Date().toISOString() }).eq('id', chosen.id)),
     ]);
     capture('source_submitted', { result: joined ? 'joined' : 'new_story' });
-    return json({ status: joined ? 'joined' : 'new_story', story_id: chosen.id, source_id: source.id, story_title: title });
+    return { kind: 'source_filed', storyId: chosen.id };
   } catch (error) {
     capture('source_submission_failed', { source_preserved: !!savedSource });
     if (savedSource) {
       console.error('AI organization failed after preserving source', error instanceof Error ? error.message : 'Database error');
       const { error: recoveryError } = await supabase.from('stories').update({ flagged: true, last_activity_at: new Date().toISOString() }).eq('id', savedSource.story_id);
       if (recoveryError) console.error('Could not mark preserved story for recovery');
-      return json({ status: 'ai_failed', story_id: savedSource.story_id, source_id: savedSource.id,
-        error: 'Source saved; AI organization failed. Report the story to retry generation.' }, 503);
+      return { kind: 'source_failed', storyId: savedSource.story_id };
     }
     if (placeholderId) console.error('Unfinished placeholder story', placeholderId);
-    return errorResponse(error);
+    console.error('Filing failed', error instanceof Error ? error.message : 'Database error');
+    return { kind: 'source_failed', storyId: null };
   }
-}));
+}

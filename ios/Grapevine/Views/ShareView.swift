@@ -13,8 +13,6 @@ struct ShareView: View {
     @State private var comment = ""
     @State private var busy = false
     @State private var result: String?
-    /// Set when the link is on the paper, for the success tap.
-    @State private var filed = false
     @FocusState private var editing: Bool
 
     init(group: Group?, url: String = "", notice: String? = nil, close: (() -> Void)? = nil) {
@@ -25,7 +23,7 @@ struct ShareView: View {
     }
 
     struct SubmitBody: Encodable { let group_id: UUID; let url: String; let comment: String? }
-    struct SubmitResult: Codable { let status: String; let story_id: UUID?; let story_title: String? }
+    struct SubmitResult: Codable { let status: String; let story_id: UUID? }
 
     var body: some View {
         NavigationStack {
@@ -48,7 +46,6 @@ struct ShareView: View {
                 .padding(.horizontal, 24).padding(.vertical, 16)
                 .animation(.snappy(duration: 0.3), value: result)
             }
-            .sensoryFeedback(.success, trigger: filed) { _, now in now }
             .background(Theme.paper)
             .foregroundColor(Theme.ink)
             .tint(Theme.ink)
@@ -106,27 +103,24 @@ struct ShareView: View {
         if let close { close() } else { dismiss() }
     }
 
+    /// The server accepts the link and files it in the background, then sends a push when it's
+    /// on the paper. So the sheet closes right away, and the share extension returns to the app
+    /// the link came from.
     private func post() async {
         guard let group else { return }
         busy = true
         editing = false
         result = nil
-        filed = false
         do {
             let submitted: SubmitResult = try await API.postObject(SubmitResult.self, path: "functions/v1/submit-source",
                 body: SubmitBody(group_id: group.id, url: url.trimmed,
                                 comment: comment.trimmed.isEmpty ? nil : comment.trimmed))
-            filed = submitted.status != "duplicate"
-            let title = submitted.story_title.flatMap { $0.isEmpty ? nil : $0 } ?? "the story"
-            switch submitted.status {
-            case "duplicate":
+            if submitted.status == "duplicate" {
                 result = "Your contribution was not added because it was a duplicate."
-            case "joined":
-                result = "Filed under \(title)."
-            case "new_story":
-                result = "New story: \(title)."
-            default:
-                result = "Posted."
+            } else {
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                finish()
+                return
             }
         } catch {
             result = error.localizedDescription
