@@ -327,6 +327,7 @@
 				21FF4079531AD2DFD7A11D59 /* Resources */,
 				2581021DC2741FBC7AD0A6B7 /* Frameworks */,
 				876C8FFA5EC6CE754552429E /* Embed Foundation Extensions */,
+				D1013048825520451B0F9D4B /* Drop the local networking exception outside Debug */,
 				057C839E05181C513B9F7686 /* Upload PostHog symbols */,
 			);
 			buildRules = (
@@ -351,6 +352,7 @@
 			buildPhases = (
 				143519E17AB5AE5AE2572C13 /* Sources */,
 				926FCC720CB0A01783761084 /* Resources */,
+				DF109A63E7C3D5E0ACA5D798 /* Drop the local networking exception outside Debug */,
 			);
 			buildRules = (
 			);
@@ -474,6 +476,46 @@
 			runOnlyForDeploymentPostprocessing = 1;
 			shellPath = /bin/sh;
 			shellScript = "if [ \"$CONFIGURATION\" = \"Release\" ] && [ -n \"$POSTHOG_CLI_API_KEY\" ]; then\n  export POSTHOG_CLI_HOST=https://eu.posthog.com\n  export POSTHOG_CLI_PROJECT_ID=310029\n  export POSTHOG_SKIP_ON_CONFLICT=1\n  \"${BUILD_DIR%/Build/*}/SourcePackages/checkouts/posthog-ios/build-tools/upload-symbols.sh\"\nfi\n";
+		};
+		D1013048825520451B0F9D4B /* Drop the local networking exception outside Debug */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Drop the local networking exception outside Debug";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ \"$CONFIGURATION\" != \"Debug\" ]; then\n  /usr/libexec/PlistBuddy -c \"Delete :NSAppTransportSecurity\" \"$TARGET_BUILD_DIR/$INFOPLIST_PATH\"\nfi\n";
+		};
+		DF109A63E7C3D5E0ACA5D798 /* Drop the local networking exception outside Debug */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			name = "Drop the local networking exception outside Debug";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "if [ \"$CONFIGURATION\" != \"Debug\" ]; then\n  /usr/libexec/PlistBuddy -c \"Delete :NSAppTransportSecurity\" \"$TARGET_BUILD_DIR/$INFOPLIST_PATH\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -662,6 +704,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ShareExtension/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -773,6 +816,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = ShareExtension/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (

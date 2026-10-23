@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { fillDays, formatTokens, formatUsd, isUuid, num, parseWindow } from '../lib/admin.ts'
+import { fillDays, formatTokens, formatUsd, num, parseWindow } from '../lib/admin.ts'
+import { isUuid } from '../lib/validate.ts'
 
 test('money keeps sub-cent precision so single model calls can be compared', () => {
   assert.equal(formatUsd(0), '$0.00')

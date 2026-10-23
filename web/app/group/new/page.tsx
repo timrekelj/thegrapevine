@@ -4,13 +4,14 @@ import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
 import { connection } from 'next/server'
 import { createPaper } from '@/lib/papers'
+import { isUuid } from '@/lib/validate'
 import styles from '@/components/print/card.module.css'
 
 export default async function NewGroupPage({ searchParams }: PageProps<'/group/new'>) {
   await connection() // fully dynamic: session + database
   const params = await searchParams
   await requireUser('/group/new')
-  const groupId = typeof params.id === 'string' && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(params.id) ? params.id : randomUUID()
+  const groupId = isUuid(params.id) ? params.id : randomUUID()
 
   async function createGroup(formData: FormData) {
     'use server'

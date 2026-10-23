@@ -35,8 +35,18 @@ export async function body(req: Request) {
 }
 
 export function optionalText(value: unknown) {
-  if (value !== undefined && (typeof value !== 'string' || value.length > 4000)) {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== 'string' || value.length > 4000) {
     throw new HttpError(400, 'Comment/note must be text under 4000 characters');
   }
-  return value as string | undefined;
+  return value;
+}
+
+/** Constant-time string comparison for shared secrets. */
+export async function sameSecret(a: string, b: string) {
+  const digest = async (value: string) => new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)));
+  const [x, y] = await Promise.all([digest(a), digest(b)]);
+  let difference = 0;
+  for (let i = 0; i < x.length; i++) difference |= x[i] ^ y[i];
+  return difference === 0;
 }

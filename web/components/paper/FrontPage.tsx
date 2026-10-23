@@ -4,6 +4,7 @@ import Plate from '@/components/print/Plate'
 import Avatar from '@/components/print/Avatar'
 import LaterEdition from './later-edition'
 import ShareLink from './share-link'
+import { clock, dayline, plural } from '@/lib/format'
 import styles from './paper.module.css'
 
 const roman = (n: number) => [[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]
@@ -11,8 +12,6 @@ const roman = (n: number) => [[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'
     while (left >= (value as number)) { out += glyph; left -= value as number }
     return [out, left]
   }, ['', n])[0]
-
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 function StoryMeta({ story, publishers = false }: { story: RankedStory; publishers?: boolean }) {
   return <div className={`meta tnum ${styles.meta}`}>
@@ -54,8 +53,8 @@ export default function FrontPage({ group, members, stories, loadedAt }: {
       <div className="double-rule" />
       <div className={styles.dateline}>
         <span className={styles.edition}>Vol. {volume} · No. {edition}</span>
-        <time className={styles.date} dateTime={loadedAt.toISOString()}>{loadedAt.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</time>
-        <span className={`tnum ${styles.count}`}><span>{stories.length} {stories.length === 1 ? 'story' : 'stories'}{fresh > 0 && <> · <span className={styles.fresh}>{fresh} new</span></>}</span>
+        <time className={styles.date} dateTime={loadedAt.toISOString()}>{dayline(loadedAt, true)}</time>
+        <span className={`tnum ${styles.count}`}><span>{plural(stories.length, 'story', 'stories')}{fresh > 0 && <> · <span className={styles.fresh}>{fresh} new</span></>}</span>
           <span className={styles.members} aria-label="At the table">{members.map(member => <Avatar key={member.id} seed={member.id} name={member.display_name} />)}</span>
         </span>
       </div>
@@ -118,13 +117,13 @@ export default function FrontPage({ group, members, stories, loadedAt }: {
       <h2 className={styles.sectionHead}>Letters from the table</h2>
       <div className={styles.ruled}><div className={styles.letterGrid}>{conversation.map(message => <Link className={styles.letter} href={`/story/${message.story_id}`} key={message.id}>
         <blockquote>{message.body || 'Shared something with the table.'}</blockquote>
-        <div className="meta"><b>{name(message.author_id)}</b> on {message.story.title} · <time dateTime={message.created_at}>{new Date(message.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</time></div>
+        <div className="meta"><b>{name(message.author_id)}</b> on {message.story.title} · <time dateTime={message.created_at}>{clock(message.created_at)}</time></div>
       </Link>)}</div></div>
     </section>}
 
     <footer className={styles.colophon}>
       <span className="masthead">The Grapevine</span>
-      <span className="meta tnum">Printed at {loadedAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} for {plural(members.length, 'reader')} · Private edition</span>
+      <span className="meta tnum">Printed at {clock(loadedAt)} for {plural(members.length, 'reader')} · Private edition</span>
     </footer>
   </main>
 }

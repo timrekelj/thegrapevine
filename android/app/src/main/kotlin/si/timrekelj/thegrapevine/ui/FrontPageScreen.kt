@@ -28,12 +28,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontStyle
@@ -51,7 +53,6 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 private val Gutter = 20.dp
 
@@ -70,10 +71,12 @@ fun FrontPageScreen(app: AppState, paper: PaperState, onOpen: (String) -> Unit) 
         val stories = paper.stories
         val seenAt = paper.seenAt
         val lead = stories.firstOrNull()
-        val side = stories.drop(1).take(3)
-        val inside = stories.drop(4)
-        val letters = stories.flatMap { story -> story.messages.map { it to story } }
-            .sortedByDescending { it.first.created_at }.take(4)
+        val side = remember(stories) { stories.drop(1).take(3) }
+        val inside = remember(stories) { stories.drop(4) }
+        val letters = remember(stories) {
+            stories.flatMap { story -> story.messages.map { it to story } }
+                .sortedByDescending { it.first.created_at }.take(4)
+        }
 
         LazyColumn(Modifier.fillMaxSize()) {
             item { Masthead(app, stories, seenAt, onShare = { sharing = true }) }
@@ -146,7 +149,7 @@ private fun Masthead(app: AppState, stories: List<StoryRow>, seenAt: Instant?, o
         )
         DoubleRule()
         Text(
-            LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", Locale.getDefault())),
+            LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, d MMMM yyyy", LocalLocale.current.platformLocale)),
             style = BodyStyle.copy(fontStyle = FontStyle.Italic, fontSize = 16.sp, textAlign = TextAlign.Center),
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         )

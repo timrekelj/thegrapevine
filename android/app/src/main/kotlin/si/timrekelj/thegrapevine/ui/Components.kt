@@ -7,9 +7,12 @@ import android.graphics.Canvas
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.Shader
 import android.util.LruCache
-import androidx.compose.foundation.Canvas
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.get
+import androidx.core.graphics.scale
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,6 +31,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -44,11 +50,17 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.ImageShader
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.ShaderBrush
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -61,7 +73,12 @@ import androidx.compose.ui.unit.times
 import androidx.compose.ui.zIndex
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import si.timrekelj.thegrapevine.Api
 import si.timrekelj.thegrapevine.Config
@@ -85,23 +102,14 @@ val Corner = RoundedCornerShape(3.dp)
 fun Avatar(seed: String, size: Dp = 32.dp, modifier: Modifier = Modifier) {
     val api = LocalApi.current
     val url = "${Config.webURL}/avatar/$seed.png"
-    val image by produceState(AvatarCache.get(url)?.asImageBitmap(), url) {
+    val image by produceState(Pictures.cached(url)?.asImageBitmap(), url) {
         if (value != null) return@produceState
-        val decoded = runCatching {
-            withContext(Dispatchers.IO) { api.fetchBytes(url).let { BitmapFactory.decodeByteArray(it, 0, it.size) } }
-        }.getOrNull()
-        if (decoded != null) {
-            AvatarCache.put(url, decoded)
-            value = decoded.asImageBitmap()
-        }
+        Pictures.load(url) { api.fetchBytes(url).let { BitmapFactory.decodeByteArray(it, 0, it.size) } }
+            ?.let { value = it.asImageBitmap() }
     }
     Box(modifier.size(size).clip(CircleShape).background(Press.tint)) {
         image?.let { Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.matchParentSize()) }
     }
-}
-
-private object AvatarCache : LruCache<String, Bitmap>(4 * 1024 * 1024) {
-    override fun sizeOf(key: String, value: Bitmap) = value.byteCount
 }
 
 /** Overlapping avatars with a ring of paper between them. */
@@ -283,18 +291,16 @@ fun fieldColors() = OutlinedTextFieldDefaults.colors(
 fun PlateView(url: String?, label: String, modifier: Modifier = Modifier, screen: Boolean = true) {
     val api = LocalApi.current
     val palette = LocalPalette.current
-    BoxWithConstraints(modifier.clip(RoundedCornerShape(0.dp)).background(palette.tint), contentAlignment = Alignment.Center) {
-        val columns = Plate.columns(maxWidth.value)
-        val key = "$url|${if (screen) columns else 0}|${palette.isDark}"
-        val image by produceState(url?.let { PlateCache.get(key)?.asImageBitmap() }, key) {
-            if (url == null || value != null) return@produceState
-            val printed = runCatching {
-                withContext(Dispatchers.Default) { print(api.fetchBytes(url), if (screen) columns else 0, palette) }
-            }.getOrNull()
-            if (printed != null) {
-                PlateCache.put(key, printed)
-                value = printed.asImageBitmap()
-            }
+    BoxWithConstraints(modifier.clip(RectangleShape).background(palette.tint), contentAlignment = Alignment.Center) {
+        // Printed at the pixel size it is shown, so a thumbnail costs a thumbnail's memory.
+        val width = if (constraints.hasBoundedWidth) constraints.maxWidth else 0
+        val height = if (constraints.hasBoundedHeight) constraints.maxHeight else 0
+        val columns = if (screen) Plate.columns(maxWidth.value) else 0
+        val key = "$url|${width}x$height|$columns|${palette.isDark}"
+        val image by produceState(url?.let { Pictures.cached(key)?.asImageBitmap() }, key) {
+            if (url == null || value != null || width <= 0) return@produceState
+            Pictures.load(key) { Pictures.bytes(url) { api.fetchBytes(url) }?.let { print(it, width, height, columns, palette) } }
+                ?.let { value = it.asImageBitmap() }
         }
         val bitmap: ImageBitmap? = image
         if (bitmap != null) {
@@ -309,20 +315,10 @@ fun PlateView(url: String?, label: String, modifier: Modifier = Modifier, screen
 @Composable
 fun TypePlate(label: String, modifier: Modifier = Modifier) {
     val dots = Press.rule
+    val density = LocalDensity.current
+    val screen = remember(dots, density) { with(density) { dotScreen(dots, 4.dp.toPx(), 0.9.dp.toPx()) } }
     BoxWithConstraints(modifier.background(Press.raised).border(1.dp, Press.rule), contentAlignment = Alignment.Center) {
-        Canvas(Modifier.matchParentSize()) {
-            val step = 4.dp.toPx()
-            val radius = 0.9.dp.toPx()
-            var y = step / 2
-            while (y < size.height) {
-                var x = step / 2
-                while (x < size.width) {
-                    drawCircle(dots, radius, Offset(x, y))
-                    x += step
-                }
-                y += step
-            }
-        }
+        Box(Modifier.matchParentSize().background(screen))
         val fontSize = (maxWidth.value * 0.12f).coerceIn(11f, 30f)
         Text(
             label,
@@ -334,24 +330,89 @@ fun TypePlate(label: String, modifier: Modifier = Modifier) {
     }
 }
 
-private object PlateCache : LruCache<String, Bitmap>(24 * 1024 * 1024) {
-    override fun sizeOf(key: String, value: Bitmap) = value.byteCount
+/** One dot of the type plate's light screen, tiled across the plate in a single draw. */
+private fun dotScreen(color: Color, step: Float, radius: Float): ShaderBrush {
+    val size = step.roundToInt().coerceAtLeast(2)
+    val tile = ImageBitmap(size, size)
+    androidx.compose.ui.graphics.Canvas(tile).drawCircle(
+        Offset(size / 2f, size / 2f),
+        radius,
+        androidx.compose.ui.graphics.Paint().apply { this.color = color; isAntiAlias = true },
+    )
+    return ShaderBrush(ImageShader(tile, TileMode.Repeated, TileMode.Repeated))
 }
 
-private const val MAX_PLATE_WIDTH = 1080
+/**
+ * Decoded pictures shared by every avatar and plate on screen. Each picture is fetched and printed
+ * once at a time however many views ask for it; the work runs off the main thread.
+ */
+private object Pictures {
+    private val printed = object : LruCache<String, Bitmap>(24 * 1024 * 1024) {
+        override fun sizeOf(key: String, value: Bitmap) = value.byteCount
+    }
 
-/** Decodes the photo and, with `columns > 0`, prints it through a dot screen that many dots wide. */
-private fun print(bytes: ByteArray, columns: Int, palette: Palette): Bitmap? {
+    /** Recent downloads, so one photo shown at two sizes is fetched once. */
+    private val downloads = object : LruCache<String, ByteArray>(6 * 1024 * 1024) {
+        override fun sizeOf(key: String, value: ByteArray) = value.size
+    }
+
+    // Only touched on the main thread (see share).
+    private val inFlight = HashMap<String, Deferred<Any?>>()
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    fun cached(key: String): Bitmap? = printed.get(key)
+
+    suspend fun load(key: String, make: suspend () -> Bitmap?): Bitmap? =
+        printed.get(key) ?: share(key) { make()?.also { printed.put(key, it) } } as Bitmap?
+
+    suspend fun bytes(url: String, fetch: suspend () -> ByteArray): ByteArray? =
+        downloads.get(url) ?: share("bytes|$url") { fetch().also { downloads.put(url, it) } } as ByteArray?
+
+    private suspend fun share(key: String, work: suspend () -> Any?): Any? = withContext(Dispatchers.Main.immediate) {
+        val job = inFlight.getOrPut(key) {
+            scope.async(start = CoroutineStart.LAZY) {
+                try {
+                    withContext(Dispatchers.Default) { runCatching { work() }.getOrNull() }
+                } finally {
+                    inFlight.remove(key)
+                }
+            }
+        }
+        job.await()
+    }
+}
+
+/**
+ * Decodes the photo, crops it to the box the way [ContentScale.Crop] would, and scales it to the box's
+ * pixels. With `columns > 0` it is then printed through a dot screen that many dots wide.
+ * A `height` of 0 keeps the photo's own proportions.
+ */
+private fun print(bytes: ByteArray, width: Int, height: Int, columns: Int, palette: Palette): Bitmap? {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+    val boxHeight = if (height > 0) height else (width.toLong() * bounds.outHeight / bounds.outWidth).toInt().coerceAtLeast(1)
     var sample = 1
-    while (bounds.outWidth / (sample * 2) >= MAX_PLATE_WIDTH) sample *= 2
-    val source = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
+    while (bounds.outWidth / (sample * 2) >= width && bounds.outHeight / (sample * 2) >= boxHeight) sample *= 2
+    val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
         ?: return null
+    val scale = maxOf(width.toFloat() / decoded.width, boxHeight.toFloat() / decoded.height)
+    val cropWidth = (width / scale).roundToInt().coerceIn(1, decoded.width)
+    val cropHeight = (boxHeight / scale).roundToInt().coerceIn(1, decoded.height)
+    val left = (decoded.width - cropWidth) / 2
+    val top = (decoded.height - cropHeight) / 2
+    val source = createBitmap(width, boxHeight)
+    Canvas(source).drawBitmap(
+        decoded,
+        Rect(left, top, left + cropWidth, top + cropHeight),
+        Rect(0, 0, width, boxHeight),
+        Paint(Paint.FILTER_BITMAP_FLAG),
+    )
+    decoded.recycle()
     if (columns <= 0) return source
 
     // The colour plate: a little extra saturation (and light, on black paper) for the ink lost between dots.
-    val colour = Bitmap.createBitmap(source.width, source.height, Bitmap.Config.ARGB_8888)
+    val colour = createBitmap(source.width, source.height)
     val matrix = ColorMatrix().apply {
         setSaturation(Plate.SATURATION)
         if (palette.isDark) postConcat(ColorMatrix().apply { setScale(1.12f, 1.12f, 1.12f, 1f) })
@@ -362,10 +423,10 @@ private fun print(bytes: ByteArray, columns: Int, palette: Palette): Bitmap? {
     val pitch = source.width.toFloat() / columns
     val rowStep = pitch * 0.866f
     val rows = (source.height / rowStep).roundToInt().coerceAtLeast(1)
-    val grid = Bitmap.createScaledBitmap(source, columns, rows, true)
+    val grid = source.scale(columns, rows)
     source.recycle()
 
-    val printed = Bitmap.createBitmap(colour.width, colour.height, Bitmap.Config.ARGB_8888)
+    val printed = createBitmap(colour.width, colour.height)
     val canvas = Canvas(printed)
     canvas.drawColor(palette.paper.toArgb())
     val ink = Paint(Paint.ANTI_ALIAS_FLAG).apply { shader = BitmapShader(colour, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP) }
@@ -374,7 +435,7 @@ private fun print(bytes: ByteArray, columns: Int, palette: Palette): Bitmap? {
         val shift = if (row % 2 == 1) 0.5f else 0f
         for (column in 0..columns) {
             val x = (column + 0.25f + shift) * pitch
-            val pixel = grid.getPixel(column.coerceAtMost(columns - 1), row)
+            val pixel = grid[column.coerceAtMost(columns - 1), row]
             val r = Plate.radius(Plate.luminance((pixel shr 16) and 0xFF, (pixel shr 8) and 0xFF, pixel and 0xFF), palette.isDark) * pitch
             if (r > 0.15f) canvas.drawCircle(x, y, r, ink)
         }
@@ -382,6 +443,24 @@ private fun print(bytes: ByteArray, columns: Int, palette: Palette): Bitmap? {
     grid.recycle()
     colour.recycle()
     return printed
+}
+
+// ---------- links ----------
+
+/** Opens a link from a story in the browser: only http(s), and no browser is not a crash. */
+fun UriHandler.openWebLink(url: String) {
+    if (!url.startsWith("https://", ignoreCase = true) && !url.startsWith("http://", ignoreCase = true)) return
+    runCatching { openUri(url) }
+}
+
+/** An error under a field, with the info glyph. */
+@Composable
+fun ErrorLine(error: String?) {
+    if (error == null) return
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 8.dp)) {
+        Icon(Icons.Outlined.Info, contentDescription = null, tint = Press.danger, modifier = Modifier.size(18.dp))
+        Text(error, fontSize = 14.sp, lineHeight = 18.sp, fontWeight = FontWeight.Medium, color = Press.danger)
+    }
 }
 
 // ---------- words ----------

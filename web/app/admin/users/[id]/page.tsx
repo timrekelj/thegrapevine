@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { requireAdmin } from '@/lib/auth'
-import { adminRpc, formatDate, formatUsd, isUuid, type AdminUser } from '@/lib/admin'
+import { adminRpc, formatDate, formatUsd, type AdminUser } from '@/lib/admin'
+import { isUuid, safeUrl } from '@/lib/validate'
 import styles from '@/components/admin/admin.module.css'
 import Avatar from '@/components/print/Avatar'
 
@@ -34,7 +35,7 @@ export default async function AdminUserPage({ params }: PageProps<'/admin/users/
         <div className={styles.tableWrap}><table className={styles.table}>
           <thead><tr><th>Source</th><th>Story</th><th>When</th></tr></thead>
           <tbody>{user.sources.length ? user.sources.map(s => <tr key={s.id}>
-            <td className={styles.wrap}><a href={s.url} target="_blank" rel="noreferrer noopener">{s.source_title || s.domain}</a><div className={styles.muted}>{s.publisher || s.domain}</div></td>
+            <td className={styles.wrap}><a href={safeUrl(s.url)} target="_blank" rel="noreferrer noopener">{s.source_title || s.domain}</a><div className={styles.muted}>{s.publisher || s.domain}</div></td>
             <td className={styles.wrap}><Link href={`/admin/stories/${s.story_id}`}>{s.story_title}</Link><div className={styles.muted}>{s.group_name}</div></td>
             <td>{formatDate(s.created_at, true)}</td>
           </tr>) : <tr><td colSpan={3} className={styles.empty}>No sources shared.</td></tr>}</tbody>

@@ -1,15 +1,25 @@
 import SwiftUI
 
 /// A member's avatar: their colour halftone disc, drawn by the web app from their id (`/avatar/<id>.png`).
+/// Loaded through `PhotoStore`, so the many copies of one avatar on a page share a single download and,
+/// once loaded, draw straight away when scrolled back into view.
 struct MemberAvatar: View {
     let profile: Profile
     var size: CGFloat = 32
+    @State private var image: UIImage?
+
+    private var url: URL { Config.webURL.appending(path: "avatar/\(profile.id.uuidString.lowercased()).png") }
 
     var body: some View {
-        AsyncImage(url: Config.webURL.appending(path: "avatar/\(profile.id.uuidString.lowercased()).png")) { image in
-            image.resizable().scaledToFill()
-        } placeholder: {
-            Theme.tint
+        SwiftUI.Group {
+            if let image = image ?? PhotoStore.shared.cached(url) {
+                Image(uiImage: image).resizable().scaledToFill()
+            } else {
+                Theme.tint
+            }
+        }
+        .task(id: profile.id) {
+            if PhotoStore.shared.cached(url) == nil { image = try? await PhotoStore.shared.image(url) }
         }
         .frame(width: size, height: size)
         .clipShape(Circle())
@@ -111,12 +121,15 @@ struct TypePlate: View {
     var body: some View {
         ZStack {
             Canvas { context, size in
+                // One path, filled once, rather than a fill per dot.
                 let step: CGFloat = 4
+                var dots = Path()
                 for x in stride(from: step / 2, to: size.width, by: step) {
                     for y in stride(from: step / 2, to: size.height, by: step) {
-                        context.fill(Path(ellipseIn: CGRect(x: x - 0.9, y: y - 0.9, width: 1.8, height: 1.8)), with: .color(Theme.rule))
+                        dots.addEllipse(in: CGRect(x: x - 0.9, y: y - 0.9, width: 1.8, height: 1.8))
                     }
                 }
+                context.fill(dots, with: .color(Theme.rule))
             }
             Text(label)
                 .font(Theme.italic(15, medium: true))
@@ -173,20 +186,29 @@ func plural(_ count: Int, _ word: String, _ plural: String? = nil) -> String {
     "\(count) \(count == 1 ? word : plural ?? word + "s")"
 }
 
-func timeAgo(_ date: Date) -> String {
+@MainActor private let relativeFormatter: RelativeDateTimeFormatter = {
     let formatter = RelativeDateTimeFormatter()
     formatter.unitsStyle = .short
-    return formatter.localizedString(for: date, relativeTo: Date())
+    return formatter
+}()
+
+/// Formatters are costly to make and these run in view bodies, so each is made once (views format on the main actor).
+@MainActor func timeAgo(_ date: Date) -> String {
+    relativeFormatter.localizedString(for: date, relativeTo: Date())
 }
 
 func clock(_ date: Date) -> String {
     date.formatted(.dateTime.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))
 }
 
-func dayLabel(_ date: Date) -> String {
+@MainActor private let dayFormatter: DateFormatter = {
     let formatter = DateFormatter()
     formatter.dateFormat = "EEEE d MMMM"
-    return formatter.string(from: date).uppercased()
+    return formatter
+}()
+
+@MainActor func dayLabel(_ date: Date) -> String {
+    dayFormatter.string(from: date).uppercased()
 }
 
 /// The head of a tab page: a small nameplate, the double rule, then a kicker and a headline.

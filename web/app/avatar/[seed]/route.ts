@@ -13,10 +13,13 @@ const inks = ['#E8A317', '#C43C7A', '#2F8F5B', '#13808F', '#2357C6', '#6A3FB5', 
 // changes for a seed, so it caches forever.
 // `/avatar/<id>` is an SVG for the web; `/avatar/<id>.png` is a 192px PNG for the iOS and Android
 // apps, whose image loaders don't draw SVG.
-export async function GET(_request: Request, { params }: { params: Promise<{ seed: string }> }) {
+// Anyone may fetch these, and every new seed costs a render (about 60 ms of CPU for a PNG), so
+// seeds are limited to the ids and sample names the app uses; anything else is a cheap 404.
+export async function GET(_request: Request, { params }: RouteContext<'/avatar/[seed]'>) {
   const { seed: path } = await params
   const png = path.endsWith('.png')
-  const seed = (png ? path.slice(0, -4) : path).slice(0, 100)
+  const seed = png ? path.slice(0, -4) : path
+  if (!/^[\w-]{1,64}$/.test(seed)) return new Response('Not found', { status: 404 })
   const svg = new Avatar(style, { seed, backgroundColor: inks }).toString()
   const headers = { 'Cache-Control': 'public, max-age=31536000, immutable' }
   if (!png) return new Response(svg, { headers: { ...headers, 'Content-Type': 'image/svg+xml' } })

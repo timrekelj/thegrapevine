@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { plural } from '@/lib/format';
 import { checkEdition } from './actions';
 import styles from './paper.module.css';
 
@@ -11,6 +12,8 @@ export default function LaterEdition({ groupId, order }: { groupId: string; orde
   useEffect(() => {
     let active = true;
     const timer = setInterval(async () => {
+      // A background tab has no one to tell; it checks again when it is next looked at.
+      if (document.visibilityState !== 'visible') return;
       try {
         const next = await checkEdition(groupId);
         const changed = new Set([...order, ...next].filter(id => order.indexOf(id) !== next.indexOf(id)));
@@ -19,5 +22,5 @@ export default function LaterEdition({ groupId, order }: { groupId: string; orde
     }, 60_000);
     return () => { active = false; clearInterval(timer); };
   }, [groupId, order]);
-  return moved > 0 ? <button className={styles.later} onClick={() => router.refresh()}>↑ Later edition · {moved} {moved === 1 ? 'story' : 'stories'} moved · Reload</button> : null;
+  return moved > 0 ? <button className={styles.later} onClick={() => router.refresh()}>↑ Later edition · {plural(moved, 'story', 'stories')} moved · Reload</button> : null;
 }

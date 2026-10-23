@@ -4,7 +4,7 @@ export const CHAT_LARGE = 'mistral-large-latest';
 export const CHAT_SMALL = 'mistral-small-latest';
 export const EMBEDDINGS = 'mistral-embed';
 
-async function request(path: string, payload: { model: string; [key: string]: unknown }) {
+function request(path: string, payload: { model: string; [key: string]: unknown }) {
   return observeAI('mistral', payload.model, path, async () => {
   const key = Deno.env.get('MISTRAL_API_KEY');
   if (!key) throw new Error('MISTRAL_API_KEY is missing');

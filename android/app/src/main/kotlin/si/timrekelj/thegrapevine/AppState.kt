@@ -5,8 +5,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** Mirrors `AppState.swift`: who is signed in, and which paper they belong to. */
 class AppState(
@@ -32,17 +34,20 @@ class AppState(
     /** A story link, opened once the paper is showing. */
     var pendingStoryId by mutableStateOf<String?>(null)
 
+    private val sessionListener: (Session) -> Unit = { refreshed ->
+        store.save(refreshed)
+        session = refreshed
+    }
+
     init {
-        api.onSessionChanged = { refreshed ->
-            store.save(refreshed)
-            session = refreshed
-        }
+        api.onSessionChanged = sessionListener
         restoreSession()
     }
 
     private fun restoreSession() {
         viewModelScope.launch {
-            val stored = store.load()
+            // The first read opens the Keystore-backed store, which is slow; keep it off the main thread.
+            val stored = withContext(Dispatchers.IO) { store.load() }
             if (stored == null) {
                 Telemetry.reset()
                 OneSignalManager.logout()
@@ -216,6 +221,13 @@ class AppState(
         Telemetry.capture("paper_joined")
         group = api.getOne<Group>("rest/v1/groups", listOf("id" to "eq.$joined"))
         loadProfileAndGroup()
+    }
+
+    override fun onCleared() {
+        // The Api outlives this ViewModel: don't leave it holding a callback into a cleared one, but
+        // keep persisting refreshed sessions (refresh tokens rotate, so a lost one signs the user out).
+        val store = store
+        if (api.onSessionChanged === sessionListener) api.onSessionChanged = { store.save(it) }
     }
 
     private fun adopt(value: Session) {

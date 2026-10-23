@@ -29,18 +29,6 @@ object OneSignalManager : INotificationClickListener {
 
     fun logout() = OneSignal.logout()
 
-    // -------------------------------------------------- subscriptions and tags
-
-    fun setEmail(email: String) = OneSignal.User.addEmail(email)
-
-    fun setSmsNumber(number: String) = OneSignal.User.addSms(number)
-
-    fun setTag(key: String, value: String) = OneSignal.User.addTag(key, value)
-
-    fun setLogLevel(level: LogLevel) {
-        OneSignal.Debug.logLevel = level
-    }
-
     // ----------------------------------------------------------------- push
 
     /** Asks for notification permission; true when granted. */

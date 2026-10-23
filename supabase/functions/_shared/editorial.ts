@@ -16,5 +16,10 @@ export async function generate(target: 'title' | 'summary' | 'category', sources
     if (!categories.includes(result)) throw new Error('Invalid generated category');
     return result;
   }
-  return result.replace(/^["“]|["”]$/g, '').split(/\s+/).slice(0, target === 'title' ? 8 : 200).join(' ');
+  // Source text is untrusted and may steer the model: whatever comes back is kept to plain text
+  // within the word and character limits every client lays out.
+  const text = result.replace(/\p{Cc}/gu, ' ').replace(/^["“]|["”]$/g, '')
+    .split(/\s+/).filter(Boolean).slice(0, target === 'title' ? 8 : 200).join(' ').slice(0, target === 'title' ? 160 : 2000);
+  if (!text) throw new Error(`Empty generated ${target}`);
+  return text;
 }

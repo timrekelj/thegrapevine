@@ -1,10 +1,23 @@
 import { body, errorResponse, HttpError, json, optionalText, uuid } from '../_shared/cors.ts';
-import { caller, requireMember, supabase } from '../_shared/supabase.ts';
+import { caller, rateLimit, requireMember, supabase } from '../_shared/supabase.ts';
 import { fetchSource, normalizeUrl } from '../_shared/fetch-source.ts';
 import { cosineSimilarity, decide, sourceText, storyText, vector } from '../_shared/clustering.ts';
 import { embed } from '../_shared/mistral.ts';
 import { generate } from '../_shared/editorial.ts';
 import { capture, featureEnabled, usageScope, withTelemetry } from '../_shared/telemetry.ts';
+
+// Each submission costs a fetch and several model calls; this is generous for a friend group.
+const SUBMISSIONS_PER_WINDOW = 30;
+const WINDOW_MINUTES = 10;
+const EDITORIAL_SOURCE = 'source_title,excerpt,publisher,extraction_status';
+
+type Candidate = { id: string; title: string; summary: string; embedding: string | number[] | null };
+
+async function check<T>(query: PromiseLike<{ data: T; error: unknown }>) {
+  const { data, error } = await query;
+  if (error) throw error;
+  return data;
+}
 
 Deno.serve(withTelemetry('submit-source', async req => {
   if (req.method === 'OPTIONS') return json({});
@@ -15,38 +28,37 @@ Deno.serve(withTelemetry('submit-source', async req => {
     const user = await caller(req);
     const input = await body(req);
     if (!uuid(input.group_id)) throw new HttpError(400, 'Invalid group_id');
+    const groupId: string = input.group_id;
     const url = normalizeUrl(input.url);
     const comment = optionalText(input.comment);
-    await requireMember(input.group_id, user.id);
-    usageScope({ groupId: input.group_id });
-    const duplicate = async () => {
-      const { data, error } = await supabase.from('sources').select('id,story_id').eq('group_id', input.group_id).eq('url', url).maybeSingle();
-      if (error) throw error;
-      return data;
-    };
-    const existing = await duplicate();
+    const duplicate = () => check(supabase.from('sources').select('id,story_id')
+      .eq('group_id', groupId).eq('url', url).maybeSingle());
+    // Membership is checked before anything about the paper (including a duplicate) is returned.
+    const [, existing] = await Promise.all([requireMember(groupId, user.id), duplicate()]);
+    usageScope({ groupId });
     if (existing) {
       capture('source_submitted', { result: 'duplicate' });
       return json({ status: 'duplicate', story_id: existing.story_id, source_id: existing.id });
     }
+    await rateLimit('sources', 'submitted_by', user.id, SUBMISSIONS_PER_WINDOW, WINDOW_MINUTES);
     const fetched = await fetchSource(url);
     // sources.story_id is required: preserve the card before any AI call, then discard this story if joined.
+    // The placeholder is flagged, so it is announced to the paper only once it is published below.
     const { data: placeholder, error: storyError } = await supabase.from('stories').insert({
-      group_id: input.group_id, created_by: user.id, title: fetched.title || fetched.domain,
+      group_id: groupId, created_by: user.id, title: fetched.title || fetched.domain,
       summary: 'Summary failed', flagged: true,
-    }).select('*').single();
+    }).select('id,title').single();
     if (storyError) throw storyError;
     placeholderId = placeholder.id;
     usageScope({ storyId: placeholder.id });
     const { data: source, error: sourceError } = await supabase.from('sources').insert({
-      story_id: placeholder.id, group_id: input.group_id, url, submitted_by: user.id,
+      story_id: placeholder.id, group_id: groupId, url, submitted_by: user.id,
       submitter_comment: comment, domain: fetched.domain, publisher: fetched.publisher,
       source_title: fetched.title, excerpt: fetched.excerpt, image_url: fetched.image_url,
       author: fetched.author, extraction_status: fetched.status,
-    }).select('*').single();
+    }).select('id,story_id,source_title,excerpt').single();
     if (sourceError) {
-      const { error } = await supabase.from('stories').delete().eq('id', placeholder.id);
-      if (error) throw error;
+      await check(supabase.from('stories').delete().eq('id', placeholder.id));
       placeholderId = undefined;
       if (sourceError.code === '23505') {
         const other = await duplicate();
@@ -58,28 +70,32 @@ Deno.serve(withTelemetry('submit-source', async req => {
     // A source with no readable text (failed fetch, deleted post) cannot be clustered:
     // it becomes a standalone card so the URL and the member's comment are never lost.
     const text = sourceText(source).trim();
-    const incoming = text ? await embed(text) : null;
+    const [incoming, stories, clustering] = await Promise.all([
+      text ? embed(text) : null,
+      check(supabase.from('stories').select('id,title,summary,embedding')
+        .eq('group_id', groupId).neq('id', placeholder.id)
+        .order('last_activity_at', { ascending: false }).limit(20)) as Promise<Candidate[]>,
+      featureEnabled('ai-clustering-enabled'),
+    ]);
+    const candidates: { story: Candidate; similarity: number }[] = [];
     if (incoming) {
-      const { error: sourceEmbeddingError } = await supabase.from('sources').update({ embedding: incoming }).eq('id', source.id);
-      if (sourceEmbeddingError) throw sourceEmbeddingError;
+      const [, scored] = await Promise.all([
+        check(supabase.from('sources').update({ embedding: incoming }).eq('id', source.id)),
+        // Older stories may predate embeddings: embed and store those concurrently.
+        Promise.all((clustering ? stories : []).map(async story => {
+          let embedding = story.embedding ? vector(story.embedding) : null;
+          if (!embedding) {
+            embedding = await embed(storyText(story));
+            await check(supabase.from('stories').update({ embedding }).eq('id', story.id));
+          }
+          return { story, similarity: cosineSimilarity(incoming, embedding) };
+        })),
+      ]);
+      candidates.push(...scored.filter(candidate => candidate.similarity >= 0.72));
     }
-    const { data: stories, error: loadError } = await supabase.from('stories').select('*')
-      .eq('group_id', input.group_id).neq('id', placeholder.id).order('last_activity_at', { ascending: false }).limit(20);
-    if (loadError) throw loadError;
-    const candidates = [];
-    if (incoming && await featureEnabled('ai-clustering-enabled')) {
-      for (const story of stories || []) {
-        const embedding = story.embedding ? vector(story.embedding) : await embed(storyText(story));
-        if (!story.embedding) {
-          const { error } = await supabase.from('stories').update({ embedding }).eq('id', story.id);
-          if (error) throw error;
-        }
-        const similarity = cosineSimilarity(incoming, embedding);
-        if (similarity >= 0.72) candidates.push({ story, similarity });
-      }
-    }
-    let chosen = placeholder;
+    let chosen: { id: string; title: string } = placeholder;
     let conflict = false;
+    // Sequential on purpose: most submissions match the first candidate, and each decision is billed.
     for (const candidate of candidates.sort((a, b) => b.similarity - a.similarity).slice(0, 3)) {
       const decision = await decide(`${text} vs ${storyText(candidate.story)}`, candidate.similarity);
       if (decision.same_event) { chosen = candidate.story; conflict = decision.conflict; break; }
@@ -87,35 +103,34 @@ Deno.serve(withTelemetry('submit-source', async req => {
     const joined = chosen.id !== placeholder.id;
     usageScope({ storyId: chosen.id });
     if (joined) {
-      const { error } = await supabase.from('sources').update({ story_id: chosen.id }).eq('id', source.id);
-      if (error) throw error;
+      await check(supabase.from('sources').update({ story_id: chosen.id }).eq('id', source.id));
       savedSource = { id: source.id, story_id: chosen.id };
-      const { error: deleteError } = await supabase.from('stories').delete().eq('id', placeholder.id);
-      if (deleteError) throw deleteError;
+      await check(supabase.from('stories').delete().eq('id', placeholder.id));
       placeholderId = undefined;
     }
-    const { data: sources, error: sourcesError } = await supabase.from('sources').select('*').eq('story_id', chosen.id);
-    if (sourcesError) throw sourcesError;
+    const sources = await check(supabase.from('sources').select(EDITORIAL_SOURCE).eq('story_id', chosen.id)) ?? [];
     let title: string;
     let summary: string;
     let category: string | null = null;
     let embedding: number[] | null = null;
     if (text) {
-      title = joined ? chosen.title : await generate('title', sources!);
-      summary = await generate('summary', sources!, conflict);
-      category = await generate('category', sources!);
+      [title, summary, category] = await Promise.all([
+        joined ? chosen.title : generate('title', sources),
+        generate('summary', sources, conflict),
+        generate('category', sources),
+      ]);
       embedding = await embed(storyText({ title, summary }));
     } else {
       title = fetched.domain;
       summary = 'This link could not be read yet. The card keeps the URL and your comment.';
     }
-    const { error: historyError } = await supabase.from('story_history').insert({ story_id: chosen.id, title, summary, category });
-    if (historyError) throw historyError;
-    const { error: updateError } = await supabase.from('stories').update({ title, summary, category, embedding, flagged: false,
-      last_activity_at: new Date().toISOString() }).eq('id', chosen.id);
-    if (updateError) throw updateError;
+    await Promise.all([
+      check(supabase.from('story_history').insert({ story_id: chosen.id, title, summary, category })),
+      check(supabase.from('stories').update({ title, summary, category, embedding, flagged: false,
+        last_activity_at: new Date().toISOString() }).eq('id', chosen.id)),
+    ]);
     capture('source_submitted', { result: joined ? 'joined' : 'new_story' });
-    return json({ status: joined ? 'joined' : 'new_story', story_id: chosen.id, source_id: source.id });
+    return json({ status: joined ? 'joined' : 'new_story', story_id: chosen.id, source_id: source.id, story_title: title });
   } catch (error) {
     capture('source_submission_failed', { source_preserved: !!savedSource });
     if (savedSource) {

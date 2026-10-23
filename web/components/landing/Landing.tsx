@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Plate from '@/components/print/Plate'
 import Avatar from '@/components/print/Avatar'
+import { dayline } from '@/lib/format'
 import styles from './landing.module.css'
 
 // Fictional sample content, printed with the same plates and markers as the real paper.
@@ -65,7 +66,7 @@ const notices = [
 ]
 
 export default function Landing() {
-  const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const today = dayline(new Date(), true)
   return <div className={styles.page}>
     <div className={styles.strip}>
       <span className="label">Est. 2026 · A private newspaper</span>

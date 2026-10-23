@@ -88,8 +88,6 @@ export function fillDays(byDay: DaySpend[], days: number, now = new Date()): Day
 
 export const WINDOWS = [7, 30, 90] as const;
 export const parseWindow = (value: unknown) => WINDOWS.find(w => String(w) === value) ?? 30;
-export const isUuid = (value: unknown): value is string =>
-  typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
 export async function adminRpc<T>(client: SupabaseClient, name: string, args?: Record<string, unknown>): Promise<T> {
   const { data, error } = await client.rpc(name, args);

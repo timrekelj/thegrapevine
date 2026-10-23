@@ -2,5 +2,4 @@
 <resources>
     <!-- The evening edition. -->
     <color name="paper">#121110</color>
-    <color name="ink">#EDE9E1</color>
 </resources>

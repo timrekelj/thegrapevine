@@ -6,10 +6,12 @@ import { sitePreview } from "@/lib/metadata";
 
 // The paper's type: a blackletter nameplate, a news serif with optical sizes for everything you
 // read, a typewriter mono for datelines and counts, and a plain sans for controls.
+// `subsets` only picks what is preloaded: every subset stays in the CSS, so Slovenian letters
+// (latin-ext) still load on demand when a page uses them. The sans only sets buttons, so it isn't preloaded.
 const nameplate = UnifrakturMaguntia({ weight: "400", subsets: ["latin"], variable: "--font-nameplate" });
-const news = Newsreader({ subsets: ["latin", "latin-ext"], style: ["normal", "italic"], axes: ["opsz"], variable: "--font-news" });
-const mono = IBM_Plex_Mono({ weight: ["400", "500", "600"], subsets: ["latin", "latin-ext"], variable: "--font-mono" });
-const ui = Inter({ subsets: ["latin", "latin-ext"], variable: "--font-ui" });
+const news = Newsreader({ subsets: ["latin"], style: ["normal", "italic"], axes: ["opsz"], variable: "--font-news" });
+const mono = IBM_Plex_Mono({ weight: ["400", "500", "600"], subsets: ["latin"], variable: "--font-mono" });
+const ui = Inter({ subsets: ["latin"], variable: "--font-ui", preload: false });
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://thegrapevine.si"),

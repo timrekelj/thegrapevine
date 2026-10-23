@@ -1,7 +1,6 @@
 package si.timrekelj.thegrapevine.ui
 
 import android.content.Intent
-import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -32,13 +31,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -78,6 +75,7 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.CancellationException
@@ -91,7 +89,6 @@ import si.timrekelj.thegrapevine.R
 /** Must match `otp_length` in supabase/config.toml and the hosted project. */
 const val SIGN_IN_CODE_LENGTH = 6
 private const val RESEND_SECONDS = 30
-private val Field = Corner
 
 @Composable
 fun LoginScreen(app: AppState) {
@@ -208,19 +205,8 @@ fun LoginScreen(app: AppState) {
                         isError = app.error != null,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Send),
                         keyboardActions = KeyboardActions(onSend = { sendCode() }),
-                        shape = Field,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Press.raised,
-                            unfocusedContainerColor = Press.raised,
-                            errorContainerColor = Press.raised,
-                            focusedBorderColor = Press.ink,
-                            unfocusedBorderColor = Press.rule,
-                            errorBorderColor = Press.danger,
-                            cursorColor = Press.ink,
-                            focusedTextColor = Press.ink,
-                            unfocusedTextColor = Press.ink,
-                            errorTextColor = Press.ink,
-                        ),
+                        shape = Corner,
+                        colors = fieldColors(),
                         modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.EmailAddress },
                     )
                     ErrorLine(app.error)
@@ -238,7 +224,7 @@ fun LoginScreen(app: AppState) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         AuthProvider.entries.forEach { provider ->
                             ProviderButton(provider, enabled = !busy) {
-                                run { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(app.startOAuth(provider)))) }
+                                run { context.startActivity(Intent(Intent.ACTION_VIEW, app.startOAuth(provider).toUri())) }
                             }
                         }
                     }
@@ -291,8 +277,8 @@ private fun CodeCells(code: String, invalid: Boolean, onChange: (String) -> Unit
                     repeat(SIGN_IN_CODE_LENGTH) { index ->
                         val active = focused && index == minOf(code.length, SIGN_IN_CODE_LENGTH - 1)
                         Box(
-                            Modifier.weight(1f).height(62.dp).background(Press.raised, Field)
-                                .border(if (active) 1.5.dp else 1.dp, if (invalid) Press.danger else if (active) Press.ink else Press.rule, Field),
+                            Modifier.weight(1f).height(62.dp).background(Press.raised, Corner)
+                                .border(if (active) 1.5.dp else 1.dp, if (invalid) Press.danger else if (active) Press.ink else Press.rule, Corner),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(code.getOrNull(index)?.toString() ?: "", style = display(30))
@@ -307,15 +293,6 @@ private fun CodeCells(code: String, invalid: Boolean, onChange: (String) -> Unit
 }
 
 @Composable
-private fun ErrorLine(error: String?) {
-    if (error == null) return
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 8.dp)) {
-        Icon(Icons.Outlined.Info, contentDescription = null, tint = Press.danger, modifier = Modifier.size(18.dp))
-        Text(error, fontSize = 14.sp, lineHeight = 18.sp, fontWeight = FontWeight.Medium, color = Press.danger)
-    }
-}
-
-@Composable
 fun PrimaryButton(text: String, enabled: Boolean, onClick: () -> Unit) {
     InkButton(text, enabled = enabled, height = 52.dp, onClick = onClick)
 }
@@ -325,7 +302,7 @@ private fun QuietButton(text: String, enabled: Boolean, onClick: () -> Unit) {
     OutlinedButton(
         onClick = onClick,
         enabled = enabled,
-        shape = Field,
+        shape = Corner,
         border = BorderStroke(1.dp, if (enabled) Press.rule else Color.Transparent),
         modifier = Modifier.fillMaxWidth().heightIn(min = 46.dp),
     ) {
@@ -339,7 +316,7 @@ private fun ProviderButton(provider: AuthProvider, enabled: Boolean, onClick: ()
         onClick = onClick,
         enabled = enabled,
         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).alpha(if (enabled) 1f else 0.5f),
-        shape = Field,
+        shape = Corner,
         contentPadding = PaddingValues(horizontal = 16.dp),
         border = BorderStroke(1.dp, Press.rule),
         colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(containerColor = Press.raised, contentColor = Press.ink),

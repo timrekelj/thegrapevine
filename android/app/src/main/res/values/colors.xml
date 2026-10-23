@@ -2,6 +2,5 @@
 <resources>
     <!-- Newsprint and ink: matches the web paper token (globals.css). -->
     <color name="paper">#F4F1EA</color>
-    <color name="ink">#161513</color>
     <color name="ic_launcher_background">#F4F1EA</color>
 </resources>

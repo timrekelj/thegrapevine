@@ -4,18 +4,17 @@ import Link from 'next/link'
 import { Lock, Reply, SmilePlus } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { loadStoryDetails, mergeTimeline, type Source, type Story, type Message } from './queries'
+import { loadStory, loadStoryDetails, mergeTimeline, type Message, type Source, type Story, type StoryDetails } from './queries'
 import Composer from './Composer'
 import Plate from '@/components/print/Plate'
 import Avatar from '@/components/print/Avatar'
 import { capture, correctionsEnabled } from '@/lib/telemetry'
+import { clock as time, dayline as day } from '@/lib/format'
+import { safeUrl } from '@/lib/validate'
 
 const emojis = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '🚀', '👀', '🎉']
 // Only the emojis someone has used, in palette order.
 const usedEmojis = (message: Message) => { const present = [...new Set(message.reactions.map(reaction => reaction.emoji))]; return [...emojis.filter(emoji => present.includes(emoji)), ...present.filter(emoji => !emojis.includes(emoji))] }
-const time = (date: string) => new Date(date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Ljubljana' })
-const day = (date: string) => new Date(date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Ljubljana' })
-const safeUrl = (url: string | null | undefined) => url && (/^https?:\/\//i.test(url) || /^\/(?!\/)/.test(url)) ? url : undefined
 const publisher = (source: Source) => source.author || source.publisher || source.domain || 'Source'
 
 const LockIcon = () => <Lock className="story-icon" size={12} strokeWidth={2} aria-hidden="true" />
@@ -31,7 +30,7 @@ function SourceCard({ source }: { source: Source }) {
   </div>
 }
 
-export default function StoryReader({ initialStory, initialDetails, userId, gifsEnabled }: { initialStory: Story; initialDetails: Awaited<ReturnType<typeof loadStoryDetails>>; userId: string; gifsEnabled: boolean }) {
+export default function StoryReader({ initialStory, initialDetails, userId, gifsEnabled }: { initialStory: Story; initialDetails: StoryDetails; userId: string; gifsEnabled: boolean }) {
   const [story, setStory] = useState(initialStory)
   const [details, setDetails] = useState(initialDetails)
   const [lastViewed, setLastViewed] = useState<string | null>(null)
@@ -49,20 +48,26 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
   const reportDialog = useRef<HTMLDialogElement>(null)
   const summary = useRef(initialStory.summary)
   const refreshing = useRef(false)
+  const refreshAgain = useRef(false)
+  const messages = useRef(initialDetails.messages)
   const reactionBusy = useRef(new Set<string>())
   const longPress = useRef<number | undefined>(undefined)
   const refresh = useCallback(async () => {
-    if (refreshing.current) return
+    // A change that lands mid-refresh may have been missed by it: run once more afterwards.
+    if (refreshing.current) { refreshAgain.current = true; return }
     refreshing.current = true
     try {
-      const client = createClient()
-      const { data, error } = await client.from('stories').select('*').eq('id', initialStory.id).single()
-      if (error) throw error
-      const next = data as Story
-      const nextDetails = await loadStoryDetails(client, next)
-      if (summary.current !== next.summary) setSummaryChanged(true)
-      summary.current = next.summary
-      setStory(next); setDetails(nextDetails); setError('')
+      do {
+        refreshAgain.current = false
+        const client = createClient()
+        const next = await loadStory(client, initialStory.id)
+        if (!next) throw new Error('Story unavailable')
+        const nextDetails = await loadStoryDetails(client, next, messages.current)
+        if (summary.current !== next.summary) setSummaryChanged(true)
+        summary.current = next.summary
+        messages.current = nextDetails.messages
+        setStory(next); setDetails(nextDetails); setError('')
+      } while (refreshAgain.current)
     } catch { setError('Could not update the conversation. Your current edition is still here.'); }
     finally { refreshing.current = false }
   }, [initialStory.id])
@@ -122,7 +127,12 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
     setReportBusy(true); setError('')
     const { error } = await createClient().functions.invoke('report-story', { body: { story_id: story.id, target, note } })
     setReportBusy(false)
-    if (error) { setError('Could not send the report. Your note is kept; try again.'); return }
+    if (error) {
+      // The function explains rate limits and bad input in `error`; show that rather than a generic line.
+      const failure = error.context instanceof Response ? await error.context.json().catch(() => null) : null
+      setError(`${typeof failure?.error === 'string' ? failure.error : 'Could not send the report.'} Your note is kept; try again.`)
+      return
+    }
     reportDialog.current?.close(); setNote(''); setToast('Reported — it will be re-checked'); await refresh()
   }
   const person = (id: string | null) => details.people.find(person => person.id === id) || { id: id ?? 'member', display_name: 'Member', monogram: '?' }
@@ -194,7 +204,7 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
                 {entry.kind === 'source' ? <>{entry.submitter_comment && <p>{entry.submitter_comment}</p>}<SourceCard source={entry} /></> : <>
                   {parent && <div className="story-quote"><b>{person(parent.author_id).display_name}</b> {parent.body ? `${parent.body.slice(0, 100)}${parent.body.length > 100 ? '…' : ''}` : 'Attachment'}</div>}
                   {entry.body && <p>{entry.body}</p>}
-                  {entry.message_media.sort((a, b) => a.position - b.position).map(media => <div key={media.id} className="story-media">
+                  {entry.message_media.map(media => <div key={media.id} className="story-media">
                     {media.kind === 'video' ? <video controls preload="metadata" src={safeUrl(media.display_url)} aria-label={media.alt_text || 'Shared video'} /> : media.kind === 'gif' && reducedMotion && !playingGifs.includes(media.id) ? <button className="story-gif-paused meta" onClick={() => setPlayingGifs([...playingGifs, media.id])}>▶ Play GIF · {media.alt_text || 'Animated reaction'}</button> : <Plate src={media.display_url} label="Attachment unavailable" alt={media.alt_text || 'Shared image'} className="story-media-plate reveal" screen={media.kind !== 'gif'} />}
                     {media.kind === 'gif' && <div className="meta">GIF · {media.alt_text || 'Animated reaction'}{playingGifs.includes(media.id) && <> · <button className="story-text-button" onClick={() => setPlayingGifs(playingGifs.filter(id => id !== media.id))}>Pause</button></>}</div>}
                   </div>)}

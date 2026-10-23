@@ -2,12 +2,12 @@ import { randomUUID } from 'node:crypto'
 import { redirect } from 'next/navigation'
 import { requireUser, safeRedirect } from '@/lib/auth'
 import { createPaper, saveDisplayName } from '@/lib/papers'
+import { isUuid } from '@/lib/validate'
+import { dayline } from '@/lib/format'
 import { connection } from 'next/server'
 import form from '../login/login.module.css'
 import styles from './onboarding.module.css'
 import { OnboardingForm } from './onboarding-form'
-
-const UUID = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i
 
 /** Back to the form with what was typed and why it failed. */
 function retry(destination: string, id: string, fields: Record<string, string>, error: string): never {
@@ -21,7 +21,7 @@ export default async function OnboardingPage({ searchParams }: PageProps<'/onboa
   const { supabase, user } = await requireUser(`/onboarding?${new URLSearchParams({ redirect: destination })}`)
   const { data: profile, error: profileError } = await supabase.from('profiles').select('display_name').eq('id', user.id).single()
   // Keep the paper's ID across retries so a failed membership insert never creates a second paper.
-  const groupId = typeof params.id === 'string' && UUID.test(params.id) ? params.id : randomUUID()
+  const groupId = isUuid(params.id) ? params.id : randomUUID()
   // Someone who arrived from an invite link joins first; the code rides along in the destination.
   const inviteCode = typeof params.code === 'string' ? params.code
     : destination.startsWith('/invite?') ? new URLSearchParams(destination.slice('/invite?'.length)).get('code') ?? '' : ''
@@ -47,7 +47,7 @@ export default async function OnboardingPage({ searchParams }: PageProps<'/onboa
     redirect(`/invite?${new URLSearchParams({ code })}`)
   }
 
-  const today = new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+  const today = dayline(new Date())
   return (
     <main className={form.page}>
       <header className={styles.intro}>

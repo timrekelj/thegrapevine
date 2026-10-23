@@ -5,6 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import java.time.Instant
 
@@ -27,20 +29,28 @@ class PaperState(private val api: Api) : ViewModel() {
             isLoading = true
             error = null
             try {
-                val memberships = api.getMany<Membership>(
-                    "rest/v1/group_members",
-                    listOf("user_id" to "eq.${session.userId}", "group_id" to "eq.${group.id}"),
-                )
-                seenAt = memberships.firstOrNull()?.last_seen_at
-
-                val rows = api.getMany<StoryRow>(
-                    "rest/v1/stories",
-                    listOf(
-                        "select" to "id,title,summary,category,last_activity_at,created_at,sources(*),messages(*)",
-                        "group_id" to "eq.${group.id}",
-                    ),
-                )
-                stories = Ranking.rank(rows)
+                coroutineScope {
+                    val memberships = async {
+                        api.getMany<Membership>(
+                            "rest/v1/group_members",
+                            listOf("user_id" to "eq.${session.userId}", "group_id" to "eq.${group.id}"),
+                        )
+                    }
+                    // Only the columns the front page shows: article excerpts and reactions stay on the server.
+                    val rows = async {
+                        api.getMany<StoryRow>(
+                            "rest/v1/stories",
+                            listOf(
+                                "select" to "id,title,summary,category,last_activity_at,created_at," +
+                                    "sources($SOURCE_COLUMNS),messages($MESSAGE_COLUMNS)",
+                                "group_id" to "eq.${group.id}",
+                            ),
+                        )
+                    }
+                    seenAt = memberships.await().firstOrNull()?.last_seen_at
+                    val ranked = Ranking.rank(rows.await())
+                    if (ranked != stories) stories = ranked
+                }
 
                 // Record this edition as seen.
                 runCatching {
@@ -60,6 +70,11 @@ class PaperState(private val api: Api) : ViewModel() {
     fun clear() {
         stories = emptyList()
         seenAt = null
+    }
+
+    private companion object {
+        const val SOURCE_COLUMNS = "id,story_id,url,domain,publisher,source_title,image_url,submitted_by,extraction_status,created_at"
+        const val MESSAGE_COLUMNS = "id,story_id,author_id,body,reply_to,created_at"
     }
 
     @kotlinx.serialization.Serializable

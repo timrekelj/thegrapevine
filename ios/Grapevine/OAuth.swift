@@ -1,5 +1,6 @@
 import Foundation
 import CryptoKit
+import Security
 
 enum AuthProvider: String, CaseIterable {
     case google, apple, x
@@ -16,8 +17,13 @@ enum AuthProvider: String, CaseIterable {
 enum OAuth {
     static let callback = "grapevine://auth/callback"
 
+    /// A PKCE code verifier (and Apple nonce): 32 bytes from the system's secure random generator, as 64 hex digits.
     static func verifier() -> String {
-        UUID().uuidString.replacingOccurrences(of: "-", with: "") + UUID().uuidString.replacingOccurrences(of: "-", with: "")
+        var bytes = [UInt8](repeating: 0, count: 32)
+        if SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) != errSecSuccess {
+            bytes = (0..<32).map { _ in UInt8.random(in: .min ... .max) }
+        }
+        return bytes.map { String(format: "%02x", $0) }.joined()
     }
 
     static func nonceHash(_ nonce: String) -> String {
@@ -49,7 +55,7 @@ enum OAuth {
         if items.contains(where: { $0.name == "error" || $0.name == "error_code" }) {
             let message = items.first(where: { $0.name == "error_description" })?.value
                 ?? items.first(where: { $0.name == "error" })?.value
-            throw APIError.network(message?.isEmpty == false ? message! : "Sign-in was rejected. Please try again.")
+            throw APIError.network(message.flatMap { $0.isEmpty ? nil : $0 } ?? "Sign-in was rejected. Please try again.")
         }
         guard let code = components.queryItems?.first(where: { $0.name == "code" })?.value, !code.isEmpty else { throw failure }
         return code

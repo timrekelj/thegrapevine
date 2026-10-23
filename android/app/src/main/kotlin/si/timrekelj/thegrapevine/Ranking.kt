@@ -27,6 +27,9 @@ object Ranking {
 
 /** Deep links: https://thegrapevine.si invitations and stories. */
 object DeepLink {
+    /** The only site whose links the app opens (the App Links intent filter's host). */
+    private const val HOST = "thegrapevine.si"
+
     sealed interface Route {
         data class Invite(val code: String) : Route
         data class Story(val id: String) : Route
@@ -37,7 +40,8 @@ object DeepLink {
     /** Where an incoming link should go, or null for links the app doesn't handle. */
     fun route(uri: String): Route? {
         val parsed = runCatching { URI(uri) }.getOrNull() ?: return null
-        if (parsed.scheme != "https" && parsed.scheme != "http") return null
+        // MainActivity is exported, so any app can hand it a VIEW intent: only take our own links.
+        if (parsed.scheme != "https" || !parsed.host.equals(HOST, ignoreCase = true)) return null
         val path = parsed.path.orEmpty().trimEnd('/')
         return when {
             path == "/invite" -> queryParams(parsed.rawQuery.orEmpty())["code"]?.let { Route.Invite(it.trim().lowercase()) }

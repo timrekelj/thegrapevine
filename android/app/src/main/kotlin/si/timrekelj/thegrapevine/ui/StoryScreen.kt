@@ -184,6 +184,14 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit) {
 
     val locked = sending || store.pendingMessageId != null
 
+    // Sources and messages interleaved by time, grouped by day; rebuilt only when either list changes.
+    val timeline = remember(store.sources, store.messages) {
+        (store.sources.map { Entry.FromSource(it) } + store.messages.map { Entry.FromMessage(it) })
+            .sortedBy { it.createdAt }
+            .groupBy { it.createdAt.atZone(ZoneId.systemDefault()).toLocalDate() }
+            .values.toList()
+    }
+
     Scaffold(
         containerColor = Press.paper,
         topBar = {
@@ -303,14 +311,12 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit) {
                 }
                 item { SectionHead("The conversation", Modifier.padding(horizontal = 20.dp).padding(top = 36.dp)) }
 
-                val timeline = (store.sources.map { Entry.FromSource(it) } + store.messages.map { Entry.FromMessage(it) })
-                    .sortedBy { it.createdAt }
                 if (timeline.isEmpty()) item { Text("Start the conversation.", style = BodyStyle.copy(color = Press.ink2), modifier = Modifier.padding(20.dp)) }
-                timeline.groupBy { it.createdAt.atZone(ZoneId.systemDefault()).toLocalDate() }.forEach { (_, entries) ->
+                timeline.forEach { entries ->
                     item(key = "day-${entries.first().key}") { DayDivider(dayLabel(entries.first().createdAt)) }
                     items(entries, key = { it.key }) { entry ->
                         when (entry) {
-                            is Entry.FromSource -> SourceEntry(entry.source, store, userId, onOpen = { uriHandler.openUri(it) })
+                            is Entry.FromSource -> SourceEntry(entry.source, store, userId, onOpen = { uriHandler.openWebLink(it) })
                             is Entry.FromMessage -> MessageEntry(
                                 message = entry.message,
                                 store = store,
@@ -579,7 +585,7 @@ private fun MessageMedia(media: Media) {
         Text(
             "▶  Play video",
             style = MetaStyle.copy(color = Press.ink),
-            modifier = Modifier.clipping(Press.ink3, Press.raised).clickable(enabled = url != null) { url?.let(uriHandler::openUri) }.padding(horizontal = 16.dp, vertical = 14.dp),
+            modifier = Modifier.clipping(Press.ink3, Press.raised).clickable(enabled = url != null) { url?.let(uriHandler::openWebLink) }.padding(horizontal = 16.dp, vertical = 14.dp),
         )
     } else {
         PlateView(url, media.alt_text ?: "Shared image", Modifier.fillMaxWidth().aspectRatio(4f / 3f), screen = false)

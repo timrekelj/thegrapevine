@@ -56,7 +56,7 @@ curl --fail-with-body http://127.0.0.1:8100/decide \
 - `choice` requires 2–255 distinct nonblank options; returns the winning string and its probability, **not** native normalized confidence.
 - `score` requires 2–10 ordered labels, lowest first. Returns the **winning zero-based level index** and its probability. It intentionally does not return native expected-value score, since that fractional value has no individual outcome probability.
 - Missing instructions default to the question name. Use explicit instructions for editorial judgments.
-- At most 32 questions and 100,000 state characters. Native context overflow is HTTP 422, never silent truncation. Invalid input also returns 422; unexpected inference errors return 500. The service does not log request bodies.
+- At most 32 questions and 100,000 state characters; question names up to 64 characters, instructions up to 2,000, options up to 200 each. Native context overflow is HTTP 422, never silent truncation. Invalid input also returns 422; unexpected inference errors return 500. The service does not log request bodies.
 
 ## Validation
 

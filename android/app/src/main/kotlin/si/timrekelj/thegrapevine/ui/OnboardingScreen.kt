@@ -23,13 +23,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -57,7 +52,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import si.timrekelj.thegrapevine.AppState
 
-private val Field = Corner
 
 @Composable
 fun OnboardingScreen(app: AppState) {
@@ -149,7 +143,7 @@ fun OnboardingScreen(app: AppState) {
                         OutlinedButton(
                             onClick = { joining = !join; localError = null },
                             enabled = !busy,
-                            shape = Field,
+                            shape = Corner,
                             border = BorderStroke(1.dp, Press.rule),
                             modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp),
                         ) {
@@ -174,19 +168,10 @@ private fun OnboardingField(value: String, onChange: (String) -> Unit, placehold
         textStyle = BodyStyle,
         singleLine = true,
         keyboardOptions = KeyboardOptions(capitalization = if (capitalize) KeyboardCapitalization.Words else KeyboardCapitalization.None, autoCorrectEnabled = false),
-        shape = Field,
+        shape = Corner,
         colors = fieldColors(),
         modifier = Modifier.fillMaxWidth(),
     )
-}
-
-@Composable
-private fun ErrorLine(error: String?) {
-    if (error == null) return
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 8.dp)) {
-        Icon(Icons.Outlined.Info, contentDescription = null, tint = Press.danger, modifier = Modifier.size(18.dp))
-        Text(error, fontSize = 14.sp, lineHeight = 18.sp, fontWeight = FontWeight.Medium, color = Press.danger)
-    }
 }
 
 /** The paper being made, updated as you type: its nameplate in blackletter, a first-edition stamp. */

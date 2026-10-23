@@ -50,7 +50,9 @@ android {
             buildConfigField("String", "SUPABASE_URL", "\"https://ivjaenrmhsqnsvzemoez.supabase.co\"")
             buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_oT-H6EAfuoNp8dcVdTHJow_l1-Skd1C\"")
             buildConfigField("String", "WEB_URL", "\"https://thegrapevine.si\"")
-            isMinifyEnabled = false
+            // R8: kotlinx.serialization, Ktor, OkHttp, OneSignal, PostHog and Tink ship their own keep rules.
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfigs.findByName("release")?.let { signingConfig = it }
         }
@@ -87,7 +89,6 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
-    implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.core)
 
@@ -98,9 +99,5 @@ dependencies {
     implementation(libs.onesignal)
     implementation(libs.posthog)
 
-
-    debugImplementation(libs.androidx.compose.ui.tooling)
-
     testImplementation(libs.junit)
-    testImplementation(libs.kotlinx.coroutines.test)
 }
