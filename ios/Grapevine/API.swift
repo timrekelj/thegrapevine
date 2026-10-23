@@ -37,7 +37,7 @@ enum API {
         return components.url!
     }
 
-    private static func request(path: String, method: String, query: [URLQueryItem] = [], body: (any Encodable)? = nil, file: Data? = nil, contentType: String = "application/json", preferRepresentation: Bool = false, mergeDuplicates: Bool = false) async throws -> Data {
+    private static func request(path: String, method: String, query: [URLQueryItem] = [], body: (any Encodable)? = nil, file: Data? = nil, contentType: String = "application/json", preferRepresentation: Bool = false, mergeDuplicates: Bool = false, mapUnauthorized: Bool = true) async throws -> Data {
         // Auth routes skip renewal so a sign-in never depends on an old refresh token — except an email
         // change, which needs a live access token. The app and the share extension share one saved session,
         // and Supabase rotates refresh tokens: if the other one already refreshed, continue from its session
@@ -77,7 +77,7 @@ enum API {
         }
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw APIError.network("No response from the server") }
-        if http.statusCode == 401 { throw APIError.unauthorized }
+        if mapUnauthorized, http.statusCode == 401 { throw APIError.unauthorized }
         if http.statusCode >= 500 { Telemetry.httpError(http.statusCode) }
         guard (200..<300).contains(http.statusCode) else {
             throw APIError.http(http.statusCode, String(data: data, encoding: .utf8) ?? "")
@@ -181,10 +181,16 @@ enum API {
         try decode(EmailUpdate.self, try await request(path: "auth/v1/user", method: "PUT", body: EmailBody(email: email.trimmed)))
     }
 
-    /// Permanently deletes the signed-in user. `delete-account` is a Supabase Edge Function that
-    /// reads the caller's JWT and takes no body. The caller signs out locally after this succeeds.
+    struct AccountDeletion: Decodable, Equatable { let deleted: Bool }
+
+    /// POST /functions/v1/delete-account. `request` sends `Authorization: Bearer` and `apikey`
+    /// and, with no body, no content. Success is exactly 200 `{"deleted": true}`. A 4xx/500
+    /// `{"error": "..."}` leaves the account in place, so the message is shown and the user stays signed in.
     static func deleteAccount() async throws {
-        _ = try await request(path: "functions/v1/delete-account", method: "POST")
+        let data = try await request(path: "functions/v1/delete-account", method: "POST", mapUnauthorized: false)
+        guard (try? decode(AccountDeletion.self, data))?.deleted == true else {
+            throw APIError.network("Your account could not be deleted. Nothing was removed. Please try again.")
+        }
     }
 
     /// Exchanges the emailed code for a session.
