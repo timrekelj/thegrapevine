@@ -90,6 +90,8 @@ class Api(
         fileContentType: String = "application/octet-stream",
         preferRepresentation: Boolean = false,
         mergeDuplicates: Boolean = false,
+        /** Other calls turn a 401 into a session-expired error. Delete account keeps the body's `error`. */
+        mapUnauthorized: Boolean = true,
     ): String {
         refreshIfNeeded(path)
 
@@ -114,7 +116,7 @@ class Api(
 
         val text = response.bodyAsText()
         val status = response.status.value
-        if (status == 401) throw ApiError.Unauthorized
+        if (status == 401 && mapUnauthorized) throw ApiError.Unauthorized
         if (status >= 500) Telemetry.httpError(status)
         if (status !in 200..299) throw ApiError.Http(status, text)
         return text
@@ -284,12 +286,16 @@ class Api(
     }
 
     /**
-     * Permanently deletes the signed-in user via the `delete-account` Edge Function.
-     * The caller's JWT is the only credential; there is no body. The function is what removes
-     * the Auth user (the database then drops their profile). Signing out locally is the caller's job.
+     * Permanently deletes the signed-in user via `POST functions/v1/delete-account`.
+     * [request] sends `apikey` (the project publishable key) and `Authorization: Bearer` of the
+     * current access token, and this call sends no body. Success is `200 {"deleted": true}`.
+     * A 4xx or 500 `{"error": "…"}` throws with that text and leaves the local session in place.
      */
     suspend fun deleteAccount() {
-        request(path = DELETE_ACCOUNT_FUNCTION, method = HttpMethod.Post)
+        val text = request(path = DELETE_ACCOUNT_FUNCTION, method = HttpMethod.Post, mapUnauthorized = false)
+        if (!accountWasDeleted(text)) {
+            throw ApiError.Decoding("Your account could not be deleted. Please try again.")
+        }
     }
 
     @Serializable
@@ -309,7 +315,7 @@ class Api(
     }
 
     companion object {
-        /** Edge Function the web app adds: POST, the user's JWT, no body. */
+        /** `POST /functions/v1/delete-account`, caller's JWT, publishable key, no body. */
         const val DELETE_ACCOUNT_FUNCTION = "functions/v1/delete-account"
 
         private const val MAX_PICTURE_BYTES = 15 * 1024 * 1024

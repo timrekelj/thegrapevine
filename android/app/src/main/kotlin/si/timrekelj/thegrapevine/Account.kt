@@ -1,5 +1,14 @@
 package si.timrekelj.thegrapevine
 
+import kotlinx.serialization.Serializable
+
+/** Body of `POST /functions/v1/delete-account`. Only `deleted: true` means the account is gone. */
+@Serializable
+internal data class DeleteAccountResponse(val deleted: Boolean = false)
+
+internal fun accountWasDeleted(body: String): Boolean =
+    runCatching { SupabaseJson.decodeFromString<DeleteAccountResponse>(body).deleted }.getOrDefault(false)
+
 /** What Auth reported after `PUT auth/v1/user`. */
 data class AuthEmailUpdate(
     val email: String? = null,
