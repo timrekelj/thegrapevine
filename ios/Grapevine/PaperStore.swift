@@ -5,6 +5,8 @@ import SwiftUI
 @Observable
 final class PaperStore {
     var stories: [StoryRow] = []
+    /// When the oldest story in this edition was last active, if there are earlier editions to read.
+    var earlierBefore: Date?
     var seenAt: Date?
     var isLoading = false
     var error: String?
@@ -23,8 +25,12 @@ final class PaperStore {
             let rows: [StoryRow] = try await API.getMany(StoryRow.self, path: "rest/v1/stories", query: [
                 URLQueryItem(name: "select", value: "id,title,summary,category,last_activity_at,created_at,sources(\(Source.columns)),messages(*)"),
                 URLQueryItem(name: "group_id", value: "eq.\(group.id)"),
+                URLQueryItem(name: "order", value: "last_activity_at.desc"),
+                URLQueryItem(name: "limit", value: "\(Edition.max + 1)"),
             ])
-            stories = rank(rows)
+            let edition = Edition.cut(rows, activity: \.last_activity_at)
+            stories = rank(edition.kept)
+            earlierBefore = edition.more ? edition.kept.last?.last_activity_at : nil
             // record this edition as seen
             struct SeenBody: Encodable { let last_seen_at: String }
             try? await API.patchVoid(path: "rest/v1/group_members", query: [

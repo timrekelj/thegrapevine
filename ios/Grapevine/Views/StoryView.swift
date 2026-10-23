@@ -112,14 +112,19 @@ struct StoryView: View {
         }
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
+            async let read: Void = store.markRead(storyId: storyId)
             await store.load(storyId: storyId)
+            await read
             // shortcut: poll while this story is visible; use Realtime subscriptions for larger groups.
             while !Task.isCancelled {
                 do { try await Task.sleep(for: .seconds(10)) }
                 catch { return }
                 if !sending && store.pendingMessageId == nil { await store.load(storyId: storyId) }
+                // What arrived while reading has been seen: don't mark it new next time.
+                await store.markRead(storyId: storyId)
             }
         }
+        .onDisappear { Task { [store, storyId] in await store.markRead(storyId: storyId) } }
         .sheet(isPresented: $showReport) {
             ReportSheet(store: store, target: $reportTarget, note: $reportNote)
                 .presentationDetents([.medium, .large])
@@ -200,6 +205,7 @@ extension StoryView {
     }
 
     @ViewBuilder private var conversation: some View {
+        let divider = UnreadDivider(messages: store.messages, lastRead: store.lastRead, userId: app.session?.userId)
         SectionHead(title: "The conversation").padding(.bottom, 4)
         if timeline.isEmpty {
             Text("Start the conversation.").font(Theme.serif(17)).foregroundColor(Theme.ink2).padding(.vertical, 20)
@@ -212,6 +218,9 @@ extension StoryView {
             }
             .padding(.top, 16).padding(.bottom, 2)
             ForEach(entries) { entry in
+                if let divider, case .message(let message) = entry, message.id == divider.firstId {
+                    NewSinceDivider(divider: divider)
+                }
                 TimelineEntryView(entry: entry, store: store,
                                   userId: app.session?.userId ?? UUID(),
                                   onReply: { replyTo = $0 })
@@ -288,6 +297,23 @@ extension StoryView {
         .background(Theme.paper.opacity(0.94))
         .background(.ultraThinMaterial)
         .overlay(alignment: .top) { Rectangle().fill(Theme.ink).frame(height: 1) }
+    }
+}
+
+/// "3 new since 14:05": a red rule across the conversation before the first message that's new to you.
+struct NewSinceDivider: View {
+    let divider: UnreadDivider
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Rectangle().fill(Theme.red).frame(height: 2)
+            Kicker(text: "\(divider.count) new since \(clock(divider.since))", color: Theme.red, size: 11)
+                .fixedSize()
+            Rectangle().fill(Theme.red).frame(height: 2)
+        }
+        .padding(.top, 26).padding(.bottom, 6)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(plural(divider.count, "new message")) since \(clock(divider.since))")
     }
 }
 
