@@ -99,6 +99,33 @@ final class AppState {
         checked = true
     }
 
+    /// Starts Supabase's email-change flow and returns the confirmation (or applied) message.
+    /// A refreshed access token from that request is kept; only the address is overwritten when it changed.
+    func changeEmail(to email: String) async throws -> String {
+        guard let session else { throw APIError.unauthorized }
+        let requested = email.trimmed
+        guard EmailChange.isPlausibleAddress(requested) else { throw APIError.network("Enter a valid email address.") }
+        guard requested.compare(session.email, options: .caseInsensitive) != .orderedSame else {
+            throw APIError.network("That's already the email on this account.")
+        }
+        let update = try await API.updateEmail(to: requested)
+        let change = EmailChange.interpret(current: session.email, requested: requested, email: update.email, newEmail: update.new_email)
+        if let applied = change.appliedEmail {
+            var updated = (API.session?.userId == session.userId ? API.session : nil) ?? session
+            updated.email = applied
+            try save(updated)
+            API.session = updated
+            self.session = updated
+        }
+        return change.message
+    }
+
+    /// Deletes the account on the server. The caller clears local paper state, then signs out.
+    func deleteAccount() async throws {
+        guard session != nil else { throw APIError.unauthorized }
+        try await API.deleteAccount()
+    }
+
     func loadProfileAndGroup() async {
         guard let session else { return }
         do {

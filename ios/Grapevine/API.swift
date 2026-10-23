@@ -38,10 +38,11 @@ enum API {
     }
 
     private static func request(path: String, method: String, query: [URLQueryItem] = [], body: (any Encodable)? = nil, file: Data? = nil, contentType: String = "application/json", preferRepresentation: Bool = false, mergeDuplicates: Bool = false) async throws -> Data {
-        if !path.hasPrefix("auth/"), var stored = session, JWT.isExpired(stored.accessToken) {
-            // The app and the share extension share one saved session, and Supabase rotates refresh tokens:
-            // if the other one already refreshed, continue from its session instead of reusing a spent token
-            // (reuse is treated as theft and revokes the session).
+        // Auth routes skip renewal so a sign-in never depends on an old refresh token — except an email
+        // change, which needs a live access token. The app and the share extension share one saved session,
+        // and Supabase rotates refresh tokens: if the other one already refreshed, continue from its session
+        // instead of reusing a spent token (reuse is treated as theft and revokes the session).
+        if (!path.hasPrefix("auth/") || path == "auth/v1/user"), var stored = session, JWT.isExpired(stored.accessToken) {
             if let saved = Keychain.load().flatMap({ try? JSONDecoder.supabase.decode(Session.self, from: $0) }),
                saved.userId == stored.userId, saved.refreshToken != stored.refreshToken {
                 session = saved
@@ -164,6 +165,26 @@ enum API {
     /// Emails a one-time sign-in code (the email template shows only the code).
     static func signInWithOtp(email: String) async throws {
         _ = try await request(path: "auth/v1/otp", method: "POST", body: OtpBody(email: email.trimmed))
+    }
+
+    struct EmailBody: Encodable { let email: String }
+
+    /// The user record GoTrue returns from `PUT /auth/v1/user`. Unknown fields are ignored.
+    struct EmailUpdate: Decodable, Equatable {
+        let email: String?
+        let new_email: String?
+    }
+
+    /// Asks Supabase to change the signed-in user's email. Confirmation is emailed; the address
+    /// usually stays the same until those messages are confirmed (`double_confirm_changes`).
+    static func updateEmail(to email: String) async throws -> EmailUpdate {
+        try decode(EmailUpdate.self, try await request(path: "auth/v1/user", method: "PUT", body: EmailBody(email: email.trimmed)))
+    }
+
+    /// Permanently deletes the signed-in user. `delete-account` is a Supabase Edge Function that
+    /// reads the caller's JWT and takes no body. The caller signs out locally after this succeeds.
+    static func deleteAccount() async throws {
+        _ = try await request(path: "functions/v1/delete-account", method: "POST")
     }
 
     /// Exchanges the emailed code for a session.

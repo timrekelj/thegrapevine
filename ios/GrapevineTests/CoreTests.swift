@@ -127,6 +127,38 @@ final class CoreTests: XCTestCase {
     }
 
     @MainActor
+    func testEmailChangeBodyNoticeAndDecode() throws {
+        let body = try JSONSerialization.jsonObject(with: JSONEncoder().encode(API.EmailBody(email: "new@example.com"))) as? [String: String]
+        XCTAssertEqual(body, ["email": "new@example.com"])
+
+        let pending = EmailChange.interpret(current: "tim@example.com", requested: "new@example.com", email: "tim@example.com", newEmail: "new@example.com")
+        XCTAssertNil(pending.appliedEmail)
+        XCTAssertTrue(pending.message.contains("new@example.com"))
+        XCTAssertTrue(pending.message.contains("tim@example.com"))
+        XCTAssertTrue(pending.message.contains("both addresses"))
+
+        let applied = EmailChange.interpret(current: "tim@example.com", requested: "New@Example.com", email: "new@example.com", newEmail: nil)
+        XCTAssertEqual(applied.appliedEmail, "new@example.com")
+        XCTAssertEqual(applied.message, "Your email is now new@example.com.")
+
+        let adding = EmailChange.interpret(current: "  ", requested: "new@example.com", email: nil, newEmail: "")
+        XCTAssertNil(adding.appliedEmail)
+        XCTAssertFalse(adding.message.contains("both addresses"))
+        XCTAssertTrue(adding.message.contains("new@example.com"))
+
+        XCTAssertTrue(EmailChange.isPlausibleAddress("a@b.co"))
+        XCTAssertFalse(EmailChange.isPlausibleAddress("not-an-email"))
+        XCTAssertFalse(EmailChange.isPlausibleAddress("a@b"))
+        XCTAssertFalse(EmailChange.isPlausibleAddress("a b@c.com"))
+
+        let json = #"{"id":"7c9e6679-7425-40de-944b-e07fc1f90ae7","email":"tim@example.com","new_email":"new@example.com","aud":"authenticated"}"#
+        let update = try JSONDecoder.supabase.decode(API.EmailUpdate.self, from: Data(json.utf8))
+        XCTAssertEqual(update, API.EmailUpdate(email: "tim@example.com", new_email: "new@example.com"))
+        let bare = try JSONDecoder.supabase.decode(API.EmailUpdate.self, from: Data(#"{"email":"tim@example.com"}"#.utf8))
+        XCTAssertNil(bare.new_email)
+    }
+
+    @MainActor
     func testVerifyBodySendsEmailType() throws {
         let body = try JSONSerialization.jsonObject(with: JSONEncoder().encode(API.VerifyBody(email: "tim@example.com", token: "123456"))) as? [String: String]
         XCTAssertEqual(body, ["email": "tim@example.com", "token": "123456", "type": "email"])
