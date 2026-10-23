@@ -1,6 +1,6 @@
 # Release builds are shrunk with R8. The libraries carry their own consumer rules
 # (kotlinx.serialization keeps every @Serializable class's generated serializer,
-# OneSignal, PostHog and Tink keep what they reflect on), so the app needs very little.
+# OneSignal and PostHog keep what they reflect on), so the app needs very little.
 
 # Readable crash reports in PostHog error tracking: keep file names and line numbers.
 -keepattributes SourceFile,LineNumberTable

@@ -13,7 +13,7 @@ xcuserdata/
 # os
 .DS_Store
 
-# python (model-server)
+# python
 .venv/
 __pycache__/
 *.pyc

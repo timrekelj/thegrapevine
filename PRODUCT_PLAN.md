@@ -82,7 +82,7 @@ Decide retention, deletion, member removal, AI processing disclosures, and what 
 ## Model choices
 
 - Language model: Mistral — titles, evolving summaries, categories, and conflict notes.
-- Decision model: OpenAI Decisions API (`gpt-6-luna`, `POST /v1/decisions`) — typed predicate questions with probabilities, no generated text, $0.10/M input tokens, output free. Confirmed 12 October 2026, replacing the earlier self-hosted pick (Strands Decider 2B); note this means source text now goes to OpenAI for clustering decisions, in addition to Mistral for summaries. The self-hosted service remains in `model-server/` as a privacy-preserving alternative but is not wired in.
+- Decision model: OpenAI Decisions API (`gpt-6-luna`, `POST /v1/decisions`) — typed predicate questions with probabilities, no generated text, $0.10/M input tokens, output free. Confirmed 12 October 2026, replacing the earlier self-hosted pick (Strands Decider 2B); note this means source text now goes to OpenAI for clustering decisions, in addition to Mistral for summaries. The self-hosted service (`model-server/`) was removed; it is recoverable from git history.
 - Clustering pipeline: embed each incoming source (Mistral Embed), compare against the embeddings of recent stories, and for candidates above a similarity threshold (0.72) ask the decision model two predicate questions in one call: "Are these two items about the same specific event?" and "Do the sources disagree on a material fact?" Conflicting sources join the story and trigger a summary rewrite or a disagreement note via Mistral. If the decision model is unreachable, fall back to a conservative cosine threshold (0.88).
 - Label loop: every member report ("wrong merge", "wrong summary") is stored as a labeled example. After roughly 100 labels, fine-tune a small encoder (DistilBERT/ModernBERT class, 67M–150M parameters) on them; published measurements (5 October 2026) show such a model beats every zero-shot decision model on a custom task like this — on accuracy, latency, and cost.
 
@@ -92,7 +92,7 @@ Research note (12 October 2026): Jev (TypeSafe AI, launched 15 September 2026) c
 
 - Backend is Supabase only: Postgres, Auth (email one-time codes), Realtime, Storage, Edge Functions. All orchestration (submission, duplicate rejection, clustering, summaries, notification fan-out) runs in Edge Functions and database triggers; there is no separate app server.
 - All content tables have row level security; access is limited to group members.
-- The decision model is OpenAI's hosted Decisions API (`gpt-6-luna`), called from Edge Functions during clustering. A self-hosted alternative (Strands Decider 2B, `model-server/`) exists in the repo but is not wired in.
+- The decision model is OpenAI's hosted Decisions API (`gpt-6-luna`), called from Edge Functions during clustering. A self-hosted alternative (Strands Decider 2B) was prototyped and removed; it is in git history.
 - Web: Next.js. iOS: SwiftUI with the Liquid Glass navigation bar. Android: Jetpack Compose.
 - Local development: `supabase start`, `supabase db reset` (applies `supabase/migrations/`).
 

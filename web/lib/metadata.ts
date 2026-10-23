@@ -4,7 +4,7 @@ const siteName = 'The Grapevine'
 
 // A page's `openGraph` and `twitter` replace the layout's rather than merging, so every
 // page that customises its preview builds the full set here.
-export function previewMetadata({ title, description, image, imageAlt }: { title: string; description: string; image: string; imageAlt: string }): Metadata {
+function previewMetadata({ title, description, image, imageAlt }: { title: string; description: string; image: string; imageAlt: string }): Metadata {
   return {
     title,
     description,

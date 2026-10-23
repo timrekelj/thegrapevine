@@ -230,6 +230,9 @@ class CoreTest {
         assertEquals(DeepLink.Route.Story(id), DeepLink.route("https://thegrapevine.si/story/${id.uppercase()}/"))
         assertEquals(null, DeepLink.route("https://thegrapevine.si/story/not-a-uuid"))
         assertEquals(null, DeepLink.route("https://thegrapevine.si/invite"))
+        assertEquals(DeepLink.Route.Invite("a1b2c3"), DeepLink.route("https://thegrapevine.si/invite?code=%20A1B2C3"))
+        assertEquals(null, DeepLink.route("https://thegrapevine.si/invite?code=a%27%3B--"))
+        assertEquals(null, DeepLink.route("https://thegrapevine.si/invite?code=" + "a".repeat(65)))
         assertEquals(null, DeepLink.route("https://thegrapevine.si/login"))
         // Only our own https links: MainActivity is exported, so any app can send it a VIEW intent.
         assertEquals(null, DeepLink.route("https://evil.example/invite?code=GrapevineDemo"))

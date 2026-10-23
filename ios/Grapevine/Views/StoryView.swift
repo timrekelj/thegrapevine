@@ -26,12 +26,10 @@ struct StoryView: View {
         store.sources.filter { $0.extraction_status == "ok" }.count
     }
 
-    private var timeline: [TimelineEntry] {
-        (store.sources.map { TimelineEntry.source($0) } + store.messages.map { TimelineEntry.message($0) })
-            .sorted { $0.createdAt < $1.createdAt }
-    }
-
+    /// Sources and messages in time order, under their day.
     private var dayGroups: [(Date, [TimelineEntry])] {
+        let timeline = (store.sources.map { TimelineEntry.source($0) } + store.messages.map { TimelineEntry.message($0) })
+            .sorted { $0.createdAt < $1.createdAt }
         let calendar = Calendar.current
         var groups: [(Date, [TimelineEntry])] = []
         for entry in timeline {
@@ -131,9 +129,10 @@ struct StoryView: View {
             while !Task.isCancelled {
                 do { try await Task.sleep(for: .seconds(10)) }
                 catch { return }
-                if !sending && store.pendingMessageId == nil { await store.load(storyId: storyId) }
-                // What arrived while reading has been seen: don't mark it new next time.
-                await store.markRead(storyId: storyId)
+                guard !sending && store.pendingMessageId == nil else { continue }
+                // What arrived while reading has been seen: don't mark it new next time. Leaving the
+                // story marks it too, so a poll that found nothing new needn't write.
+                if await store.load(storyId: storyId) { await store.markRead(storyId: storyId) }
             }
         }
         .onDisappear { Task { [store, storyId] in await store.markRead(storyId: storyId) } }
@@ -218,8 +217,9 @@ extension StoryView {
 
     @ViewBuilder private var conversation: some View {
         let divider = UnreadDivider(messages: store.messages, lastRead: store.lastRead, userId: app.session?.userId)
+        let dayGroups = self.dayGroups
         SectionHead(title: "The conversation").padding(.bottom, 4)
-        if timeline.isEmpty {
+        if dayGroups.isEmpty {
             Text("Start the conversation.").font(Theme.serif(17)).foregroundColor(Theme.ink2).padding(.vertical, 20)
         }
         ForEach(dayGroups, id: \.0) { day, entries in

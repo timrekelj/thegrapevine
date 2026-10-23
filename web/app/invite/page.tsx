@@ -20,10 +20,12 @@ export default async function InvitePage({ searchParams }: PageProps<'/invite'>)
 
   async function join() {
     'use server'
-    const { supabase, user } = await requireUser(path)
+    const { supabase, userId } = await requireUser(path)
     const { error } = await supabase.rpc('join_group_with_invite', { code })
-    if (error) redirect(`${path}&${new URLSearchParams({ error: error.message })}`)
-    await captureServer(user.id, 'paper_joined')
+    // A fixed line rather than the database's text: invite links are shared, and a message carried in
+    // the URL could be rewritten by whoever shares one.
+    if (error) redirect(`${path}&failed=1`)
+    await captureServer(userId, 'paper_joined')
     redirect('/')
   }
 
@@ -43,7 +45,7 @@ export default async function InvitePage({ searchParams }: PageProps<'/invite'>)
           <span className={styles.ornament} aria-hidden="true">◆◆◆</span>
           <p className="summary">A private newspaper, shared and discussed by the people in it.</p>
           <form action={join}><SubmitButton className="btn" pending="Joining the paper…">Join the paper</SubmitButton></form>
-          {typeof params.error === 'string' && <p role="alert" className={styles.error}>{params.error}</p>}
+          {params.failed && <p role="alert" className={styles.error}>This paper could not be joined. Ask your friend for a new invite code.</p>}
         </>}
       </div>
     </main>

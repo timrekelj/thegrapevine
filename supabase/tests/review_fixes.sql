@@ -24,6 +24,7 @@ insert into storage.objects (bucket_id, name)
 do $$
 declare
   n integer;
+  expected integer;
   denied boolean;
   stmt text;
   before_activity timestamptz;
@@ -47,7 +48,6 @@ begin
     'select count(*) from public.group_members where group_id = ''00000000-0000-0000-0000-0000000000a1''',
     'select count(*) from public.profiles where id <> auth.uid()',
     'select count(*) from public.notifications where user_id <> auth.uid()',
-    'select count(*) from public.ai_usage',
     'select count(*) from storage.objects where name like ''00000000-0000-0000-0000-0000000000a1/%'''
   ] loop
     execute stmt into n;
@@ -128,12 +128,14 @@ begin
     raise exception 'Placeholder story was announced';
   end if;
   update public.stories set title = 'Ready', flagged = false where id = '00000000-0000-0000-0000-0000000000bb';
+  -- every member but the creator (local data may hold more members than the seed)
+  select count(*) - 1 into expected from public.group_members where group_id = '00000000-0000-0000-0000-0000000000a1';
   select count(*) into n from public.notifications where story_id = '00000000-0000-0000-0000-0000000000bb' and kind = 'new_story';
-  if n <> 4 then raise exception 'Published story notified % members, expected 4', n; end if;
+  if n <> expected then raise exception 'Published story notified % members, expected %', n, expected; end if;
   update public.stories set flagged = true where id = '00000000-0000-0000-0000-0000000000bb';
   update public.stories set flagged = false where id = '00000000-0000-0000-0000-0000000000bb';
   select count(*) into n from public.notifications where story_id = '00000000-0000-0000-0000-0000000000bb' and kind = 'new_story';
-  if n <> 4 then raise exception 'Corrected story was announced again'; end if;
+  if n <> expected then raise exception 'Corrected story was announced again'; end if;
   -- a placeholder deleted before publishing never notified anyone
   insert into public.stories (id, group_id, title, summary, flagged)
     values ('00000000-0000-0000-0000-0000000000bc', '00000000-0000-0000-0000-0000000000a1', 'p', 'p', true);

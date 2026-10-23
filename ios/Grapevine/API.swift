@@ -144,13 +144,28 @@ enum API {
         _ = try await request(path: "storage/v1/object/media/\(path)", method: "POST", file: attachment.data, contentType: attachment.contentType)
     }
 
+    /// Signed media links by storage path, reused until shortly before they expire: a fresh signature
+    /// is a new URL, so re-signing on every appearance missed the image caches and downloaded again.
+    private static var signedURLs: [String: (url: URL, expires: Date)] = [:]
+
     static func mediaURL(_ path: String) async throws -> URL {
-        if let url = URL(string: path), ["http", "https"].contains(url.scheme ?? "") { return url }
+        if let url = URL(string: path), ["http", "https"].contains(url.scheme?.lowercased() ?? "") { return url }
         if path.hasPrefix("/seed/") { return Config.webURL.appending(path: path) }
+        if let signed = signedURLs[path], signed.expires > .now { return signed.url }
         struct Signed: Decodable { let signedURL: String }
         let signed = try await postObject(Signed.self, path: "storage/v1/object/sign/media/\(path)", body: ["expiresIn": 3600])
-        guard let url = URL(string: "storage/v1\(signed.signedURL)", relativeTo: Config.supabaseURL) else { throw APIError.network("Invalid media URL") }
-        return url.absoluteURL
+        guard let url = URL(string: "storage/v1\(signed.signedURL)", relativeTo: Config.supabaseURL)?.absoluteURL else { throw APIError.network("Invalid media URL") }
+        signedURLs[path] = (url, .now.addingTimeInterval(3000))
+        return url
+    }
+
+    /// Forgets the session and the links signed with it, and the HTTP cache, which holds members'
+    /// private media on disk.
+    static func reset() {
+        session = nil
+        refreshTask = nil
+        signedURLs = [:]
+        URLCache.shared.removeAllCachedResponses()
     }
 
     static func rpc<T: Decodable>(_ type: T.Type, name: String, body: any Encodable) async throws -> T {

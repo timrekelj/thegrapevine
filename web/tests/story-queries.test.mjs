@@ -33,3 +33,11 @@ test('private attachments are signed in one request and reused until close to ex
   await signMedia(client, later, first, now + 3_600_000)
   assert.notEqual(later[0].display_url, first[0].display_url, 'an expiring URL is signed afresh')
 })
+
+test('a missing private attachment is left unsigned instead of failing the story', async () => {
+  const client = { storage: { from: () => ({ createSignedUrls: async paths => ({ data: paths.map(path => ({ path, signedUrl: path.includes('gone') ? null : `https://cdn/${path}`, error: path.includes('gone') ? 'Object not found' : null })), error: null }) }) } }
+  const media = [{ id: '1', url: 'g/u/gone.jpg' }, { id: '2', url: 'g/u/here.jpg' }]
+  await signMedia(client, media, [], 1_000)
+  assert.equal(media[0].display_url, undefined)
+  assert.equal(media[1].display_url, 'https://cdn/g/u/here.jpg')
+})

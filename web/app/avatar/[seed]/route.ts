@@ -10,7 +10,7 @@ const inks = ['#E8A317', '#C43C7A', '#2F8F5B', '#13808F', '#2357C6', '#6A3FB5', 
 // Members' avatars: a DiceBear "Disco" disc, a colour halftone in the same printing language as
 // the photographs. Seeded with the member's id, so everyone keeps the same disc across sessions
 // and devices. Drawn here so the art library never ships to the browser; the result never
-// changes for a seed, so it caches forever.
+// changes for a seed, so it caches forever, in browsers and on the CDN (`s-maxage`).
 // `/avatar/<id>` is an SVG for the web; `/avatar/<id>.png` is a 192px PNG for the iOS and Android
 // apps, whose image loaders don't draw SVG.
 // Anyone may fetch these, and every new seed costs a render (about 60 ms of CPU for a PNG), so
@@ -21,7 +21,7 @@ export async function GET(_request: Request, { params }: RouteContext<'/avatar/[
   const seed = png ? path.slice(0, -4) : path
   if (!/^[\w-]{1,64}$/.test(seed)) return new Response('Not found', { status: 404 })
   const svg = new Avatar(style, { seed, backgroundColor: inks }).toString()
-  const headers = { 'Cache-Control': 'public, max-age=31536000, immutable' }
+  const headers = { 'Cache-Control': 'public, max-age=31536000, s-maxage=31536000, immutable' }
   if (!png) return new Response(svg, { headers: { ...headers, 'Content-Type': 'image/svg+xml' } })
   const image = new Resvg(svg, { fitTo: { mode: 'width', value: 192 } }).render().asPng()
   return new Response(new Uint8Array(image), { headers: { ...headers, 'Content-Type': 'image/png' } })

@@ -95,7 +95,9 @@ final class AppState {
     func signOut() {
         Keychain.delete()
         session = nil; profile = nil; group = nil; members = []
-        API.session = nil
+        API.reset()
+        PhotoStore.shared.removeAll()
+        Halftone.removeAll()
         checked = true
     }
 
@@ -129,23 +131,29 @@ final class AppState {
     func loadProfileAndGroup() async {
         guard let session else { return }
         do {
-            profile = try await API.getOne(Profile.self, path: "rest/v1/profiles",
-                query: [URLQueryItem(name: "id", value: "eq.\(session.userId)")])
-            var membershipQuery = [
+            // Launch waits on these: each step's independent requests go out together.
+            let membershipQuery = [
                 URLQueryItem(name: "user_id", value: "eq.\(session.userId)"),
                 URLQueryItem(name: "order", value: "joined_at.asc"),
                 URLQueryItem(name: "limit", value: "1"),
-            ]
-            if let group { membershipQuery.append(URLQueryItem(name: "group_id", value: "eq.\(group.id)")) }
-            let memberships: [Membership] = try await API.getMany(Membership.self, path: "rest/v1/group_members", query: membershipQuery)
-            guard let membership = memberships.first else { group = nil; return }
-            group = try await API.getOne(Group.self, path: "rest/v1/groups",
+            ] + (group.map { [URLQueryItem(name: "group_id", value: "eq.\($0.id)")] } ?? [])
+            async let ownProfile = API.getOne(Profile.self, path: "rest/v1/profiles",
+                query: [URLQueryItem(name: "id", value: "eq.\(session.userId)")])
+            async let memberships = API.getMany(Membership.self, path: "rest/v1/group_members", query: membershipQuery)
+            let (loadedProfile, membership) = try await (ownProfile, memberships.first)
+            profile = loadedProfile
+            guard let membership else { group = nil; return }
+            async let paper = API.getOne(Group.self, path: "rest/v1/groups",
                 query: [URLQueryItem(name: "id", value: "eq.\(membership.group_id)")])
-            members = try await API.getMany(Member.self, path: "rest/v1/group_members", query: [
+            async let table = API.getMany(Member.self, path: "rest/v1/group_members", query: [
                 URLQueryItem(name: "select", value: "user_id,role,profiles(id,display_name,monogram)"),
                 URLQueryItem(name: "group_id", value: "eq.\(membership.group_id)"),
                 URLQueryItem(name: "order", value: "joined_at.asc"),
             ])
+            let (loadedGroup, loadedMembers) = try await (paper, table)
+            // Members first: the paper appears as soon as `group` is set, with its readers already known.
+            members = loadedMembers
+            group = loadedGroup
             error = nil
         } catch {
             self.error = error.localizedDescription
@@ -196,10 +204,13 @@ final class AppState {
     struct JoinBody: Encodable { let code: String }
 
     func joinGroup(code: String) async throws {
-        let code = URLComponents(string: code.trimmed)?.queryItems?.first(where: { $0.name == "code" })?.value ?? code.trimmed
+        // A pasted invitation link works as well as the bare code.
+        let code = (URLComponents(string: code.trimmed)?.queryItems?.first(where: { $0.name == "code" })?.value ?? code).trimmed
+        guard AppLink.isInviteCode(code) else { throw APIError.network("This invite code is not valid.") }
         let joined: UUID = try await API.rpc(UUID.self, name: "join_group_with_invite",
-            body: JoinBody(code: code.trimmed.lowercased()))
+            body: JoinBody(code: code.lowercased()))
         Telemetry.capture("paper_joined")
+        pendingInviteCode = nil
         group = try await API.getOne(Group.self, path: "rest/v1/groups",
             query: [URLQueryItem(name: "id", value: "eq.\(joined)")])
         await loadProfileAndGroup()
@@ -223,12 +234,18 @@ enum AppLink: Equatable {
         let parts = url.pathComponents.filter { $0 != "/" }
         if parts == ["invite"],
            let code = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "code" })?.value?.trimmed,
-           !code.isEmpty {
+           Self.isInviteCode(code) {
             self = .invite(code.lowercased())
         } else if parts.count == 2, parts[0] == "story", let id = UUID(uuidString: parts[1]) {
             self = .story(id)
         } else {
             return nil
         }
+    }
+
+    /// A link fills the invite field unprompted, so only something shaped like a code: letters, digits,
+    /// `-` and `_`, no longer than the server accepts.
+    static func isInviteCode(_ code: String) -> Bool {
+        (1...64).contains(code.count) && code.unicodeScalars.allSatisfy { $0.isASCII && (CharacterSet.alphanumerics.contains($0) || $0 == "-" || $0 == "_") }
     }
 }

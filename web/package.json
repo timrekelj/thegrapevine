@@ -15,7 +15,7 @@
     "@posthog/nextjs-config": "1.11.3",
     "@resvg/resvg-js": "^2.6.2",
     "@supabase/ssr": "^0.12.7",
-    "lucide-react": "1.61.0",
+    "@supabase/supabase-js": "^2.117.3",
     "next": "16.4.2",
     "posthog-js": "1.438.12",
     "posthog-node": "5.56.2",

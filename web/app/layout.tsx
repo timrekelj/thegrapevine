@@ -8,9 +8,10 @@ import { sitePreview } from "@/lib/metadata";
 // read, a typewriter mono for datelines and counts, and a plain sans for controls.
 // `subsets` only picks what is preloaded: every subset stays in the CSS, so Slovenian letters
 // (latin-ext) still load on demand when a page uses them. The sans only sets buttons, so it isn't preloaded.
+// The mono is only ever set at 500 and 600, so those are the only weights fetched.
 const nameplate = UnifrakturMaguntia({ weight: "400", subsets: ["latin"], variable: "--font-nameplate" });
 const news = Newsreader({ subsets: ["latin"], style: ["normal", "italic"], axes: ["opsz"], variable: "--font-news" });
-const mono = IBM_Plex_Mono({ weight: ["400", "500", "600"], subsets: ["latin"], variable: "--font-mono" });
+const mono = IBM_Plex_Mono({ weight: ["500", "600"], subsets: ["latin"], variable: "--font-mono" });
 const ui = Inter({ subsets: ["latin"], variable: "--font-ui", preload: false });
 
 export const metadata: Metadata = {

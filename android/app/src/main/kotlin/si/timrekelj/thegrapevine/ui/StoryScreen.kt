@@ -185,7 +185,7 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit, backLabel: S
                     delay(10_000)
                     if (!isSending && store.pendingMessageId == null) store.load(storyId)
                     // Messages seen live shouldn't show as new next time.
-                    store.markRead(storyId)
+                    store.markRead(storyId, onlyIfChanged = true)
                 }
             } finally {
                 // Leaving the story, or the app going to the background.

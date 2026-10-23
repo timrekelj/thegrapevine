@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type CSSProperties } from 'react'
+import { useState } from 'react'
 import { safeUrl } from '@/lib/validate'
 
 /**
@@ -8,13 +8,13 @@ import { safeUrl } from '@/lib/validate'
  * Without a usable picture it falls back to a type plate with the publisher's name.
  * `screen={false}` prints the photo clean, for GIFs, whose frames could not stay in step across two copies.
  */
-export default function Plate({ src, label, className = '', alt = '', screen = true, inkIn = false, eager = false, style }: {
-  src?: string | null; label: string; className?: string; alt?: string; screen?: boolean; inkIn?: boolean; eager?: boolean; style?: CSSProperties
+export default function Plate({ src, label, className = '', alt = '', screen = true, inkIn = false, eager = false }: {
+  src?: string | null; label: string; className?: string; alt?: string; screen?: boolean; inkIn?: boolean; eager?: boolean
 }) {
   const [failed, setFailed] = useState(false)
   const url = safeUrl(src)
-  if (!url || failed) return <div className={`typeplate ${className}`} style={style}><span>{label}</span></div>
-  return <div className={`plate ${inkIn ? 'ink-in' : ''} ${className}`} style={style}>
+  if (!url || failed) return <div className={`typeplate ${className}`}><span>{label}</span></div>
+  return <div className={`plate ${inkIn ? 'ink-in' : ''} ${className}`}>
     {/* Publisher preview domains are arbitrary; the plate handles sizing. No referrer: publishers
         don't learn which paper a reader came from (and some hotlink checks let it through). */}
     {/* eslint-disable-next-line @next/next/no-img-element */}

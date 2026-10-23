@@ -7,7 +7,9 @@ import java.io.File
 /** Process-wide singletons, built once and shared by the ViewModels. */
 class GrapevineApp : Application() {
     val api: Api by lazy {
-        Api(pictures = Api.defaultHttpClient(Cache(File(cacheDir, "pictures"), 50L * 1024 * 1024)))
+        val http = Api.defaultHttpClient()
+        // One connection pool for both; only pictures get the disk cache.
+        Api(http, pictures = http.newBuilder().cache(Cache(File(cacheDir, "pictures"), 50L * 1024 * 1024)).build())
     }
     val sessionStore: SessionStore by lazy { SessionStore(this) }
 

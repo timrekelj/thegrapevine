@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from '@/components/print/PressLink'
 import { redirect } from 'next/navigation'
 import { connection } from 'next/server'
-import { requireUser } from '@/lib/auth'
+import { requireAccount, requireUser } from '@/lib/auth'
 import { emailChangeNotice, sameEmail } from '@/lib/account'
 import { dayline } from '@/lib/format'
 import { isEmail } from '@/lib/validate'
@@ -24,7 +24,7 @@ export default async function SettingsPage({ searchParams }: PageProps<'/setting
   const params = await searchParams
   const confirming = params.confirm === 'delete'
   const destination = confirming ? '/settings?confirm=delete' : '/settings'
-  const { supabase, user } = await requireUser(destination)
+  const { supabase, user } = await requireAccount(destination)
   const { data: profile } = await supabase.from('profiles').select('display_name').eq('id', user.id).maybeSingle()
   const displayName = profile?.display_name || 'Member'
   const error = text(params.error)
@@ -35,7 +35,7 @@ export default async function SettingsPage({ searchParams }: PageProps<'/setting
 
   async function changeEmail(formData: FormData) {
     'use server'
-    const { supabase, user } = await requireUser('/settings')
+    const { supabase, user } = await requireAccount('/settings')
     const email = String(formData.get('email') ?? '').trim()
     if (!isEmail(email)) redirect(back({ error: 'Enter a valid email address.' }))
     if (sameEmail(user.email, email)) redirect(back({ error: 'That is already the email on this account.' }))
@@ -48,15 +48,15 @@ export default async function SettingsPage({ searchParams }: PageProps<'/setting
 
   async function signOut() {
     'use server'
-    const { supabase, user } = await requireUser('/settings')
-    await captureServer(user.id, 'signed_out')
+    const { supabase, userId } = await requireUser('/settings')
+    await captureServer(userId, 'signed_out')
     await supabase.auth.signOut({ scope: 'local' })
     redirect('/login')
   }
 
   async function deleteAccount(formData: FormData) {
     'use server'
-    const { supabase, user } = await requireUser('/settings?confirm=delete')
+    const { supabase, user } = await requireAccount('/settings?confirm=delete')
     const typed = String(formData.get('confirm') ?? '')
     if (!sameEmail(user.email, typed)) {
       redirect(back({ confirm: 'delete', error: 'Type the email address on this account to confirm.' }))

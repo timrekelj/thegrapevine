@@ -50,7 +50,7 @@ android {
             buildConfigField("String", "SUPABASE_URL", "\"https://ivjaenrmhsqnsvzemoez.supabase.co\"")
             buildConfigField("String", "SUPABASE_PUBLISHABLE_KEY", "\"sb_publishable_oT-H6EAfuoNp8dcVdTHJow_l1-Skd1C\"")
             buildConfigField("String", "WEB_URL", "\"https://thegrapevine.si\"")
-            // R8: kotlinx.serialization, Ktor, OkHttp, OneSignal, PostHog and Tink ship their own keep rules.
+            // R8: kotlinx.serialization, OkHttp, OneSignal and PostHog ship their own keep rules.
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -68,8 +68,24 @@ android {
         buildConfig = true
     }
 
+    // The app is written in English only: keep libraries' translations (Material, OneSignal, Play
+    // services) out of the APK rather than shipping dozens of languages for a few strings each.
+    androidResources {
+        localeFilters += "en"
+    }
+
     packaging {
-        resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        // Build metadata nothing reads at runtime: licence copies, library version stamps, GraalVM
+        // configs, and the Kotlin builtins only kotlin-reflect (not a dependency) would load.
+        resources.excludes += listOf(
+            "/META-INF/{AL2.0,LGPL2.1}",
+            "/META-INF/androidx/**",
+            "/META-INF/*.version",
+            "/META-INF/native-image/**",
+            "/META-INF/version-control-info.textproto",
+            "/kotlin/**.kotlin_builtins",
+            "DebugProbesKt.bin",
+        )
     }
 }
 
@@ -84,19 +100,18 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.security.crypto)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
-    implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.core)
 
-    implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.okhttp)
+    implementation(libs.okhttp)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.onesignal)
+    implementation(libs.onesignal.core)
+    implementation(libs.onesignal.notifications)
+    implementation(libs.onesignal.iam)
     implementation(libs.posthog)
 
     testImplementation(libs.junit)

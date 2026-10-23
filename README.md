@@ -8,7 +8,7 @@ A private newspaper curated by friends. The full product direction and decisions
 - **Web:** Next.js (`web/`)
 - **iOS:** SwiftUI with native Liquid Glass navigation and tabs (`ios/`, local pilot)
 - **Android:** Kotlin + Jetpack Compose (`android/`, sideload APK via GitHub Releases)
-- **AI:** Mistral API (titles, summaries, categories, embeddings); OpenAI Decisions API `gpt-6-luna` (same-event/conflict decisions). A self-hosted alternative (Strands Decider 2B, `model-server/`) exists but is not wired in.
+- **AI:** Mistral API (titles, summaries, categories, embeddings); OpenAI Decisions API `gpt-6-luna` (same-event/conflict decisions).
 
 ## Local development
 
@@ -51,6 +51,8 @@ The access regression runs like the membership one:
 Deleting a user keeps their sources and stories in the paper without attribution, hands each paper they owned to its longest-standing remaining member, and deletes papers left with no members. The regression:
 
     "$(brew --prefix libpq)/bin/psql" postgresql://postgres:postgres@127.0.0.1:55322/postgres -v ON_ERROR_STOP=1 -f supabase/tests/user_deletion.sql
+
+API grants, media attachment rules and the per-member AI rate limits (`consume_rate_limit`) have their own regression, `supabase/tests/hardening.sql`, run the same way. Apply migrations before deploying Edge Functions: they call `consume_rate_limit`.
 
 ## iOS simulator
 

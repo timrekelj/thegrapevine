@@ -2,6 +2,7 @@ import { chat, CHAT_LARGE, CHAT_SMALL } from './mistral.ts';
 
 export const categories = ['World', 'Politics', 'Business', 'Tech', 'Science', 'Space', 'Sports', 'Games', 'City', 'Travel', 'Weather', 'Culture', 'Media'];
 export type Source = { source_title: string; excerpt: string | null; publisher: string; extraction_status: string };
+export const EDITORIAL_SOURCE = 'source_title,excerpt,publisher,extraction_status';
 
 export async function generate(target: 'title' | 'summary' | 'category', sources: Source[], conflict = false, note?: string) {
   const readable = sources.filter(source => source.extraction_status === 'ok');
