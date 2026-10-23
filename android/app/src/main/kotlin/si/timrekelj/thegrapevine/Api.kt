@@ -67,7 +67,9 @@ class Api(
     // ---------------------------------------------------------------- transport
 
     private suspend fun refreshIfNeeded(path: String) {
-        if (path.startsWith("auth/")) return
+        // Token, OTP and verify are how a session is born or renewed. Other auth calls, such as
+        // changing the email, still need a live access token.
+        if (path.startsWith("auth/v1/token") || path.startsWith("auth/v1/otp") || path.startsWith("auth/v1/verify")) return
         val stored = session ?: return
         if (!Jwt.isExpired(stored.accessToken)) return
         refreshMutex.withLock {
@@ -261,6 +263,41 @@ class Api(
             ),
         )
 
+    /**
+     * Asks Supabase Auth to change the signed-in user's email.
+     * With `double_confirm_changes` (the project's auth setting) the address stays the same until
+     * both the current and the new inbox confirm. The returned [email] is the address in effect now;
+     * [newEmail] is the pending one when Auth reports it.
+     */
+    suspend fun updateEmail(email: String): AuthEmailUpdate {
+        val text = request(
+            path = "auth/v1/user",
+            method = HttpMethod.Put,
+            body = encodeBody(EmailUpdateBody(email.trim())),
+        )
+        val user = try {
+            SupabaseJson.decodeFromString<UserEmailPayload>(text)
+        } catch (_: kotlinx.serialization.SerializationException) {
+            throw ApiError.Decoding("Could not read the email change response.")
+        }
+        return AuthEmailUpdate(email = user.email, newEmail = user.new_email)
+    }
+
+    /**
+     * Permanently deletes the signed-in user via the `delete-account` Edge Function.
+     * The caller's JWT is the only credential; there is no body. The function is what removes
+     * the Auth user (the database then drops their profile). Signing out locally is the caller's job.
+     */
+    suspend fun deleteAccount() {
+        request(path = DELETE_ACCOUNT_FUNCTION, method = HttpMethod.Post)
+    }
+
+    @Serializable
+    private data class EmailUpdateBody(val email: String)
+
+    @Serializable
+    private data class UserEmailPayload(val email: String? = null, val new_email: String? = null)
+
     private fun session(tokenJson: String): Session {
         val response: TokenResponse = SupabaseJson.decodeFromString(tokenJson)
         return Session(
@@ -272,6 +309,9 @@ class Api(
     }
 
     companion object {
+        /** Edge Function the web app adds: POST, the user's JWT, no body. */
+        const val DELETE_ACCOUNT_FUNCTION = "functions/v1/delete-account"
+
         private const val MAX_PICTURE_BYTES = 15 * 1024 * 1024
 
         fun defaultHttpClient(cache: Cache? = null): HttpClient = HttpClient(OkHttp) {

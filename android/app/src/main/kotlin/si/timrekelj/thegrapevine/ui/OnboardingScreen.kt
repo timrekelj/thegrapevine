@@ -154,6 +154,8 @@ fun OnboardingScreen(app: AppState) {
                         }
                     }
                 }
+                Spacer(Modifier.height(36.dp))
+                AccountSettings(app, onSignedOut = {}, enabled = !busy)
             }
         }
     }

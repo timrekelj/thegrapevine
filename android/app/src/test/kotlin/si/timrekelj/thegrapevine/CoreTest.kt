@@ -166,6 +166,40 @@ class CoreTest {
     }
 
     @Test
+    fun signInEmailAcceptsAnOrdinaryAddress() {
+        assertTrue(isSignInEmail("tim@example.com"))
+        assertTrue(isSignInEmail("  a.b+c@mail.thegrapevine.si "))
+        assertFalse(isSignInEmail(""))
+        assertFalse(isSignInEmail("tim"))
+        assertFalse(isSignInEmail("tim@"))
+        assertFalse(isSignInEmail("@example.com"))
+        assertFalse(isSignInEmail("tim@example"))
+        assertFalse(isSignInEmail("tim @example.com"))
+        assertFalse(isSignInEmail("tim@example.com extra"))
+    }
+
+    @Test
+    fun emailChangeExplainsConfirmationOrAnImmediateSwitch() {
+        val pending = EmailChange(requested = "new@example.com", appliedNow = false)
+        assertEquals(
+            "Check your inbox. We sent a confirmation to new@example.com and to old@example.com. Your sign-in email stays old@example.com until you confirm both.",
+            emailChangeNotice("old@example.com", pending),
+        )
+        val applied = EmailChange(requested = "new@example.com", appliedNow = true, appliedEmail = "new@example.com")
+        assertEquals("Your sign-in email is now new@example.com.", emailChangeNotice("old@example.com", applied))
+        val first = EmailChange(requested = "new@example.com", appliedNow = false)
+        assertEquals(
+            "Check your inbox. We sent a confirmation to new@example.com. Your sign-in email updates once you confirm it.",
+            emailChangeNotice("", first),
+        )
+    }
+
+    @Test
+    fun accountDeletionCallsTheEdgeFunction() {
+        assertEquals("functions/v1/delete-account", Api.DELETE_ACCOUNT_FUNCTION)
+    }
+
+    @Test
     fun serverErrorMessagesReachTheUser() {
         // submit-source and report-story rate limits answer 429 {"error": "…"}.
         assertEquals("Slow down", ApiError.Http(429, """{"error":"Slow down"}""").message)

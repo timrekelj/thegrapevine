@@ -37,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
@@ -60,6 +59,7 @@ fun ProfileScreen(app: AppState, onSignOut: () -> Unit) {
     var savingPreferences by remember { mutableStateOf(false) }
     var preferenceError by remember { mutableStateOf<String?>(null) }
     var linkError by remember { mutableStateOf<String?>(null) }
+    var accountBusy by remember { mutableStateOf(false) }
 
     suspend fun loadPreferences() {
         preferences = null
@@ -116,7 +116,7 @@ fun ProfileScreen(app: AppState, onSignOut: () -> Unit) {
             SectionHead("Your name")
             Text("This is how you appear to your friends.", style = MetaStyle)
             PaperField(name, { name = it; nameSaved = false; nameError = null }, "Display name", enabled = !savingName)
-            val canSave = !savingName && name.trim().isNotEmpty() && name.trim().length <= 80 && name.trim() != app.profile?.display_name
+            val canSave = !savingName && !accountBusy && name.trim().isNotEmpty() && name.trim().length <= 80 && name.trim() != app.profile?.display_name
             InkButton(if (savingName) "Saving…" else "Save name", enabled = canSave) {
                 savingName = true
                 nameError = null
@@ -180,9 +180,12 @@ fun ProfileScreen(app: AppState, onSignOut: () -> Unit) {
             Text("The Grapevine · Version ${BuildConfig.VERSION_NAME}", style = MetaStyle)
             linkError?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
         }
-        TextButton(onClick = { onSignOut(); app.signOut() }, enabled = !savingName && !savingPreferences) {
-            Text("Sign out", style = MetaStyle.copy(color = Press.danger, fontWeight = FontWeight.SemiBold))
-        }
+        AccountSettings(
+            app,
+            onSignedOut = onSignOut,
+            enabled = !savingName && !savingPreferences,
+            onBusyChange = { accountBusy = it },
+        )
     }
 }
 
