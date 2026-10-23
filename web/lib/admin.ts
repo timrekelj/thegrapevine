@@ -41,7 +41,7 @@ export type AISummary = {
   by_function: { function_name: string; cost: number; requests: number; cost_per_request: number | null }[];
   by_group: { group_id: string | null; group_name: string | null; cost: number; tokens: number; requests: number; cost_per_request: number | null }[];
 };
-export type AICall = { operation: string; provider: string; model: string; input_tokens: number; output_tokens: number; cost: number; latency_ms: number | null; is_error: boolean; created_at: string };
+type AICall = { operation: string; provider: string; model: string; input_tokens: number; output_tokens: number; cost: number; latency_ms: number | null; is_error: boolean; created_at: string };
 export type AIRequest = {
   request_id: string; started_at: string; function_name: string; group_id: string | null; group_name: string | null;
   user_id: string | null; user_name: string | null; story_id: string | null;

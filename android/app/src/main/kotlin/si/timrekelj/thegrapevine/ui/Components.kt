@@ -88,7 +88,6 @@ import kotlinx.coroutines.withContext
 import si.timrekelj.thegrapevine.Api
 import si.timrekelj.thegrapevine.Config
 import si.timrekelj.thegrapevine.Plate
-import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -512,17 +511,6 @@ fun ErrorLine(error: String?) {
 // ---------- words ----------
 
 fun plural(count: Int, word: String) = "$count $word${if (count == 1) "" else "s"}"
-
-fun timeAgo(instant: Instant, now: Instant = Instant.now()): String {
-    val seconds = Duration.between(instant, now).seconds.coerceAtLeast(0)
-    return when {
-        seconds < 60 -> "now"
-        seconds < 3600 -> "${seconds / 60}m ago"
-        seconds < 86_400 -> "${seconds / 3600}h ago"
-        seconds < 86_400 * 7 -> "${seconds / 86_400}d ago"
-        else -> "${seconds / (86_400 * 7)}w ago"
-    }
-}
 
 fun clock(instant: Instant): String =
     DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault()).format(instant.atZone(ZoneId.systemDefault()))

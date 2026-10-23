@@ -16,9 +16,9 @@ export default async function NewGroupPage({ searchParams }: PageProps<'/group/n
 
   async function createGroup(formData: FormData) {
     'use server'
-    const { supabase, user } = await requireUser('/group/new')
+    const { supabase, userId } = await requireUser('/group/new')
     const name = String(formData.get('name') ?? '').trim()
-    const error = await createPaper(supabase, user.id, groupId, name)
+    const error = await createPaper(supabase, userId, groupId, name)
     if (error) redirect(`/group/new?${new URLSearchParams({ id: groupId, name, error })}`)
     redirect('/')
   }

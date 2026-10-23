@@ -44,7 +44,7 @@ data class Member(
 
 /**
  * Explicit column lists for the tables whose rows carry a large `embedding` vector: never `select=*`.
- * Each list covers the model's required fields plus the optional ones the app shows (no `excerpt`).
+ * Each list covers the model's required fields plus the optional ones the app shows.
  */
 object Columns {
     const val STORY = "id,group_id,title,summary,category,last_activity_at,created_at"
@@ -72,7 +72,6 @@ data class Source(
     val domain: String,
     val publisher: String,
     val source_title: String,
-    val excerpt: String? = null,
     val image_url: String? = null,
     val author: String? = null,
     val submitted_by: String? = null, // null once the member has deleted their account

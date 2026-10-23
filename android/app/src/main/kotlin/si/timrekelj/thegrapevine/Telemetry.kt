@@ -9,7 +9,7 @@ object Telemetry {
     fun initialize(context: Context) {
         if (BuildConfig.DEBUG) return
         val config = PostHogAndroidConfig(
-            apiKey = "phc_kXSTZhnAXUB44jnt3FK8k88YnoLtXuVVZsumUBptu6j9",
+            projectToken = "phc_kXSTZhnAXUB44jnt3FK8k88YnoLtXuVVZsumUBptu6j9",
             host = "https://eu.i.posthog.com",
         ).apply {
             captureScreenViews = false

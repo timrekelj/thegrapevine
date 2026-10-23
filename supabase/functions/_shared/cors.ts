@@ -25,6 +25,8 @@ export function uuid(value: unknown): value is string {
 }
 
 export async function body(req: Request) {
+  // Refuse a declared oversize body before buffering it.
+  if (Number(req.headers.get('content-length')) > 12000) throw new HttpError(413, 'Request too large');
   const text = await req.text();
   if (text.length > 12000) throw new HttpError(413, 'Request too large');
   try {

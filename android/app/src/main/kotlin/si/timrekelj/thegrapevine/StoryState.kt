@@ -52,6 +52,8 @@ class StoryState(private val api: Api) : ViewModel() {
     private val pendingReactions = mutableSetOf<String>()
     /** Set once this visit's first read is recorded, so later marks can't overtake it. */
     private var visiting = false
+    /** The timeline changed since the read was last recorded. */
+    private var unrecorded = false
 
     /**
      * Starts a visit: records the read and keeps the previous read time for the "new since" divider.
@@ -67,9 +69,13 @@ class StoryState(private val api: Api) : ViewModel() {
         }
     }
 
-    /** Records that the reader is still here (or just left), so what they saw live isn't new next time. */
-    fun markRead(storyId: String) {
-        if (!visiting) return
+    /**
+     * Records that the reader is still here (or just left), so what they saw live isn't new next time.
+     * While they stay, only a timeline that changed needs recording again.
+     */
+    fun markRead(storyId: String, onlyIfChanged: Boolean = false) {
+        if (!visiting || (onlyIfChanged && !unrecorded)) return
+        unrecorded = false
         viewModelScope.launch { runCatching { recordRead(storyId) } }
     }
 
@@ -114,12 +120,18 @@ class StoryState(private val api: Api) : ViewModel() {
                     trackedStoryId = storyId
                 }
                 loadedSources.await().let { if (it != sources) sources = it }
-                loadedMessages.await().let { if (it != messages) messages = it }
+                loadedMessages.await().let {
+                    if (it != messages) {
+                        messages = it
+                        unrecorded = true
+                    }
+                }
                 loadedHistory.await().let { if (it != history) history = it }
             }
 
+            // Names change rarely: polling asks again only when someone new has written.
             val authorIds = (messages.map { it.author_id } + sources.mapNotNull { it.submitted_by }).toSet()
-            if (authorIds.isNotEmpty()) {
+            if (authorIds.isNotEmpty() && !profiles.keys.containsAll(authorIds)) {
                 val loaded = api.getMany<Profile>(
                     "rest/v1/profiles",
                     listOf("select" to "id,display_name,monogram", "id" to "in.(${authorIds.joinToString(",")})"),

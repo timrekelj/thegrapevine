@@ -22,6 +22,7 @@ enum Halftone {
     private static let context = CIContext()
 
     static func cached(_ key: String) -> UIImage? { cache.object(forKey: key as NSString) }
+    static func removeAll() { cache.removeAllObjects() }
 
     /// Prints `image` to fill `size` points at `scale`. Pure CPU work: call it off the main thread.
     static func print(_ image: UIImage, size: CGSize, scale: CGFloat, dark: Bool, key: String) -> UIImage? {
@@ -169,6 +170,7 @@ actor PhotoStore {
 
     /// Already downloaded and decoded, for drawing without a placeholder.
     nonisolated func cached(_ url: URL) -> UIImage? { images.object(forKey: url as NSURL) }
+    nonisolated func removeAll() { images.removeAllObjects() }
 
     func image(_ url: URL) async throws -> UIImage {
         if let image = images.object(forKey: url as NSURL) { return image }

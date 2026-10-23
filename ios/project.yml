@@ -5,17 +5,17 @@ options:
   deploymentTarget:
     iOS: "26.0"
 settings:
-  SWIFT_VERSION: "5.10"
+  SWIFT_VERSION: "6.0"
   # Shared so the push extension's version always matches the app's.
   MARKETING_VERSION: 0.1.0
   CURRENT_PROJECT_VERSION: "1"
 packages:
   PostHog:
     url: https://github.com/PostHog/posthog-ios.git
-    exactVersion: 3.92.0
+    exactVersion: 3.92.1
   OneSignal:
     url: https://github.com/OneSignal/OneSignal-XCFramework
-    exactVersion: 5.5.1
+    exactVersion: 5.8.0
 targets:
   Grapevine:
     type: application
@@ -125,15 +125,18 @@ targets:
       - path: Grapevine/Theme.swift
       - path: Grapevine/Press.swift
       - path: Grapevine/Views/ShareView.swift
-      - path: Grapevine/Resources/Fonts
-        excludes: ["*.txt"]
+      # Only the faces the share form sets (see ShareView): mono for kickers, the display headline, the text serif.
+      - path: Grapevine/Resources/Fonts/IBMPlexMono-Medium.ttf
+      - path: Grapevine/Resources/Fonts/IBMPlexMono-SemiBold.ttf
+      - path: Grapevine/Resources/Fonts/Newsreader-Display-SemiBold.ttf
+      - path: Grapevine/Resources/Fonts/Newsreader-Text-Regular.ttf
     info:
       path: ShareExtension/Info.plist
       properties:
         CFBundleDisplayName: The Grapevine
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        UIAppFonts: [UnifrakturMaguntia-Regular.ttf, Newsreader-Display-SemiBold.ttf, Newsreader-Text-Regular.ttf, Newsreader-Text-SemiBold.ttf, Newsreader-Text-Italic.ttf, Newsreader-Text-MediumItalic.ttf, IBMPlexMono-Medium.ttf, IBMPlexMono-SemiBold.ttf]
+        UIAppFonts: [Newsreader-Display-SemiBold.ttf, Newsreader-Text-Regular.ttf, IBMPlexMono-Medium.ttf, IBMPlexMono-SemiBold.ttf]
         # Debug only: removed from other configurations by a build phase below.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true

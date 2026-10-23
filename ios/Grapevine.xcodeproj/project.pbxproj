@@ -49,9 +49,7 @@
 		9676FCA2F924E73DF1F36A58 /* UnifrakturMaguntia-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = 76C29C1DB59AE6F6BBDC827D /* UnifrakturMaguntia-OFL.txt */; };
 		9B3E0A843CBCFABDED5B21C7 /* OAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8376AD3BE96F7395FA08B687 /* OAuth.swift */; };
 		9D7FBC9925CD74FE5FB0897C /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B4DFCD625ACB4825F91D34E /* Models.swift */; };
-		A56B999765792E58F572FF8B /* Newsreader-Text-MediumItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 112A7292AC40C7C2E6C897CD /* Newsreader-Text-MediumItalic.ttf */; };
 		B056A94E5DC98B5B1D9B1D82 /* ShareView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2432CCCAAD5B4BF4CE261CD /* ShareView.swift */; };
-		B4C627A928B69B4D86A02897 /* Newsreader-Text-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 93DA6A2F97F5590E1DEEA2F1 /* Newsreader-Text-Italic.ttf */; };
 		B9C89D3372A5D7799F84985E /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 090A32009737A8ACB7374B07 /* Config.swift */; };
 		C1B4655C1ADC3E09A5087BEE /* IBMPlexMono-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = 5DE0EBD0A2F3F03BB166C0C0 /* IBMPlexMono-OFL.txt */; };
 		C34E9B6DA19ECDF7FB7B033A /* GalleyProof.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9015C7B22C73C503BDE83F02 /* GalleyProof.swift */; };
@@ -60,10 +58,8 @@
 		D22A6017F6D8A77948F1284E /* OneSignalExtension in Frameworks */ = {isa = PBXBuildFile; productRef = 3BF1F2CF2A9BE3BC9A3A260C /* OneSignalExtension */; };
 		D4AC40DFC63C7056353150CF /* IBMPlexMono-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0E30017B4A1B80E39BA16B79 /* IBMPlexMono-SemiBold.ttf */; };
 		D72E631354033995BAD0D993 /* PaperStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC5017F8EDAF37D202FA6CC4 /* PaperStore.swift */; };
-		D796AD8E62B0A0FF9FB38FE4 /* Newsreader-Text-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 17753F5F8473DA8B5BDB91D5 /* Newsreader-Text-SemiBold.ttf */; };
 		D7CFD582E9AF77165A9F7488 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8AA540084F673BB60FCCF1DE /* AppState.swift */; };
 		DBB8D81762585B9BEBC0D52A /* StoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 566E3CACEF666CB5432F2983 /* StoryStore.swift */; };
-		E38E8B2A1FBC33692BF972BB /* UnifrakturMaguntia-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4E20AFD12045BBE3FB988B7D /* UnifrakturMaguntia-Regular.ttf */; };
 		E4B329A63B2AF3F47662532B /* FriendsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DC1B16391CF7F7E95222560 /* FriendsView.swift */; };
 		EA64CB4A55954FFA68BA31FE /* MessageMediaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE0D9D3FAFCADC940228C1BB /* MessageMediaView.swift */; };
 		ED470F227C86DC8252114DF5 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 131E7C88FFCD01C4402C7309 /* ProfileView.swift */; };
@@ -463,11 +459,7 @@
 				3C9A7595B29281BFF5FCAA38 /* IBMPlexMono-Medium.ttf in Resources */,
 				05757D4FA1718204096916DE /* IBMPlexMono-SemiBold.ttf in Resources */,
 				550B92FDE8442253012F3EEE /* Newsreader-Display-SemiBold.ttf in Resources */,
-				B4C627A928B69B4D86A02897 /* Newsreader-Text-Italic.ttf in Resources */,
-				A56B999765792E58F572FF8B /* Newsreader-Text-MediumItalic.ttf in Resources */,
 				18C3E13B50A62D301F43CE57 /* Newsreader-Text-Regular.ttf in Resources */,
-				D796AD8E62B0A0FF9FB38FE4 /* Newsreader-Text-SemiBold.ttf in Resources */,
-				E38E8B2A1FBC33692BF972BB /* UnifrakturMaguntia-Regular.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -701,7 +693,7 @@
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 5.10;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
@@ -830,7 +822,7 @@
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				SWIFT_VERSION = 5.10;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};
@@ -944,7 +936,7 @@
 			repositoryURL = "https://github.com/OneSignal/OneSignal-XCFramework";
 			requirement = {
 				kind = exactVersion;
-				version = 5.5.1;
+				version = 5.8.0;
 			};
 		};
 		4ECFE5339B9028C616E11D71 /* XCRemoteSwiftPackageReference "posthog-ios" */ = {
@@ -952,7 +944,7 @@
 			repositoryURL = "https://github.com/PostHog/posthog-ios.git";
 			requirement = {
 				kind = exactVersion;
-				version = 3.92.0;
+				version = 3.92.1;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

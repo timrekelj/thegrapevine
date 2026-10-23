@@ -56,7 +56,7 @@ class AppState(
             }
             if (Jwt.isExpired(stored.accessToken)) {
                 val refreshed = try {
-                    api.refreshSession(stored.refreshToken)
+                    api.restore(stored)
                 } catch (e: ApiError.Unauthorized) {
                     signOut()
                     checked = true
@@ -68,7 +68,7 @@ class AppState(
                     return@launch
                 }
                 adopt(refreshed)
-                store.save(refreshed)
+                withContext(Dispatchers.IO) { store.save(refreshed) }
             } else {
                 adopt(stored)
             }
@@ -80,8 +80,9 @@ class AppState(
     /** An invitation or story link; both wait until the app can show them. */
     fun handleDeepLink(uri: String) {
         if (OAuth.isCallback(uri)) {
-            val verifier = store.takeOAuthVerifier() ?: return
             viewModelScope.launch {
+                // Kept in the encrypted store, so it survives the browser trip even if the process doesn't.
+                val verifier = withContext(Dispatchers.IO) { store.takeOAuthVerifier() } ?: return@launch
                 try {
                     finishSignIn(api.exchangeCode(OAuth.code(uri), verifier))
                 } catch (e: Exception) {
@@ -109,16 +110,16 @@ class AppState(
         viewModelScope.async { finishSignIn(api.verifyOtp(email, code)) }.await()
     }
 
-    fun startOAuth(provider: AuthProvider): String {
+    suspend fun startOAuth(provider: AuthProvider): String {
         error = null
         val verifier = OAuth.verifier()
-        store.saveOAuthVerifier(verifier)
+        withContext(Dispatchers.IO) { store.saveOAuthVerifier(verifier) }
         return OAuth.authorizeURL(Config.supabaseURL, provider, verifier)
     }
 
     private suspend fun finishSignIn(verified: Session) {
         error = null
-        store.save(verified)
+        withContext(Dispatchers.IO) { store.save(verified) }
         checked = false
         try {
             adopt(verified)
@@ -151,7 +152,7 @@ class AppState(
         val applied = updated.email?.takeIf { it.equals(trimmed, ignoreCase = true) }
         if (applied != null) {
             val next = current.copy(email = applied)
-            store.save(next)
+            withContext(Dispatchers.IO) { store.save(next) }
             session = next
             api.session = next
         }

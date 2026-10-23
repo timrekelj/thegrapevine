@@ -6,7 +6,7 @@ import type { ReactNode } from 'react'
  * `status={false}` inside a control, where `aria-busy` already says it is working.
  */
 export default function InkDots({ label = 'Loading', kicker, size = 'md', status = true, className = '' }: {
-  label?: string; kicker?: string; size?: 'sm' | 'md' | 'lg'; status?: boolean; className?: string
+  label?: string; kicker?: string; size?: 'sm' | 'md'; status?: boolean; className?: string
 }) {
   return <span className={`ink-press ${className}`} role={status ? 'status' : undefined}>
     <span className={`ink-dots ${size}`} aria-hidden="true"><i /><i /><i /></span>

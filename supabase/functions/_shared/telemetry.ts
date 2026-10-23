@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { PostHog } from 'npm:posthog-node@5.56.2';
+import { PostHog } from 'npm:posthog-node@5.56.4';
 import { recordUsage, type UsageCall } from './usage.ts';
 
 const scope = new AsyncLocalStorage<{
@@ -21,11 +21,10 @@ export function usageScope(ids: { groupId?: string; storyId?: string }) {
   if (ids.storyId) context.storyId = ids.storyId;
 }
 
+// Every event gets the backend properties from before_send below.
 export function capture(event: string, properties: Record<string, unknown> = {}) {
   const context = scope.getStore();
-  context?.client?.capture({ distinctId: context.userId, event, properties: {
-    ...properties, platform: 'backend', environment: 'production', $process_person_profile: false,
-  } });
+  context?.client?.capture({ distinctId: context.userId, event, properties });
 }
 
 export async function featureEnabled(key: string, fallback = true): Promise<boolean> {

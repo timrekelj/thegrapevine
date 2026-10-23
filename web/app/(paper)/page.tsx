@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { currentUserId } from '@/lib/auth';
 import { loadPaperStories, printEdition } from '@/lib/queries';
 import type { PaperMember } from '@/lib/types';
 import FrontPage from '@/components/paper/FrontPage';
@@ -9,11 +10,11 @@ import { connection } from 'next/server';
 export default async function Home() {
   await connection() // fully dynamic: session + database
   const client = await createClient();
-  const { data: { user } } = await client.auth.getUser();
+  const userId = await currentUserId(client);
   // Signed-out visitors get the landing page; the paper lives at the same address once signed in.
-  if (!user) return <Landing />;
+  if (!userId) return <Landing />;
   const { data: membership, error: membershipError } = await client.from('group_members')
-    .select('group_id,last_seen_at').eq('user_id', user.id).order('joined_at').limit(1).maybeSingle();
+    .select('group_id,last_seen_at').eq('user_id', userId).order('joined_at').limit(1).maybeSingle();
   if (membershipError) throw membershipError;
   if (!membership) redirect('/onboarding');
   const groupId = membership.group_id;
@@ -29,7 +30,7 @@ export default async function Home() {
   const stories = printEdition(edition.stories, membership.last_seen_at, members);
   // Read the previous timestamp before advancing it, and do not mark a failed load as seen.
   const { data: seenRows, error: seenError } = await client.from('group_members')
-    .update({ last_seen_at: loadedAt.toISOString() }).eq('group_id', groupId).eq('user_id', user.id).select('user_id');
+    .update({ last_seen_at: loadedAt.toISOString() }).eq('group_id', groupId).eq('user_id', userId).select('user_id');
   if (seenError) throw seenError;
   if (!seenRows?.length) throw new Error('Could not record this edition as seen. Check the member update policy.');
   return <FrontPage group={{ id: groupId, ...group }} members={members} stories={stories} earlier={edition.earlier} loadedAt={loadedAt} />;

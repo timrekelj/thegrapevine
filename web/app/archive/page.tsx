@@ -3,6 +3,7 @@ import Link from '@/components/print/PressLink'
 import { redirect } from 'next/navigation'
 import { connection } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { currentUserId } from '@/lib/auth'
 import { loadArchive } from '@/lib/queries'
 import { dayline, plural } from '@/lib/format'
 import styles from '@/components/paper/paper.module.css'
@@ -12,12 +13,14 @@ export const metadata: Metadata = { title: 'Earlier editions · The Grapevine' }
 export default async function ArchivePage({ searchParams }: PageProps<'/archive'>) {
   await connection() // fully dynamic: session + database
   const params = await searchParams
-  const before = typeof params.before === 'string' && Number.isFinite(Date.parse(params.before)) ? params.before : new Date().toISOString()
+  // Any date Date.parse accepts, printed back as ISO: Postgres doesn't read every form JavaScript does.
+  const requested = typeof params.before === 'string' ? new Date(params.before) : null
+  const before = (requested && Number.isFinite(requested.getTime()) ? requested : new Date()).toISOString()
   const client = await createClient()
-  const { data: { user } } = await client.auth.getUser()
-  if (!user) redirect(`/login?${new URLSearchParams({ redirect: `/archive?${new URLSearchParams({ before })}` })}`)
+  const userId = await currentUserId(client)
+  if (!userId) redirect(`/login?${new URLSearchParams({ redirect: `/archive?${new URLSearchParams({ before })}` })}`)
   const { data: membership, error: membershipError } = await client.from('group_members')
-    .select('group_id,groups(name)').eq('user_id', user.id).order('joined_at').limit(1).maybeSingle()
+    .select('group_id,groups(name)').eq('user_id', userId).order('joined_at').limit(1).maybeSingle()
   if (membershipError) throw membershipError
   if (!membership) redirect('/onboarding')
   const name = (membership.groups as unknown as { name: string } | null)?.name ?? 'The paper'

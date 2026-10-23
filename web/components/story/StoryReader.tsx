@@ -1,10 +1,9 @@
 'use client'
 
 import Link from '@/components/print/PressLink'
-import { Lock, Reply, SmilePlus } from 'lucide-react'
-import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { loadStory, loadStoryDetails, mergeTimeline, type Message, type Source, type Story, type StoryDetails } from './queries'
+import { loadStory, mergeTimeline, type Message, type Source, type Story, type StoryDetails } from './queries'
 import Composer from './Composer'
 import Plate from '@/components/print/Plate'
 import Avatar from '@/components/print/Avatar'
@@ -18,7 +17,12 @@ const emojis = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '🚀'
 const usedEmojis = (message: Message) => { const present = [...new Set(message.reactions.map(reaction => reaction.emoji))]; return [...emojis.filter(emoji => present.includes(emoji)), ...present.filter(emoji => !emojis.includes(emoji))] }
 const publisher = (source: Source) => source.author || source.publisher || source.domain || 'Source'
 
-const LockIcon = () => <Lock className="story-icon" size={12} strokeWidth={2} aria-hidden="true" />
+// Line icons drawn like Lucide's (lock, reply, smile-plus), set in the current ink.
+const Icon = ({ size, width, className, children }: { size: number; width: number; className?: string; children: ReactNode }) =>
+  <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>
+const LockIcon = () => <Icon size={12} width={2} className="story-icon"><rect width="18" height="11" x="3" y="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></Icon>
+const ReplyIcon = () => <Icon size={18} width={1.75}><path d="M20 18v-2a4 4 0 0 0-4-4H4m5 5-5-5 5-5" /></Icon>
+const ReactIcon = () => <Icon size={17} width={1.75}><path d="M13.267 2.08a10 10 0 1 0 8.653 8.653M15 10V9M9 10V9M16 5h6M19 2v6M16.472 15a6 6 0 0 1-8.943 0" /></Icon>
 
 function SourceCard({ source }: { source: Source }) {
   const note = source.extraction_status === 'paywalled' ? 'Paywalled — headline only. The summary does not use this source.' : source.extraction_status === 'deleted' ? 'Post deleted or unavailable' : source.extraction_status === 'failed' ? "Couldn't read this page" : null
@@ -66,10 +70,9 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
     try {
       do {
         refreshAgain.current = false
-        const client = createClient()
-        const next = await loadStory(client, initialStory.id)
-        if (!next) throw new Error('Story unavailable')
-        const nextDetails = await loadStoryDetails(client, next, messages.current)
+        const loaded = await loadStory(createClient(), initialStory.id, messages.current)
+        if (!loaded) throw new Error('Story unavailable')
+        const { story: next, details: nextDetails } = loaded
         if (summary.current !== next.summary) setSummaryChanged(true)
         summary.current = next.summary
         messages.current = nextDetails.messages
@@ -104,7 +107,7 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
       .subscribe()
     const poll = window.setInterval(() => { if (document.visibilityState === 'visible') { void refresh(); saveView() } }, 30000)
     return () => { saveView(); window.clearInterval(poll); media.removeEventListener('change', motion); void client.removeChannel(channel) }
-  }, [initialStory.id, userId, refresh])
+  }, [initialStory.id, refresh])
   useEffect(() => {
     if (!picker) return
     const close = (event: Event) => { if (event instanceof KeyboardEvent ? event.key === 'Escape' : !(event.target as Element).closest('.story-reaction-picker, .story-add-reaction')) setPicker(null) }
@@ -220,7 +223,7 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
                   {parent && <div className="story-quote"><b>{person(parent.author_id).display_name}</b> {parent.body ? `${parent.body.slice(0, 100)}${parent.body.length > 100 ? '…' : ''}` : 'Attachment'}</div>}
                   {entry.body && <p>{entry.body}</p>}
                   {entry.message_media.map(media => <div key={media.id} className="story-media">
-                    {media.kind === 'video' ? <video controls preload="metadata" src={safeUrl(media.display_url)} aria-label={media.alt_text || 'Shared video'} /> : media.kind === 'gif' && reducedMotion && !playingGifs.includes(media.id) ? <button className="story-gif-paused meta" onClick={() => setPlayingGifs([...playingGifs, media.id])}>▶ Play GIF · {media.alt_text || 'Animated reaction'}</button> : <Plate src={media.display_url} label="Attachment unavailable" alt={media.alt_text || 'Shared image'} className="story-media-plate reveal" screen={media.kind !== 'gif'} />}
+                    {media.kind === 'video' && media.display_url ? <video controls preload="metadata" src={safeUrl(media.display_url)} aria-label={media.alt_text || 'Shared video'} /> : media.kind === 'gif' && reducedMotion && !playingGifs.includes(media.id) ? <button className="story-gif-paused meta" onClick={() => setPlayingGifs([...playingGifs, media.id])}>▶ Play GIF · {media.alt_text || 'Animated reaction'}</button> : <Plate src={media.display_url} label="Attachment unavailable" alt={media.alt_text || 'Shared image'} className="story-media-plate reveal" screen={media.kind !== 'gif'} />}
                     {media.kind === 'gif' && <div className="meta">GIF · {media.alt_text || 'Animated reaction'}{playingGifs.includes(media.id) && <> · <button className="story-text-button" onClick={() => setPlayingGifs(playingGifs.filter(id => id !== media.id))}>Pause</button></>}</div>}
                   </div>)}
                   <div className="story-message-actions"><div className="story-reactions">{usedEmojis(entry).map(emoji => {
@@ -228,12 +231,12 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
                     const mine = reactions.some(reaction => reaction.user_id === userId)
                     return <button key={emoji} aria-label={`${emoji}, ${reactions.length} ${reactions.length === 1 ? 'reaction' : 'reactions'}`} aria-pressed={mine} className={mine ? 'mine' : ''} onClick={() => void react(entry, emoji)}>{emoji}<span key={reactions.length} className={`tnum ${bumped === `${entry.id}:${emoji}` ? 'story-pop' : ''}`}>{reactions.length}</span></button>
                   })}
-                    <button className="story-add-reaction" aria-label="Add reaction" aria-expanded={picker === entry.id} onClick={() => setPicker(picker === entry.id ? null : entry.id)}><SmilePlus size={17} strokeWidth={1.75} aria-hidden="true" /></button>
+                    <button className="story-add-reaction" aria-label="Add reaction" aria-expanded={picker === entry.id} onClick={() => setPicker(picker === entry.id ? null : entry.id)}><ReactIcon /></button>
                     {picker === entry.id && <div className="story-reaction-picker" role="menu" aria-label="Reactions">{emojis.map(emoji => {
                       const mine = entry.reactions.some(reaction => reaction.user_id === userId && reaction.emoji === emoji)
                       return <button key={emoji} role="menuitemcheckbox" aria-checked={mine} aria-label={mine ? `Remove ${emoji}` : `React ${emoji}`} className={mine ? 'mine' : ''} onClick={() => void react(entry, emoji)}>{emoji}</button>
                     })}</div>}
-                  </div><button className="story-reply" aria-label={`Reply to ${author.display_name}'s message`} onClick={() => { setReply(entry); document.querySelector<HTMLInputElement>('.story-composer input[aria-label="Message"]')?.focus() }}><Reply size={18} strokeWidth={1.75} aria-hidden="true" /></button></div>
+                  </div><button className="story-reply" aria-label={`Reply to ${author.display_name}'s message`} onClick={() => { setReply(entry); document.querySelector<HTMLInputElement>('.story-composer input[aria-label="Message"]')?.focus() }}><ReplyIcon /></button></div>
                 </>}
               </div>
             </article>

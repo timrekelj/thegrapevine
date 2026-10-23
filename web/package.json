@@ -2,6 +2,9 @@
   "name": "web",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -12,22 +15,22 @@
   "dependencies": {
     "@dicebear/core": "^10.7.0",
     "@dicebear/styles": "^10.6.0",
-    "@posthog/nextjs-config": "1.11.3",
+    "@posthog/nextjs-config": "1.11.5",
     "@resvg/resvg-js": "^2.6.2",
     "@supabase/ssr": "^0.12.7",
-    "lucide-react": "1.61.0",
+    "@supabase/supabase-js": "^2.118.0",
     "next": "16.4.2",
-    "posthog-js": "1.438.12",
-    "posthog-node": "5.56.2",
-    "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "posthog-js": "1.438.16",
+    "posthog-node": "5.56.4",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
-    "typescript": "^5"
+    "typescript": "^6.0.3"
   }
 }

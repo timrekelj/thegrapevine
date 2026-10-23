@@ -1,5 +1,0 @@
-# Official inference code, including supported MPS kernels and concurrency fixes.
-strands-decider @ git+https://github.com/strands-labs/strands-decider.git@b9fc83626bcca822d00f822d6c2e151b8d244ee9
-torch==2.7.1
-transformers==5.17.0
-peft==0.21.0
