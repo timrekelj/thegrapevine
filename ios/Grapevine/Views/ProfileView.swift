@@ -49,14 +49,21 @@ struct ProfileView: View {
                                 nameError = nil
                             }
                         Button { Task { await saveName() } } label: {
-                            Text(savingName ? "Saving…" : "Save name")
+                            Text("Save name")
                         }
-                        .buttonStyle(InkButtonStyle(enabled: canSaveName))
+                        .buttonStyle(InkButtonStyle(enabled: canSaveName, busy: savingName))
                         .disabled(!canSaveName)
-                        if name.trimmed.count > 80 { Text("Use a name up to 80 characters.").font(.caption).foregroundColor(Theme.danger) }
-                        if nameSaved { Text("Name saved").font(Theme.mono(12)).foregroundColor(Theme.ink2) }
-                        if let nameError { Text(nameError).font(.caption).foregroundColor(Theme.danger) }
+                        .busyAccessibility(savingName, "Saving…")
+                        if name.trimmed.count > 80 { Text("Use a name up to 80 characters.").font(.caption).foregroundColor(Theme.danger).arrives() }
+                        if nameSaved {
+                            Label("Name saved", systemImage: "checkmark").font(Theme.mono(12)).foregroundColor(Theme.ink2).arrives()
+                        }
+                        if let nameError { Text(nameError).font(.caption).foregroundColor(Theme.danger).arrives() }
                     }
+                    .animation(.snappy(duration: 0.3), value: nameSaved)
+                    .animation(.snappy(duration: 0.3), value: nameError)
+                    .animation(.snappy(duration: 0.3), value: name.trimmed.count > 80)
+                    .sensoryFeedback(.success, trigger: nameSaved) { _, now in now }
 
                     VStack(alignment: .leading, spacing: 14) {
                         SectionHead(title: "Your email")
@@ -76,13 +83,17 @@ struct ProfileView: View {
                                 emailError = nil
                             }
                         Button { Task { await changeEmail() } } label: {
-                            Text(savingEmail ? "Sending…" : "Change email")
+                            Text("Change email")
                         }
-                        .buttonStyle(InkButtonStyle(enabled: canChangeEmail))
+                        .buttonStyle(InkButtonStyle(enabled: canChangeEmail, busy: savingEmail))
                         .disabled(!canChangeEmail)
-                        if let emailMessage { Text(emailMessage).font(Theme.serif(17)).foregroundColor(Theme.ink2) }
-                        if let emailError { Text(emailError).font(.caption).foregroundColor(Theme.danger) }
+                        .busyAccessibility(savingEmail, "Sending…")
+                        if let emailMessage { Text(emailMessage).font(Theme.serif(17)).foregroundColor(Theme.ink2).arrives() }
+                        if let emailError { Text(emailError).font(.caption).foregroundColor(Theme.danger).arrives() }
                     }
+                    .animation(.snappy(duration: 0.3), value: emailMessage)
+                    .animation(.snappy(duration: 0.3), value: emailError)
+                    .sensoryFeedback(.success, trigger: emailMessage) { _, now in now != nil }
 
                     VStack(alignment: .leading, spacing: 12) {
                         SectionHead(title: "Notifications")
@@ -95,11 +106,24 @@ struct ProfileView: View {
                             preferenceToggle("Replies to you", detail: "When someone replies to your message.", keyPath: \.direct_replies)
                             preferenceToggle("Mentions", detail: "When someone mentions you in a conversation.", keyPath: \.mentions)
                         } else if preferenceError == nil {
-                            ProgressView("Loading preferences…").tint(Theme.ink).padding(.vertical, 12)
+                            HStack(spacing: 12) {
+                                InkDots(size: 6).accessibilityHidden(true)
+                                Kicker(text: "Loading preferences…", color: Theme.ink2, size: 10)
+                            }
+                            .padding(.vertical, 12)
+                            .accessibilityElement(children: .combine)
+                            .transition(.opacity)
                         }
-                        if savingPreferences { ProgressView("Saving…").font(.caption).tint(Theme.ink) }
+                        if savingPreferences {
+                            HStack(spacing: 10) {
+                                InkDots(size: 5).accessibilityHidden(true)
+                                Kicker(text: "Saving…", color: Theme.ink2, size: 10)
+                            }
+                            .accessibilityElement(children: .combine)
+                            .arrives()
+                        }
                         if let preferenceError {
-                            Text(preferenceError).font(.caption).foregroundColor(Theme.danger)
+                            Text(preferenceError).font(.caption).foregroundColor(Theme.danger).arrives()
                             if preferences == nil {
                                 Button("Try again") { Task { await loadPreferences() } }.frame(minHeight: 44)
                             }
@@ -116,6 +140,10 @@ struct ProfileView: View {
                                 .font(.subheadline.weight(.medium)).frame(minHeight: 44)
                         }
                     }
+                    .animation(.snappy(duration: 0.3), value: savingPreferences)
+                    .animation(.easeOut(duration: 0.3), value: preferences == nil)
+                    .animation(.snappy(duration: 0.3), value: preferenceError)
+                    .sensoryFeedback(.selection, trigger: preferences) { old, new in old != nil && new != nil }
 
                     VStack(alignment: .leading, spacing: 12) {
                         SectionHead(title: "About & support")
@@ -148,14 +176,17 @@ struct ProfileView: View {
                         Text("Deleting your account removes your sign-in and your name. Stories and comments you shared stay on the paper, without your name. A paper only you belong to is deleted. This cannot be undone.")
                             .font(Theme.serif(17)).foregroundColor(Theme.ink2)
                             .padding(.top, 8)
-                        Button(deleting ? "Deleting…" : "Delete account", role: .destructive) {
+                        Button(role: .destructive) {
                             confirmDelete = true
+                        } label: {
+                            BusyLabel(text: "Delete account", busy: deleting, color: Theme.danger)
                         }
                         .font(.system(size: 15, weight: .semibold)).frame(minHeight: 44)
                         .disabled(accountBusy)
-                        if deleting { ProgressView("Deleting your account…").tint(Theme.ink) }
-                        if let deleteError { Text(deleteError).font(.caption).foregroundColor(Theme.danger) }
+                        .busyAccessibility(deleting, "Deleting your account…")
+                        if let deleteError { Text(deleteError).font(.caption).foregroundColor(Theme.danger).arrives() }
                     }
+                    .animation(.snappy(duration: 0.3), value: deleteError)
                 }
                 .padding(.horizontal, 20).padding(.bottom, 24)
             }

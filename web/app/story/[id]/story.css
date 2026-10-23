@@ -76,7 +76,7 @@
 /* reactions: only the ones in use, then a quiet add button that opens the palette */
 .story-message-actions { display: flex; align-items: center; gap: 8px; }
 .story-reactions { position: relative; display: flex; flex-wrap: wrap; gap: 4px; }
-.story-reactions button { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--rule); border-radius: 999px; padding: 3px 9px; min-height: 30px; background: none; font: 500 13px/1 var(--mono); transition: background .15s, color .15s; }
+.story-reactions button { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--rule); border-radius: 999px; padding: 3px 9px; min-height: 30px; background: none; font: 500 13px/1 var(--mono); transition: background .15s, color .15s, transform 80ms ease-out; }
 .story-reactions button:hover { background: var(--tint); }
 .story-reactions .mine { background: var(--ink) !important; color: var(--paper); border-color: var(--ink); }
 .story-reactions .story-add-reaction { color: var(--ink-3); border-color: transparent; padding: 3px 8px; }
@@ -123,6 +123,28 @@
 .story-dialog select, .story-dialog textarea { display: block; width: 100%; padding: 10px 12px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--raised); font: 400 17px/1.4 var(--serif); letter-spacing: 0; text-transform: none; }
 .story-dialog textarea { min-height: 100px; }
 .story-dialog .btn { justify-self: end; }
+
+/* ---------- motion: what arrives is inked in; nothing loops ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  /* a message (or a filed source) slides up into the column as it is set */
+  .story-entry { animation: rise-in .34s cubic-bezier(.2, .7, .2, 1) backwards; }
+  .story-new-divider { animation: fresh-ink .5s ease-out .2s backwards; }
+  /* a reaction's count is struck again when it changes */
+  .story-pop { display: inline-block; animation: story-pop .32s cubic-bezier(.3, 1.6, .5, 1); }
+  .story-reaction-picker { transform-origin: 22px 100%; animation: story-pick .18s cubic-bezier(.2, .7, .2, 1) both; }
+  .story-toast { animation: story-toast .3s cubic-bezier(.2, .7, .2, 1) both; }
+  .story-dialog[open] { animation: story-proof .26s cubic-bezier(.2, .7, .2, 1) both; }
+  .story-dialog[open]::backdrop { animation: fresh-ink .26s ease-out both; }
+}
+@keyframes story-pop { 40% { transform: scale(1.45); } }
+@keyframes story-pick { from { opacity: 0; transform: translateY(6px) scale(.96); } }
+@keyframes story-toast { from { opacity: 0; transform: translate(-50%, 10px); } }
+@keyframes story-proof { from { opacity: 0; transform: translateY(10px) rotate(-.6deg); box-shadow: 0 0 0 var(--ink); } }
+
+/* ---------- galley proof (loading.tsx) ---------- */
+.story-proof-entry { display: flex; gap: 14px; padding: 18px 0 4px; }
+.story-proof-entry .proof-av { width: 38px; height: 38px; }
+.story-proof-entry .proof-lines { flex: 1; padding-top: 6px; font-size: 18px; }
 
 @media (max-width: 1000px) {
   .story-page { padding: 16px 32px 0; }

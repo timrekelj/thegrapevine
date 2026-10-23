@@ -30,11 +30,11 @@ struct ContentView: View {
     var body: some View {
         SwiftUI.Group {
             if !app.checked {
-                ProgressView().tint(Theme.ink)
+                LaunchPlate().transition(.opacity)
             } else if app.session == nil {
-                LoginView()
+                LoginView().transition(.opacity)
             } else if app.group == nil {
-                OnboardingView()
+                OnboardingView().transition(.opacity)
             } else {
                 TabView(selection: $tab) {
                     Tab("Paper", systemImage: "newspaper", value: 0) { FrontPageView() }
@@ -43,8 +43,10 @@ struct ContentView: View {
                 }
                 .tint(Theme.ink)
                 .onChange(of: app.pendingStoryId) { _, id in if id != nil { tab = 0 } }
+                .transition(.opacity)
             }
         }
+        .animation(.easeOut(duration: 0.35), value: app.checked)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Theme.paper.ignoresSafeArea())
         .foregroundColor(Theme.ink)
@@ -54,5 +56,20 @@ struct ContentView: View {
                 OneSignalManager.shared.requestPushPermission()
             }
         }
+    }
+}
+
+/// While the saved session is checked: the nameplate on a blank page, and the dots going to press.
+private struct LaunchPlate: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            Text("The Grapevine").font(Theme.nameplate(44))
+                .lineLimit(1).minimumScaleFactor(0.6)
+                .padding(.bottom, 10)
+            DoubleRule()
+            PressLoading().padding(.top, 28)
+        }
+        .padding(.horizontal, 40)
+        .frame(maxWidth: 420)
     }
 }

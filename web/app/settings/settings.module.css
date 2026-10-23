@@ -47,3 +47,6 @@
 @media (min-width: 600px) {
   .nameplate > a { font-size: 60px; }
 }
+
+/* galley proof (loading.tsx): the summary's lines at its type size */
+.proofLines { font-size: 16px; }

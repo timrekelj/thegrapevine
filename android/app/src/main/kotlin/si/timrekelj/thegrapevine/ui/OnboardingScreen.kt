@@ -1,7 +1,6 @@
 package si.timrekelj.thegrapevine.ui
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -23,10 +22,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextOverflow
@@ -125,35 +121,29 @@ fun OnboardingScreen(app: AppState) {
                         ErrorLine(localError)
                         app.error?.let { error ->
                             ErrorLine(error)
-                            TextButton(onClick = { scope.launch { app.loadProfileAndGroup() } }) {
-                                Text("Retry loading your paper", style = MetaStyle.copy(color = Press.ink))
-                            }
+                            TextAction("Retry loading your paper", Modifier.padding(top = 8.dp)) { scope.launch { app.loadProfileAndGroup() } }
                         }
                         Spacer(Modifier.height(16.dp))
                         if (join) {
                             PrimaryButton(
-                                if (busy) "Joining…" else "Join your friends",
+                                "Join your friends",
                                 enabled = !busy && !accountBusy && ready && inviteCode.isNotBlank(),
+                                busy = busy,
+                                busyLabel = "Joining…",
                             ) { run { app.joinGroup(inviteCode.trim()) } }
                         } else {
                             PrimaryButton(
-                                if (busy) "Starting…" else "Start the paper",
+                                "Start the paper",
                                 enabled = !busy && !accountBusy && ready && groupName.isNotBlank(),
+                                busy = busy,
+                                busyLabel = "Starting…",
                             ) { run { app.createGroup(groupName.trim()) } }
                         }
                         Spacer(Modifier.height(16.dp))
-                        OutlinedButton(
-                            onClick = { joining = !join; localError = null },
+                        GhostButton(
+                            if (join) "Start a new paper instead" else "Have an invite code? Join your friends",
                             enabled = !busy && !accountBusy,
-                            shape = Corner,
-                            border = BorderStroke(1.dp, Press.rule),
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp),
-                        ) {
-                            Text(
-                                if (join) "Start a new paper instead" else "Have an invite code? Join your friends",
-                                fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Press.ink,
-                            )
-                        }
+                        ) { joining = !join; localError = null }
                     }
                 }
                 Spacer(Modifier.height(36.dp))

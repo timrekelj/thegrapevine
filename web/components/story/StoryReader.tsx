@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import Link from '@/components/print/PressLink'
 import { Lock, Reply, SmilePlus } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -8,6 +8,7 @@ import { loadStory, loadStoryDetails, mergeTimeline, type Message, type Source, 
 import Composer from './Composer'
 import Plate from '@/components/print/Plate'
 import Avatar from '@/components/print/Avatar'
+import { BusyLabel } from '@/components/print/InkDots'
 import { capture, correctionsEnabled } from '@/lib/telemetry'
 import { clock as time, dayline as day } from '@/lib/format'
 import { safeUrl } from '@/lib/validate'
@@ -40,6 +41,9 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
   const [summaryChanged, setSummaryChanged] = useState(false)
   const [picker, setPicker] = useState<string | null>(null)
   const [reportBusy, setReportBusy] = useState(false)
+  const [retrying, setRetrying] = useState(false)
+  // The reaction just toggled here, whose count is inked again (`.story-pop`).
+  const [bumped, setBumped] = useState('')
   const [target, setTarget] = useState('summary')
   const [note, setNote] = useState('')
   const [reducedMotion, setReducedMotion] = useState(true)
@@ -112,6 +116,7 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
   async function react(message: Message, emoji: string) {
     setPicker(null)
     const key = `${message.id}:${emoji}`
+    setBumped(key)
     // A second tap while the first is still saving would repeat the same insert or delete.
     if (reactionBusy.current.has(key)) return
     reactionBusy.current.add(key)
@@ -171,7 +176,7 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
     </header>
     <div className="double-rule" />
 
-    <main className="story-layout">
+    <main className="story-layout fresh-ink">
       <article className="story-article">
         <div className="story-kicker"><span className="label">{story.category || 'Unfiled'}</span><span className="meta">Updated {time(details.history[0]?.created_at || story.last_activity_at)}</span></div>
         <h1 className="display story-title">{story.title || 'Reading this story'}</h1>
@@ -195,7 +200,7 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
 
       <section aria-labelledby="story-conversation-title" className="story-conversation">
         <h2 id="story-conversation-title" className="story-section-head">The conversation</h2>
-        {error && <p role="alert" className="meta story-error">{error} <button className="story-text-button" onClick={() => void refresh()}>Try again</button></p>}
+        {error && <p role="alert" className="meta story-error">{error} <button className="story-text-button" disabled={retrying} aria-busy={retrying} onClick={() => { setRetrying(true); void refresh().finally(() => setRetrying(false)) }}><BusyLabel busy={retrying} label="Trying again…">Try again</BusyLabel></button></p>}
         {timeline.length === 0 && <p className="summary">Start the conversation.</p>}
         {timeline.map((entry, index) => {
           const previous = timeline[index - 1]
@@ -221,7 +226,7 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
                   <div className="story-message-actions"><div className="story-reactions">{usedEmojis(entry).map(emoji => {
                     const reactions = entry.reactions.filter(reaction => reaction.emoji === emoji)
                     const mine = reactions.some(reaction => reaction.user_id === userId)
-                    return <button key={emoji} aria-label={`${emoji}, ${reactions.length} ${reactions.length === 1 ? 'reaction' : 'reactions'}`} aria-pressed={mine} className={mine ? 'mine' : ''} onClick={() => void react(entry, emoji)}>{emoji}<span className="tnum">{reactions.length}</span></button>
+                    return <button key={emoji} aria-label={`${emoji}, ${reactions.length} ${reactions.length === 1 ? 'reaction' : 'reactions'}`} aria-pressed={mine} className={mine ? 'mine' : ''} onClick={() => void react(entry, emoji)}>{emoji}<span key={reactions.length} className={`tnum ${bumped === `${entry.id}:${emoji}` ? 'story-pop' : ''}`}>{reactions.length}</span></button>
                   })}
                     <button className="story-add-reaction" aria-label="Add reaction" aria-expanded={picker === entry.id} onClick={() => setPicker(picker === entry.id ? null : entry.id)}><SmilePlus size={17} strokeWidth={1.75} aria-hidden="true" /></button>
                     {picker === entry.id && <div className="story-reaction-picker" role="menu" aria-label="Reactions">{emojis.map(emoji => {
@@ -246,7 +251,7 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
     </dialog>
     <dialog ref={reportDialog} className="story-dialog" aria-labelledby="story-report-title">
       <header className="story-dialog-head"><h2 id="story-report-title" className="headline">Report a correction</h2><button className="story-dialog-close meta" onClick={() => reportDialog.current?.close()}>Close</button></header>
-      <form onSubmit={report}><label>What is wrong?<select value={target} onChange={event => setTarget(event.target.value)}><option value="summary">Summary</option><option value="title">Title</option><option value="category">Category</option></select></label><label>Note (optional)<textarea value={note} onChange={event => setNote(event.target.value)} /></label>{error && <p role="alert" className="meta">{error}</p>}<button className="btn" disabled={reportBusy}>{reportBusy ? 'Reporting…' : 'Report'}</button></form>
+      <form onSubmit={report}><label>What is wrong?<select value={target} onChange={event => setTarget(event.target.value)}><option value="summary">Summary</option><option value="title">Title</option><option value="category">Category</option></select></label><label>Note (optional)<textarea value={note} onChange={event => setNote(event.target.value)} /></label>{error && <p role="alert" className="meta">{error}</p>}<button className="btn" disabled={reportBusy} aria-busy={reportBusy}><BusyLabel busy={reportBusy} label="Reporting…">Report</BusyLabel></button></form>
     </dialog>
   </div>
 }

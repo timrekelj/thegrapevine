@@ -1,7 +1,10 @@
 package si.timrekelj.thegrapevine.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material.ripple.RippleAlpha
+import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RippleConfiguration
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -141,7 +144,10 @@ val NameStyle: TextStyle @Composable @ReadOnlyComposable get() =
 fun GrapevineTheme(dark: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     val p = if (dark) EveningEdition else MorningEdition
     val scheme = if (dark) darkColorScheme() else lightColorScheme()
-    CompositionLocalProvider(LocalPalette provides p) {
+    // Our own surfaces sink when pressed (see Motion.kt); what Material still draws — the tab bar,
+    // menus, switches — gets a faint ink ripple rather than a grey flood.
+    val ripple = RippleConfiguration(color = p.ink, rippleAlpha = RippleAlpha(0.08f, 0.06f, 0.05f, 0.10f))
+    CompositionLocalProvider(LocalPalette provides p, LocalRippleConfiguration provides ripple) {
         MaterialTheme(
             colorScheme = scheme.copy(
                 primary = p.ink,

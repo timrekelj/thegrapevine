@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Avatar from '@/components/print/Avatar'
+import SubmitButton from '@/components/print/SubmitButton'
 import form from '../login/login.module.css'
 import styles from './onboarding.module.css'
 
@@ -56,7 +57,7 @@ export function OnboardingForm({ id, userId, initialName, initialPaper, initialC
           <input id="paper" name="paper" value={paper} onChange={e => setPaper(e.target.value)} maxLength={100}
             placeholder="The Sunday Club" className={form.field} aria-describedby={error ? 'onboarding-error' : undefined} />
           {errorMessage}
-          <button className={form.primary} formAction={startPaper} disabled={!ready || !paper.trim()}>Start the paper</button>
+          <SubmitButton className={form.primary} formAction={startPaper} disabled={!ready || !paper.trim()} pending="Starting the paper…">Start the paper</SubmitButton>
         </>}
       </div>
       {joining ? <div className={styles.join}>
@@ -64,7 +65,7 @@ export function OnboardingForm({ id, userId, initialName, initialPaper, initialC
         <input id="code" name="code" value={code} onChange={e => setCode(e.target.value)} maxLength={100} autoCapitalize="none" autoComplete="off"
           placeholder="From your friend’s invite" className={form.field} aria-describedby={error ? 'onboarding-error' : undefined} />
         {errorMessage}
-        <button className={form.primary} formAction={joinPaper} disabled={!ready || !code.trim()}>Join your friends</button>
+        <SubmitButton className={form.primary} formAction={joinPaper} disabled={!ready || !code.trim()} pending="Joining…">Join your friends</SubmitButton>
         <button type="button" className={form.quiet} onClick={() => setJoining(false)}>Start a new paper instead</button>
       </div> : <div className={styles.join}>
         <button type="button" className={form.quiet} onClick={() => setJoining(true)}>Have an invite code? Join your friends</button>

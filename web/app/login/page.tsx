@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
+import Link from '@/components/print/PressLink'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { safeRedirect } from '@/lib/auth'
@@ -8,6 +8,7 @@ import { captureServer } from '@/lib/telemetry-server'
 import { invitePreview } from '@/lib/metadata'
 import { dayline } from '@/lib/format'
 import { isEmail } from '@/lib/validate'
+import SubmitButton from '@/components/print/SubmitButton'
 import { CodeInput, ResendButton, SignInButton } from './code-input'
 import styles from './login.module.css'
 
@@ -136,13 +137,13 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
             <input id="email" name="email" type="email" autoComplete="email" required maxLength={254} placeholder="you@example.com"
               className={styles.field} aria-invalid={!!error} aria-describedby={error ? 'login-error' : undefined} />
             {error && <ErrorMessage text={error} />}
-            <button className={styles.primary}>Email me a code</button>
+            <SubmitButton className={styles.primary} pending="Sending your code…">Email me a code</SubmitButton>
           </form>
           <div className={styles.or}>or</div>
           <form action={signInWithProvider} className={styles.providers}>
-            <button className={styles.provider} name="provider" value="google"><GoogleMark />Continue with Google</button>
-            <button className={styles.provider} name="provider" value="apple"><AppleMark />Sign in with Apple</button>
-            <button className={styles.provider} name="provider" value="x"><XMark />Continue with X</button>
+            <SubmitButton className={styles.provider} name="provider" value="google" pending="Opening Google…"><GoogleMark />Continue with Google</SubmitButton>
+            <SubmitButton className={styles.provider} name="provider" value="apple" pending="Opening Apple…"><AppleMark />Sign in with Apple</SubmitButton>
+            <SubmitButton className={styles.provider} name="provider" value="x" pending="Opening X…"><XMark />Continue with X</SubmitButton>
           </form>
         </>}
       </div>

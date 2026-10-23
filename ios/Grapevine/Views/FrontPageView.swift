@@ -6,8 +6,13 @@ struct FrontPageView: View {
     @Environment(PaperStore.self) private var paper
     @State private var share = false
     @State private var path = NavigationPath()
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var profiles: [Profile] { app.members.map(\.profiles) }
+    /// The first load, before there's an edition to show: the page is set as a proof.
+    /// Also before the first load starts, so the empty edition never flashes.
+    private var proofing: Bool { paper.error == nil && paper.stories.isEmpty && (paper.isLoading || !loadedOnce) }
+    @State private var loadedOnce = false
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -19,22 +24,29 @@ struct FrontPageView: View {
                             Text(error).font(Theme.serif(17))
                             Button("Try again") { Task { await paper.load(app: app) } }
                                 .font(.system(size: 15, weight: .semibold)).underline()
+                                .buttonStyle(PressStyle())
                         }
                         .padding(.vertical, 32)
-                    } else if paper.isLoading && paper.stories.isEmpty {
-                        ProgressView().tint(Theme.ink).frame(maxWidth: .infinity).padding(48)
+                        .transition(.opacity)
+                    } else if proofing {
+                        FrontPageProof().transition(.opacity)
                     } else if let lead = paper.stories.first {
-                        edition(lead: lead)
-                        if let before = paper.earlierBefore {
-                            earlierEditions(before: before)
+                        SwiftUI.Group {
+                            edition(lead: lead)
+                            if let before = paper.earlierBefore {
+                                earlierEditions(before: before)
+                            }
                         }
+                        .transition(.opacity)
                     } else {
-                        empty
+                        empty.transition(.opacity)
                     }
                     colophon
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 24)
+                // The edition inks in over its proof.
+                .animation(.easeOut(duration: reduceMotion ? 0.2 : 0.45), value: proofing)
             }
             .background(Theme.paper)
             .navigationDestination(for: UUID.self) { id in StoryView(storyId: id) }
@@ -42,7 +54,7 @@ struct FrontPageView: View {
             .toolbarVisibility(.hidden, for: .navigationBar)
             .sheet(isPresented: $share, onDismiss: { Task { await paper.load(app: app) } }) { ShareView(group: app.group) }
             .refreshable { await paper.load(app: app) }
-            .task(id: app.group?.id) { await paper.load(app: app) }
+            .task(id: app.group?.id) { await paper.load(app: app); loadedOnce = true }
             .onChange(of: app.pendingStoryId, initial: true) {
                 if let id = app.pendingStoryId { path = NavigationPath([id]); app.pendingStoryId = nil }
             }
@@ -133,7 +145,7 @@ struct FrontPageView: View {
         NavigationLink(value: lead.id) {
             LeadStoryView(story: lead, members: app.members, seenAt: paper.seenAt)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressStyle())
         .padding(.top, 22)
 
         let rest = Array(paper.stories.dropFirst())
@@ -142,7 +154,7 @@ struct FrontPageView: View {
             NavigationLink(value: story.id) {
                 SideStoryView(story: story, members: app.members, seenAt: paper.seenAt, featured: index == 0)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressStyle())
         }
 
         if rest.count > 3 {
@@ -152,7 +164,7 @@ struct FrontPageView: View {
                 NavigationLink(value: story.id) {
                     StoryRowView(story: story, members: app.members, seenAt: paper.seenAt)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressStyle())
             }
         }
 
@@ -167,7 +179,7 @@ struct FrontPageView: View {
                 NavigationLink(value: letter.story.id) {
                     LetterView(message: letter.message, story: letter.story, author: app.members.first { $0.user_id == letter.message.author_id }?.profiles)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressStyle())
             }
         }
     }
@@ -181,7 +193,7 @@ struct FrontPageView: View {
                 .overlay(alignment: .bottom) { Rectangle().fill(Theme.ink).frame(height: 1) }
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(PressStyle())
         .padding(.top, 48)
     }
 

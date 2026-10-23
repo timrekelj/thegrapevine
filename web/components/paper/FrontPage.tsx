@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import Link from '@/components/print/PressLink'
 import type { PaperMember, RankedStory } from '@/lib/types'
 import Plate from '@/components/print/Plate'
 import Avatar from '@/components/print/Avatar'
@@ -49,7 +49,7 @@ export default function FrontPage({ group, members, stories, earlier = null, loa
   const conversation = stories.flatMap(story => story.messages.map(message => ({ ...message, story })))
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at) || a.id.localeCompare(b.id)).slice(0, 4)
 
-  return <main className={styles.paper}>
+  return <main className={`fresh-ink ${styles.paper}`}>
     <header className={styles.head}>
       <h1 className={`nameplate ${styles.nameplate}`}>{group.name}</h1>
       <div className="double-rule" />

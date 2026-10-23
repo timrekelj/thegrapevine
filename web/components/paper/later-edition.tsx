@@ -1,14 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { plural } from '@/lib/format';
+import { BusyLabel } from '@/components/print/InkDots';
 import { checkEdition } from './actions';
 import styles from './paper.module.css';
 
 export default function LaterEdition({ groupId, order }: { groupId: string; order: string[] }) {
   const router = useRouter();
   const [moved, setMoved] = useState(0);
+  const [reprinting, reprint] = useTransition();
   useEffect(() => {
     let active = true;
     const timer = setInterval(async () => {
@@ -22,5 +24,7 @@ export default function LaterEdition({ groupId, order }: { groupId: string; orde
     }, 60_000);
     return () => { active = false; clearInterval(timer); };
   }, [groupId, order]);
-  return moved > 0 ? <button className={styles.later} onClick={() => router.refresh()}>↑ Later edition · {plural(moved, 'story', 'stories')} moved · Reload</button> : null;
+  return moved > 0 ? <button className={styles.later} disabled={reprinting} aria-busy={reprinting} onClick={() => reprint(() => router.refresh())}>
+    <BusyLabel busy={reprinting} label="Printing the later edition…">↑ Later edition · {plural(moved, 'story', 'stories')} moved · Reload</BusyLabel>
+  </button> : null;
 }
