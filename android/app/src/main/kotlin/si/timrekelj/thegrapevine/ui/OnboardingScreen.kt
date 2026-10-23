@@ -60,6 +60,7 @@ fun OnboardingScreen(app: AppState) {
     var inviteCode by rememberSaveable { mutableStateOf(app.pendingInviteCode.orEmpty()) }
     var joining by rememberSaveable { mutableStateOf(app.pendingInviteCode != null) }
     var busy by remember { mutableStateOf(false) }
+    var accountBusy by remember { mutableStateOf(false) }
     var localError by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(app.pendingInviteCode) {
@@ -71,6 +72,7 @@ fun OnboardingScreen(app: AppState) {
     val ready = displayName.isNotBlank()
 
     fun run(action: suspend () -> Unit) {
+        if (accountBusy) return
         scope.launch {
             busy = true
             localError = null
@@ -131,18 +133,18 @@ fun OnboardingScreen(app: AppState) {
                         if (join) {
                             PrimaryButton(
                                 if (busy) "Joining…" else "Join your friends",
-                                enabled = !busy && ready && inviteCode.isNotBlank(),
+                                enabled = !busy && !accountBusy && ready && inviteCode.isNotBlank(),
                             ) { run { app.joinGroup(inviteCode.trim()) } }
                         } else {
                             PrimaryButton(
                                 if (busy) "Starting…" else "Start the paper",
-                                enabled = !busy && ready && groupName.isNotBlank(),
+                                enabled = !busy && !accountBusy && ready && groupName.isNotBlank(),
                             ) { run { app.createGroup(groupName.trim()) } }
                         }
                         Spacer(Modifier.height(16.dp))
                         OutlinedButton(
                             onClick = { joining = !join; localError = null },
-                            enabled = !busy,
+                            enabled = !busy && !accountBusy,
                             shape = Corner,
                             border = BorderStroke(1.dp, Press.rule),
                             modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp),
@@ -154,6 +156,8 @@ fun OnboardingScreen(app: AppState) {
                         }
                     }
                 }
+                Spacer(Modifier.height(36.dp))
+                AccountSettings(app, onSignedOut = {}, enabled = !busy, onBusyChange = { accountBusy = it })
             }
         }
     }
