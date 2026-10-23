@@ -1,42 +1,122 @@
 import SwiftUI
-import CoreImage
-import CoreImage.CIFilterBuiltins
+import UIKit
 
+/// The paper's tokens — the same as `web/app/globals.css`. Newsprint and ink carry the page;
+/// colour comes only from photographs and members' discs. Press red has one meaning: new to you.
+/// Every colour has an evening edition that follows the system appearance.
 enum Theme {
-    static let paper = Color(hex: 0xF7F4EE)
-    static let raised = Color(hex: 0xFFFDF9)
-    static let ink = Color(hex: 0x4A2160)
-    static let ink2 = Color(hex: 0x75657C)
-    static let pink = Color(hex: 0xFF6AA6)
-    static let error = Color(hex: 0x9A3149)
-    static let onPink = Color(hex: 0x2E1340)
-    static let rule = Color(hex: 0x4A2160).opacity(0.16)
+    private static let newsprint: UInt32 = 0xF4F1EA, eveningPaper: UInt32 = 0x121110
+    static let paper = Color(light: newsprint, dark: eveningPaper)
+    /// The paper for drawing outside SwiftUI: the halftone plates print onto it.
+    static func paper(dark: Bool) -> UIColor { UIColor(hex: dark ? eveningPaper : newsprint) }
+    static let raised = Color(light: 0xFBF9F4, dark: 0x1B1A17)
+    static let ink = Color(light: 0x161513, dark: 0xEDE9E1)
+    static let ink2 = Color(light: 0x4A4740, dark: 0xB9B3A8)
+    static let ink3 = Color(light: 0x75716A, dark: 0x8C877D)
+    static let rule = Color(light: 0x161513, dark: 0xEDE9E1, opacity: 0.16)
+    static let tint = Color(light: 0x161513, dark: 0xEDE9E1, opacity: 0.06)
+    /// The spot ink: only for things that are new to you.
+    static let red = Color(light: 0xC8231B, dark: 0xFF5B4F)
+    static let onRed = Color(light: 0xFFFFFF, dark: 0x1A0705)
+    static let danger = Color(light: 0xA3261F, dark: 0xFF8A80)
 
-    static func display(_ size: CGFloat) -> Font { .custom("Gloock", size: size) }
+    // MARK: Type
+    // A blackletter nameplate, a news serif with optical sizes for everything you read,
+    // a typewriter mono for datelines and counts, and the system sans for controls.
+
+    /// Nameplates only: the paper's name and "The Grapevine".
+    static func nameplate(_ size: CGFloat) -> Font { .custom("UnifrakturMaguntia", size: size) }
+    /// Headlines. Large sizes use Newsreader's display cut, small ones its text cut.
+    static func headline(_ size: CGFloat) -> Font {
+        .custom(size >= 28 ? "Newsreader72pt-SemiBold" : "Newsreader-SemiBold", size: size)
+    }
+    static func serif(_ size: CGFloat) -> Font { .custom("Newsreader-Regular", size: size) }
+    static func italic(_ size: CGFloat, medium: Bool = false) -> Font {
+        .custom(medium ? "Newsreader-MediumItalic" : "Newsreader-Italic", size: size)
+    }
+    static func mono(_ size: CGFloat, bold: Bool = false) -> Font {
+        .custom(bold ? "IBMPlexMono-SemiBold" : "IBMPlexMono-Medium", size: size)
+    }
+
+    /// Corner radius for fields and buttons: set square, like type in a forme.
+    static let radius: CGFloat = 3
 }
 
 extension Color {
-    init(hex: UInt32) {
-        self.init(.sRGB, red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255, blue: Double(hex & 0xFF) / 255)
+    init(light: UInt32, dark: UInt32, opacity: CGFloat = 1) {
+        self.init(uiColor: UIColor { traits in
+            UIColor(hex: traits.userInterfaceStyle == .dark ? dark : light, alpha: opacity)
+        })
     }
 }
 
-/// The halftone plate: every source image is printed in one ink, not shown in colour.
-enum Plate {
-    static func apply(to image: UIImage) -> UIImage {
-        guard let cgImage = image.cgImage else { return image }
-        let filter = CIFilter.colorControls()
-        filter.inputImage = CIImage(cgImage: cgImage)
-        filter.saturation = 0
-        filter.contrast = 1.15
-        filter.brightness = 0.04
-        // Print in one ink: black becomes grape, white becomes paper.
-        let ink = CIFilter.falseColor()
-        ink.inputImage = filter.outputImage
-        ink.color0 = CIColor(red: 0x4A / 255, green: 0x21 / 255, blue: 0x60 / 255)
-        ink.color1 = CIColor(red: 0xF7 / 255, green: 0xF4 / 255, blue: 0xEE / 255)
-        guard let output = ink.outputImage,
-              let printed = CIContext().createCGImage(output, from: output.extent) else { return image }
-        return UIImage(cgImage: printed)
+extension UIColor {
+    convenience init(hex: UInt32, alpha: CGFloat = 1) {
+        self.init(red: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255, blue: CGFloat(hex & 0xFF) / 255, alpha: alpha)
+    }
+}
+
+/// Small caps label: mono, uppercase, tracked.
+struct Kicker: View {
+    let text: String
+    var color: Color = Theme.ink
+    var size: CGFloat = 11
+    var body: some View {
+        Text(text.uppercased())
+            .font(Theme.mono(size, bold: true)).tracking(size * 0.12)
+            .foregroundColor(color)
+    }
+}
+
+/// The thick-and-thin rule under a nameplate.
+struct DoubleRule: View {
+    var body: some View {
+        VStack(spacing: 2) {
+            Rectangle().fill(Theme.ink).frame(height: 3)
+            Rectangle().fill(Theme.ink).frame(height: 1)
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+struct Hairline: View {
+    var color: Color = Theme.rule
+    var body: some View { Rectangle().fill(color).frame(height: 1).accessibilityHidden(true) }
+}
+
+/// The ink block button. Dims only the fill when disabled, so the label stays readable.
+struct InkButtonStyle: ButtonStyle {
+    var enabled = true
+    var height: CGFloat = 50
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 16, weight: .semibold))
+            .frame(maxWidth: .infinity, minHeight: height)
+            .background(Theme.ink.opacity(enabled ? (configuration.isPressed ? 0.8 : 1) : 0.4),
+                        in: RoundedRectangle(cornerRadius: Theme.radius))
+            .foregroundColor(Theme.paper)
+            .contentShape(RoundedRectangle(cornerRadius: Theme.radius))
+    }
+}
+
+/// A paper field: raised, hairline, square corners, set in the serif.
+struct PaperFieldStyle: ViewModifier {
+    var focused = false
+    var invalid = false
+    func body(content: Content) -> some View {
+        content
+            .font(Theme.serif(18))
+            .foregroundColor(Theme.ink)
+            .padding(.horizontal, 14).frame(minHeight: 50)
+            .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.radius))
+            .overlay(RoundedRectangle(cornerRadius: Theme.radius)
+                .stroke(invalid ? Theme.danger : focused ? Theme.ink : Theme.rule, lineWidth: 1))
+    }
+}
+
+extension View {
+    func paperField(focused: Bool = false, invalid: Bool = false) -> some View {
+        modifier(PaperFieldStyle(focused: focused, invalid: invalid))
     }
 }

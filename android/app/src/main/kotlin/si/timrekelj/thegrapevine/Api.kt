@@ -1,15 +1,22 @@
 package si.timrekelj.thegrapevine
 
 import io.ktor.client.HttpClient
-import io.ktor.client.call.body
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpTimeout
-import io.ktor.client.request.get
+import io.ktor.client.request.prepareGet
 import io.ktor.client.request.header
 import io.ktor.client.request.request
 import io.ktor.client.request.setBody
 import io.ktor.client.request.url
+import io.ktor.client.statement.bodyAsChannel
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.contentLength
+import io.ktor.http.isSuccess
+import io.ktor.utils.io.readRemaining
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.io.readByteArray
+import okhttp3.Cache
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.contentType
@@ -44,7 +51,11 @@ inline fun <reified T> encodeBody(value: T): String = SupabaseJson.encodeToStrin
  * All orchestration (submission, clustering, summaries) lives in Edge Functions,
  * so there is nothing else to talk to.
  */
-class Api(private val http: HttpClient = defaultHttpClient()) {
+class Api(
+    private val http: HttpClient = defaultHttpClient(),
+    /** Pictures only: no Supabase credentials are sent with it, and its responses may be cached on disk. */
+    private val pictures: HttpClient = http,
+) {
 
     var session: Session? = null
 
@@ -109,8 +120,13 @@ class Api(private val http: HttpClient = defaultHttpClient()) {
 
     // ------------------------------------------------------------------ reads
 
+    /** Whole front pages can be large; parse them off the main thread. */
+    @PublishedApi
+    internal suspend inline fun <reified T> decode(text: String): T =
+        withContext(Dispatchers.Default) { SupabaseJson.decodeFromString<T>(text) }
+
     suspend inline fun <reified T> getMany(path: String, query: List<Pair<String, String>> = emptyList()): List<T> =
-        SupabaseJson.decodeFromString(request(path = path, method = HttpMethod.Get, query = query))
+        decode(request(path = path, method = HttpMethod.Get, query = query))
 
     suspend inline fun <reified T> getOne(path: String, query: List<Pair<String, String>> = emptyList()): T? =
         getMany<T>(path, query + ("limit" to "1")).firstOrNull()
@@ -118,22 +134,22 @@ class Api(private val http: HttpClient = defaultHttpClient()) {
     // ------------------------------------------------------------------ writes
 
     suspend inline fun <reified T> postRow(path: String, body: String): T =
-        SupabaseJson.decodeFromString<List<T>>(
+        decode<List<T>>(
             request(path = path, method = HttpMethod.Post, body = body, preferRepresentation = true),
         ).firstOrNull() ?: throw ApiError.Decoding("No row returned")
 
     suspend inline fun <reified T> upsertRow(path: String, body: String): T =
-        SupabaseJson.decodeFromString<List<T>>(
+        decode<List<T>>(
             request(path = path, method = HttpMethod.Post, body = body, preferRepresentation = true, mergeDuplicates = true),
         ).firstOrNull() ?: throw ApiError.Decoding("No row returned")
 
     suspend inline fun <reified T> patchRow(path: String, query: List<Pair<String, String>>, body: String): T =
-        SupabaseJson.decodeFromString<List<T>>(
+        decode<List<T>>(
             request(path = path, method = HttpMethod.Patch, query = query, body = body, preferRepresentation = true),
         ).firstOrNull() ?: throw ApiError.Decoding("No row returned")
 
     suspend inline fun <reified T> postObject(path: String, body: String): T =
-        SupabaseJson.decodeFromString(request(path = path, method = HttpMethod.Post, body = body))
+        decode(request(path = path, method = HttpMethod.Post, body = body))
 
     suspend fun postVoid(path: String, body: String) {
         request(path = path, method = HttpMethod.Post, body = body)
@@ -148,7 +164,7 @@ class Api(private val http: HttpClient = defaultHttpClient()) {
     }
 
     suspend inline fun <reified T> rpc(name: String, body: String): T =
-        SupabaseJson.decodeFromString(request(path = "rest/v1/rpc/$name", method = HttpMethod.Post, body = body))
+        decode(request(path = "rest/v1/rpc/$name", method = HttpMethod.Post, body = body))
 
     // ------------------------------------------------------------------- media
 
@@ -172,8 +188,18 @@ class Api(private val http: HttpClient = defaultHttpClient()) {
         return Config.supabaseURL + "storage/v1" + signed.signedURL
     }
 
-    /** Raw bytes for the halftone plates; Coil is deliberately not a dependency. */
-    suspend fun fetchBytes(url: String): ByteArray = http.get(url).body()
+    /**
+     * Raw bytes for avatars and the halftone plates; Coil is deliberately not a dependency.
+     * Image URLs come from scraped pages, so the size is capped rather than trusted.
+     */
+    suspend fun fetchBytes(url: String): ByteArray = pictures.prepareGet(url).execute { response ->
+        if (!response.status.isSuccess()) throw ApiError.Http(response.status.value, "")
+        val length = response.contentLength()
+        if (length != null && length > MAX_PICTURE_BYTES) throw ApiError.Network("Picture too large")
+        val bytes = response.bodyAsChannel().readRemaining(MAX_PICTURE_BYTES + 1L).readByteArray()
+        if (bytes.size > MAX_PICTURE_BYTES) throw ApiError.Network("Picture too large")
+        bytes
+    }
 
     // -------------------------------------------------------------------- auth
 
@@ -245,14 +271,17 @@ class Api(private val http: HttpClient = defaultHttpClient()) {
         )
     }
 
-    private companion object {
-        fun defaultHttpClient(): HttpClient = HttpClient(OkHttp) {
+    companion object {
+        private const val MAX_PICTURE_BYTES = 15 * 1024 * 1024
+
+        fun defaultHttpClient(cache: Cache? = null): HttpClient = HttpClient(OkHttp) {
             expectSuccess = false
             install(HttpTimeout) {
                 requestTimeoutMillis = 30_000
                 connectTimeoutMillis = 15_000
                 socketTimeoutMillis = 30_000
             }
+            if (cache != null) engine { config { cache(cache) } }
         }
     }
 }

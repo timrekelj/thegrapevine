@@ -2,7 +2,6 @@ package si.timrekelj.thegrapevine.ui
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -22,16 +21,10 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -46,7 +39,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -60,8 +52,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import si.timrekelj.thegrapevine.AppState
 
-private val Field = RoundedCornerShape(14.dp)
-private val ErrorRed = Color(0xFF9A3149)
 
 @Composable
 fun OnboardingScreen(app: AppState) {
@@ -106,13 +96,14 @@ fun OnboardingScreen(app: AppState) {
             Column(Modifier.widthIn(max = 468.dp).fillMaxWidth().weight(1f)) {
                 Text("MAKE YOURSELF AT HOME", style = LabelStyle)
                 Spacer(Modifier.height(10.dp))
-                Text("Your people.\nYour paper.", style = display(40))
+                Text("Your people.\nYour paper.", style = display(46))
                 Spacer(Modifier.height(36.dp))
                 Spacer(Modifier.weight(1f))
                 PaperPreview(
                     name = displayName,
                     paper = if (joining) "" else groupName,
                     placeholder = if (joining) "Your friends’ paper" else "Your paper",
+                    avatarSeed = app.session?.userId ?: "you",
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
                 Spacer(Modifier.height(28.dp))
@@ -133,7 +124,7 @@ fun OnboardingScreen(app: AppState) {
                         app.error?.let { error ->
                             ErrorLine(error)
                             TextButton(onClick = { scope.launch { app.loadProfileAndGroup() } }) {
-                                Text("Retry loading your paper", color = Grape.ink)
+                                Text("Retry loading your paper", style = MetaStyle.copy(color = Press.ink))
                             }
                         }
                         Spacer(Modifier.height(16.dp))
@@ -152,13 +143,13 @@ fun OnboardingScreen(app: AppState) {
                         OutlinedButton(
                             onClick = { joining = !join; localError = null },
                             enabled = !busy,
-                            shape = Field,
-                            border = BorderStroke(1.dp, Grape.rule),
+                            shape = Corner,
+                            border = BorderStroke(1.dp, Press.rule),
                             modifier = Modifier.fillMaxWidth().heightIn(min = 44.dp),
                         ) {
                             Text(
                                 if (join) "Start a new paper instead" else "Have an invite code? Join your friends",
-                                fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Grape.ink,
+                                fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Press.ink,
                             )
                         }
                     }
@@ -173,98 +164,52 @@ private fun OnboardingField(value: String, onChange: (String) -> Unit, placehold
     OutlinedTextField(
         value = value,
         onValueChange = onChange,
-        placeholder = { Text(placeholder, color = Grape.ink2.copy(alpha = 0.6f)) },
+        placeholder = { Text(placeholder, style = BodyStyle.copy(color = Press.ink3)) },
+        textStyle = BodyStyle,
         singleLine = true,
         keyboardOptions = KeyboardOptions(capitalization = if (capitalize) KeyboardCapitalization.Words else KeyboardCapitalization.None, autoCorrectEnabled = false),
-        shape = Field,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = Grape.raised,
-            unfocusedContainerColor = Grape.raised,
-            focusedBorderColor = Grape.ink,
-            unfocusedBorderColor = Grape.rule,
-            cursorColor = Grape.ink,
-            focusedTextColor = Grape.ink,
-            unfocusedTextColor = Grape.ink,
-        ),
+        shape = Corner,
+        colors = fieldColors(),
         modifier = Modifier.fillMaxWidth(),
     )
 }
 
+/** The paper being made, updated as you type: its nameplate in blackletter, a first-edition stamp. */
 @Composable
-private fun ErrorLine(error: String?) {
-    if (error == null) return
-    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(top = 8.dp)) {
-        Icon(Icons.Outlined.Info, contentDescription = null, tint = ErrorRed, modifier = Modifier.size(18.dp))
-        Text(error, fontSize = 14.sp, lineHeight = 18.sp, fontWeight = FontWeight.Medium, color = ErrorRed)
-    }
-}
-
-/** The paper being made, updated as you type: masthead, monogram and a first-edition stamp. */
-@Composable
-private fun PaperPreview(name: String, paper: String, placeholder: String, modifier: Modifier = Modifier) {
-    val sheet = RoundedCornerShape(4.dp)
-    val initial = name.trim().firstOrNull()?.uppercase() ?: "?"
+private fun PaperPreview(name: String, paper: String, placeholder: String, avatarSeed: String, modifier: Modifier = Modifier) {
+    val sheet = RoundedCornerShape(2.dp)
     Box(modifier.rotate(-1f)) {
         Column(
-            Modifier.fillMaxWidth().shadow(12.dp, sheet, ambientColor = Grape.onPink, spotColor = Grape.onPink)
-                .background(Grape.raised, sheet).border(1.dp, Grape.rule, sheet)
-                .padding(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 18.dp),
+            Modifier.fillMaxWidth().shadow(14.dp, sheet, ambientColor = Color.Black, spotColor = Color.Black)
+                .background(Press.raised, sheet).border(1.dp, Press.rule, sheet)
+                .padding(start = 18.dp, end = 18.dp, top = 14.dp, bottom = 18.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE d MMMM")).uppercase(),
-                    style = LabelStyle.copy(fontSize = 10.sp),
+                    style = LabelStyle.copy(fontSize = 9.sp, color = Press.ink2),
                     modifier = Modifier.weight(1f),
                 )
-                Box(Modifier.size(26.dp).background(Grape.ink, CircleShape), contentAlignment = Alignment.Center) {
-                    Text(initial, style = display(13).copy(color = Grape.paper))
-                }
+                Avatar(avatarSeed, 30.dp)
             }
-            Spacer(Modifier.height(10.dp))
             Text(
                 paper.trim().ifEmpty { placeholder },
-                style = display(30).copy(color = if (paper.isBlank()) Grape.ink2 else Grape.ink),
+                style = nameplate(38).copy(color = if (paper.isBlank()) Press.ink3 else Press.ink, textAlign = androidx.compose.ui.text.style.TextAlign.Center),
                 maxLines = 2, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp),
             )
-            Spacer(Modifier.height(10.dp))
-            HorizontalDivider(color = Grape.ink, thickness = 1.dp)
-            Spacer(Modifier.height(2.dp))
-            HorizontalDivider(color = Grape.ink, thickness = 1.dp)
+            DoubleRule()
             Spacer(Modifier.height(14.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(96.dp, 72.dp).background(Grape.paper, RoundedCornerShape(6.dp)), contentAlignment = Alignment.Center) {
-                    Halftone(Modifier.matchParentSize())
-                    Text(
-                        "Your first link", style = display(12),
-                        modifier = Modifier.background(Grape.raised).padding(horizontal = 5.dp, vertical = 3.dp),
-                    )
-                }
+                TypePlate("Your first link", Modifier.size(96.dp, 72.dp))
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Share a link and it becomes the lead story.", style = display(17))
+                    Text("Share a link and it becomes the lead story.", style = display(18))
                     Text("${name.trim().ifEmpty { "You" }} · 1 member", style = MetaStyle, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
         Box(Modifier.align(Alignment.TopEnd).offset(x = (-14).dp, y = (-12).dp).rotate(4f)) {
             Stamp("First edition")
-        }
-    }
-}
-
-/** A flat 30% screen, the plate printed for a story with no picture. */
-@Composable
-private fun Halftone(modifier: Modifier = Modifier) {
-    Canvas(modifier) {
-        val step = 4.5.dp.toPx()
-        val radius = 1.1.dp.toPx()
-        var x = step / 2
-        while (x < size.width) {
-            var y = step / 2
-            while (y < size.height) {
-                drawCircle(Grape.ink, radius, Offset(x, y))
-                y += step
-            }
-            x += step
         }
     }
 }

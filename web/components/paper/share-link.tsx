@@ -2,8 +2,10 @@
 
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import styles from './paper.module.css';
+
+// The Supabase client loads on first use: `/` is also the landing page, which never needs it.
+const supabase = () => import('@/lib/supabase/client').then(({ createClient }) => createClient());
 
 type Submission = { status: 'new_story' | 'joined' | 'duplicate'; source_id?: string; story_id?: string; story_title?: string; title?: string };
 
@@ -41,7 +43,7 @@ export default function ShareLink({ groupId, groupName }: { groupId: string; gro
     setStatus(`Reading ${parsed.hostname}…`);
     timer.current = setTimeout(() => setStatus('Looking for the same event…'), 1400);
     try {
-      const client = createClient();
+      const client = await supabase();
       const { data, error: invokeError } = await client.functions.invoke<Submission>('submit-source', {
         body: { group_id: groupId, url: parsed.href, comment: comment.trim() || undefined },
       });
@@ -92,7 +94,7 @@ export default function ShareLink({ groupId, groupName }: { groupId: string; gro
     if (!toast?.sourceId || busy) return;
     setBusy(true);
     try {
-      const { data, error } = await createClient().from('sources').delete().eq('id', toast.sourceId).select('id');
+      const { data, error } = await (await supabase()).from('sources').delete().eq('id', toast.sourceId).select('id');
       if (error || !data?.length) throw new Error('Could not undo this contribution.');
       setToast({ text: 'Contribution removed.' });
       router.refresh();
@@ -102,12 +104,12 @@ export default function ShareLink({ groupId, groupName }: { groupId: string; gro
   }
 
   return <>
-    <button className="btn" onClick={() => { setError(''); dialog.current?.showModal(); }}><span aria-hidden="true">＋</span>Share a link</button>
+    <button className="btn" onClick={() => { setError(''); dialog.current?.showModal(); }}><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.6" /></svg>Share a link</button>
     <dialog ref={dialog} className={styles.dialog} onCancel={event => { if (busy) event.preventDefault(); }} aria-labelledby={headingId}>
       <form onSubmit={submit}>
-        <h2 id={headingId} className="headline">Share to {groupName}</h2>
+        <header className={styles.dialogHead}><span className="label">Filing for {groupName}</span><h2 id={headingId} className="headline">Share a link</h2></header>
         <label>Link<input type="url" required autoFocus placeholder="https://…" value={url} disabled={busy} onChange={e => setUrl(e.target.value)} /></label>
-        <label>Your comment <span className="meta">(optional)</span><textarea value={comment} disabled={busy} onChange={e => setComment(e.target.value)} /></label>
+        <label><span>Your comment <span className={styles.optional}>(optional)</span></span><textarea value={comment} disabled={busy} onChange={e => setComment(e.target.value)} /></label>
         <p className="meta">Everyone in {groupName} sees this with your name.</p>
         {status && <p className="meta" role="status">{status}</p>}
         {error && <p className={styles.error} role="alert">{error}</p>}

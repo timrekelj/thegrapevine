@@ -3,7 +3,6 @@ package si.timrekelj.thegrapevine
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
-import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -65,6 +64,66 @@ class CoreTest {
     }
 
     @Test
+    fun editionKeepsThisWeekWithinItsBounds() {
+        val now = Instant.parse("2026-10-23T12:00:00Z")
+        val day = 86_400L
+        // Ages in days, newest first.
+        fun cut(ages: List<Double>) = Edition.cut(ages.map { now.minusSeconds((it * day).toLong()) }, now) { it }
+
+        // A quiet paper: everything is old, but the first EDITION_MIN still make the front page.
+        val quiet = cut(List(15) { 30.0 + it })
+        assertEquals(Edition.MIN, quiet.stories.size)
+        assertEquals(quiet.stories.last(), quiet.earlier)
+
+        // A busy week: all recent stories, cut at EDITION_MAX; the extra fetched row means more exist.
+        val busy = cut(List(Edition.MAX + 1) { it * 0.1 })
+        assertEquals(Edition.MAX, busy.stories.size)
+        assertEquals(busy.stories.last(), busy.earlier)
+
+        // A normal week: past the minimum, the first story older than a week ends the edition.
+        val week = cut(List(12) { it * 0.5 } + listOf(7.5, 8.0, 0.1))
+        assertEquals(12, week.stories.size)
+        assertEquals(now.minusSeconds((5.5 * day).toLong()), week.earlier)
+
+        // Everything fits: no archive link.
+        val small = cut(listOf(1.0, 20.0, 40.0))
+        assertEquals(3, small.stories.size)
+        assertEquals(null, small.earlier)
+        assertEquals(null, cut(emptyList()).earlier)
+        assertEquals(null, cut(List(Edition.MAX) { 0.0 }).earlier)
+    }
+
+    @Test
+    fun unreadCountsOthersMessagesSinceTheLastRead() {
+        val lastRead = Instant.parse("2026-10-23T10:00:00Z")
+        fun message(id: String, author: String, minutes: Long) =
+            Message(id = id, story_id = "s", author_id = author, body = "Hi", created_at = lastRead.plusSeconds(minutes * 60))
+        val messages = listOf(
+            message("old", "friend", -5),
+            message("at", "friend", 0),
+            message("mine", "me", 2),
+            message("first", "friend", 3),
+            message("second", "other", 9),
+        )
+        assertEquals(Unread("first", 2), unreadSince(messages, lastRead, "me"))
+        // A first visit, or nothing new from others, shows no divider.
+        assertEquals(null, unreadSince(messages, null, "me"))
+        assertEquals(null, unreadSince(messages.take(3), lastRead, "me"))
+    }
+
+    @Test
+    fun archiveRowsDecodeCountEmbeds() {
+        val json = """[{"id":"a","title":"T","category":null,"last_activity_at":"2026-10-16T09:30:00.123456+00:00",""" +
+            """"sources":[{"count":3}],"messages":[{"count":0}]}]"""
+        val row = SupabaseJson.decodeFromString<List<ArchivedStory>>(json).single()
+        assertEquals(3, row.sourceCount)
+        assertEquals(0, row.messageCount)
+        assertEquals(Instant.parse("2026-10-16T09:30:00.123456Z"), row.last_activity_at)
+        assertEquals(null, SupabaseJson.decodeFromString<String?>("null"))
+        assertEquals("2026-10-16T09:30:00Z", SupabaseJson.decodeFromString<String?>("\"2026-10-16T09:30:00+00:00\"")?.let { InstantSerializer.format(InstantSerializer.parse(it)) })
+    }
+
+    @Test
     fun attachmentLimits() {
         val image = Attachment(byteArrayOf(1), "image", "image/jpeg", "jpg")
         Attachment.validate(List(10) { image })
@@ -107,6 +166,14 @@ class CoreTest {
     }
 
     @Test
+    fun serverErrorMessagesReachTheUser() {
+        // submit-source and report-story rate limits answer 429 {"error": "…"}.
+        assertEquals("Slow down", ApiError.Http(429, """{"error":"Slow down"}""").message)
+        assertEquals("Bad", ApiError.Http(400, """{"message":"Bad"}""").message)
+        assertEquals("Server error (502)", ApiError.Http(502, "<html>").message)
+    }
+
+    @Test
     fun inviteCodeFromLinkOrBareCode() {
         assertEquals("grapevinedemo", DeepLink.inviteCode("https://thegrapevine.si/invite?code=GrapevineDemo"))
         assertEquals("grapevinedemo", DeepLink.inviteCode("  grapevinedemo "))
@@ -120,6 +187,9 @@ class CoreTest {
         assertEquals(null, DeepLink.route("https://thegrapevine.si/story/not-a-uuid"))
         assertEquals(null, DeepLink.route("https://thegrapevine.si/invite"))
         assertEquals(null, DeepLink.route("https://thegrapevine.si/login"))
+        // Only our own https links: MainActivity is exported, so any app can send it a VIEW intent.
+        assertEquals(null, DeepLink.route("https://evil.example/invite?code=GrapevineDemo"))
+        assertEquals(null, DeepLink.route("http://thegrapevine.si/story/$id"))
     }
 
     @Test
@@ -133,10 +203,30 @@ class CoreTest {
     }
 
     @Test
-    fun plateMapsBlackToInkAndWhiteToPaper() {
-        // Black prints as grape ink and white as paper, as in Plate.swift.
-        assertArrayEquals(intArrayOf(74, 33, 96), Plate.toInk(0, 0, 0))
-        assertArrayEquals(intArrayOf(247, 244, 238), Plate.toInk(255, 255, 255))
+    fun plateGivesDarkPartsTheBigDotsOnPaper() {
+        // On paper, white needs no ink and black is a solid; in between, dots grow with darkness.
+        assertEquals(0f, Plate.radius(1f, dark = false), 0.0001f)
+        assertEquals(Plate.MAX_RADIUS, Plate.radius(0f, dark = false), 0.0001f)
+        assertTrue(Plate.radius(0.3f, dark = false) > Plate.radius(0.7f, dark = false))
+        // A mid-grey dot has half the area of a solid one.
+        val half = Plate.radius(0.5f, dark = false)
+        val solid = Plate.radius(0f, dark = false)
+        assertEquals(0.5f, half * half / (solid * solid), 0.001f)
+    }
+
+    @Test
+    fun plateGivesLightPartsTheBigDotsOnTheEveningEdition() {
+        assertEquals(0f, Plate.radius(0f, dark = true), 0.0001f)
+        assertEquals(Plate.MAX_RADIUS, Plate.radius(1f, dark = true), 0.0001f)
+        assertTrue(Plate.radius(0.7f, dark = true) > Plate.radius(0.3f, dark = true))
+    }
+
+    @Test
+    fun plateMeasuresLuminanceAndScreensAtTheWebPitch() {
+        assertEquals(0f, Plate.luminance(0, 0, 0), 0.0001f)
+        assertEquals(1f, Plate.luminance(255, 255, 255), 0.0001f)
+        assertTrue(Plate.luminance(0, 255, 0) > Plate.luminance(255, 0, 0))
+        assertEquals(138, Plate.columns(360f))
     }
 
     private fun assertThrows(block: () -> Unit) {

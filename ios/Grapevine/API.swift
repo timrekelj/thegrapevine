@@ -19,6 +19,11 @@ enum APIError: Error, LocalizedError {
     }
 }
 
+extension Error {
+    /// A task or request that was cancelled, e.g. by leaving the screen that started it.
+    var isCancellation: Bool { self is CancellationError || (self as? URLError)?.code == .cancelled }
+}
+
 @MainActor
 enum API {
     static var session: Session?
@@ -33,13 +38,24 @@ enum API {
     }
 
     private static func request(path: String, method: String, query: [URLQueryItem] = [], body: (any Encodable)? = nil, file: Data? = nil, contentType: String = "application/json", preferRepresentation: Bool = false, mergeDuplicates: Bool = false) async throws -> Data {
-        if !path.hasPrefix("auth/"), let stored = session, JWT.isExpired(stored.accessToken) {
-            if refreshTask == nil { refreshTask = Task { try await refreshSession(refreshToken: stored.refreshToken) } }
-            defer { refreshTask = nil }
-            let refreshed = try await refreshTask!.value
-            guard session?.refreshToken == stored.refreshToken || session?.accessToken == refreshed.accessToken else { throw APIError.unauthorized }
-            session = refreshed
-            try Keychain.save(JSONEncoder().encode(refreshed))
+        if !path.hasPrefix("auth/"), var stored = session, JWT.isExpired(stored.accessToken) {
+            // The app and the share extension share one saved session, and Supabase rotates refresh tokens:
+            // if the other one already refreshed, continue from its session instead of reusing a spent token
+            // (reuse is treated as theft and revokes the session).
+            if let saved = Keychain.load().flatMap({ try? JSONDecoder.supabase.decode(Session.self, from: $0) }),
+               saved.userId == stored.userId, saved.refreshToken != stored.refreshToken {
+                session = saved
+                stored = saved
+            }
+            if JWT.isExpired(stored.accessToken) {
+                let task = refreshTask ?? Task { [refreshToken = stored.refreshToken] in try await refreshSession(refreshToken: refreshToken) }
+                refreshTask = task
+                defer { refreshTask = nil }
+                let refreshed = try await task.value
+                guard session?.refreshToken == stored.refreshToken || session?.accessToken == refreshed.accessToken else { throw APIError.unauthorized }
+                session = refreshed
+                try Keychain.save(JSONEncoder().encode(refreshed))
+            }
         }
         var request = URLRequest(url: url(for: path, query: query))
         request.httpMethod = method
@@ -191,8 +207,13 @@ enum API {
     }
 
     static func refreshSession(refreshToken: String) async throws -> Session {
-        session(from: try decode(TokenResponse.self,
-            try await request(path: "auth/v1/token", method: "POST", query: [URLQueryItem(name: "grant_type", value: "refresh_token")], body: RefreshBody(refresh_token: refreshToken))))
+        do {
+            return session(from: try decode(TokenResponse.self,
+                try await request(path: "auth/v1/token", method: "POST", query: [URLQueryItem(name: "grant_type", value: "refresh_token")], body: RefreshBody(refresh_token: refreshToken))))
+        } catch APIError.http(let status, _) where (400..<500).contains(status) && status != 429 {
+            // A revoked, expired or already-used refresh token: only signing in again helps.
+            throw APIError.unauthorized
+        }
     }
 
     private static func session(from response: TokenResponse) -> Session {

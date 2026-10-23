@@ -1,4 +1,4 @@
-import { body, HttpError, json, uuid } from '../_shared/cors.ts';
+import { body, HttpError, json, sameSecret, uuid } from '../_shared/cors.ts';
 import { supabase } from '../_shared/supabase.ts';
 import { preferenceFor, pushPayload, type PushKind } from './push.ts';
 import { capture, featureEnabled, telemetryUser, withTelemetry } from '../_shared/telemetry.ts';
@@ -8,7 +8,7 @@ import { capture, featureEnabled, telemetryUser, withTelemetry } from '../_share
 export async function handleNotification(req: Request) {
   if (req.method !== 'POST') return json({ error: 'POST required' }, 405);
   const secret = Deno.env.get('PUSH_WEBHOOK_SECRET');
-  if (!secret || req.headers.get('x-push-secret') !== secret) {
+  if (!secret || !await sameSecret(req.headers.get('x-push-secret') ?? '', secret)) {
     return json({ error: 'Unauthorized' }, 401);
   }
   try {

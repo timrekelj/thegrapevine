@@ -24,14 +24,13 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import si.timrekelj.thegrapevine.AppState
-import si.timrekelj.thegrapevine.Story
 import si.timrekelj.thegrapevine.encodeBody
 
 @Serializable
 private data class SubmitBody(val group_id: String, val url: String, val comment: String?)
 
 @Serializable
-private data class SubmitResult(val status: String, val story_id: String? = null)
+private data class SubmitResult(val status: String, val story_id: String? = null, val story_title: String? = null)
 
 /**
  * Mirrors `ShareView.swift`. Also opened over other apps from the system share
@@ -50,14 +49,19 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", on
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = Grape.paper,
+        containerColor = Press.paper,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp),
     ) {
         Column(
             Modifier.fillMaxWidth().imePadding().padding(horizontal = 20.dp).padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text("Share a link", style = display(28))
-            Text("Found something worth reading? Bring it to the table.", style = BodyStyle.copy(color = Grape.ink2))
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("FILING FOR ${(app.group?.name ?: "your paper").uppercase()}", style = LabelStyle.copy(color = Press.ink2))
+                Text("Share a link", style = display(32))
+            }
+            DoubleRule()
+            Text("Found something worth reading? Bring it to the table.", style = BodyStyle.copy(color = Press.ink2))
             val notice = when {
                 !app.checked -> null
                 app.session == null -> "Sign in to The Grapevine to share links with your paper."
@@ -65,15 +69,16 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", on
                 else -> null
             }
             if (notice != null) {
-                Text(notice, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Grape.ink)
+                Text(notice, style = BodyStyle.copy(fontWeight = FontWeight.SemiBold))
                 onOpenApp?.let { InkButton("Open The Grapevine", onClick = it) }
                 return@Column
             }
             Text("LINK", style = LabelStyle)
             PaperField(url, { url = it }, "https://…", keyboardType = KeyboardType.Uri)
-            Text("YOUR COMMENT", style = LabelStyle)
-            PaperField(comment, { comment = it }, "Optional", singleLine = false)
-            result?.let { Text(it, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Grape.ink) }
+            Text("YOUR COMMENT (OPTIONAL)", style = LabelStyle)
+            PaperField(comment, { comment = it }, "Why it caught your eye", singleLine = false)
+            app.group?.let { Text("Everyone in ${it.name} sees this with your name.", style = MetaStyle.copy(color = Press.ink3)) }
+            result?.let { Text(it, style = BodyStyle.copy(fontWeight = FontWeight.SemiBold)) }
             InkButton(if (busy) "Posting…" else "Share with your paper", enabled = !busy && url.isNotBlank() && app.group != null) {
                 val group = app.group ?: return@InkButton
                 scope.launch {
@@ -84,10 +89,8 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", on
                             "functions/v1/submit-source",
                             encodeBody(SubmitBody(group.id, url.trim(), comment.trim().ifEmpty { null })),
                         )
-                        val story = submitted.story_id?.let { id ->
-                            runCatching { api.getOne<Story>("rest/v1/stories", listOf("id" to "eq.$id")) }.getOrNull()
-                        }
-                        val title = story?.title ?: "the story"
+                        // A 429 (too many links in ten minutes) arrives as ApiError with the server's message.
+                        val title = submitted.story_title?.takeIf { it.isNotBlank() } ?: "the story"
                         when (submitted.status) {
                             "duplicate" -> "Your contribution was not added because it was a duplicate."
                             "joined" -> "Filed under $title."
@@ -101,7 +104,7 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", on
                 }
             }
             if (result != null) {
-                TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Done", color = Grape.ink) }
+                GhostButton("Done", onClick = onDismiss)
             }
         }
     }

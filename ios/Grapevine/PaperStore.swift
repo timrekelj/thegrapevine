@@ -1,14 +1,16 @@
 import Foundation
 import SwiftUI
 
+@MainActor
 @Observable
 final class PaperStore {
     var stories: [StoryRow] = []
+    /// When the oldest story in this edition was last active, if there are earlier editions to read.
+    var earlierBefore: Date?
     var seenAt: Date?
     var isLoading = false
     var error: String?
 
-    @MainActor
     func load(app: AppState) async {
         guard !isLoading else { return }
         guard let session = app.session, let group = app.group else { return }
@@ -21,16 +23,22 @@ final class PaperStore {
             ])
             seenAt = memberships.first?.last_seen_at
             let rows: [StoryRow] = try await API.getMany(StoryRow.self, path: "rest/v1/stories", query: [
-                URLQueryItem(name: "select", value: "id,title,summary,category,last_activity_at,created_at,sources(*),messages(*)"),
+                URLQueryItem(name: "select", value: "id,title,summary,category,last_activity_at,created_at,sources(\(Source.columns)),messages(*)"),
                 URLQueryItem(name: "group_id", value: "eq.\(group.id)"),
+                URLQueryItem(name: "order", value: "last_activity_at.desc"),
+                URLQueryItem(name: "limit", value: "\(Edition.max + 1)"),
             ])
-            stories = rank(rows)
+            let edition = Edition.cut(rows, activity: \.last_activity_at)
+            stories = rank(edition.kept)
+            earlierBefore = edition.more ? edition.kept.last?.last_activity_at : nil
             // record this edition as seen
             struct SeenBody: Encodable { let last_seen_at: String }
             try? await API.patchVoid(path: "rest/v1/group_members", query: [
                 URLQueryItem(name: "group_id", value: "eq.\(group.id)"),
                 URLQueryItem(name: "user_id", value: "eq.\(session.userId)"),
-            ], body: SeenBody(last_seen_at: ISO8601DateFormatter().string(from: Date())))
+            ], body: SeenBody(last_seen_at: Date.now.ISO8601Format()))
+        } catch where error.isCancellation {
+            // Leaving the page cancels its load; that isn't something to report.
         } catch {
             self.error = error.localizedDescription
         }
@@ -38,7 +46,7 @@ final class PaperStore {
     }
 
     /// Lead slot: most recent activity. The rest: discussion + new sources + recency.
-    func rank(_ rows: [StoryRow], now: Date = Date()) -> [StoryRow] {
+    nonisolated func rank(_ rows: [StoryRow], now: Date = Date()) -> [StoryRow] {
         let cutoff = now.addingTimeInterval(-48 * 3600)
         let score: (StoryRow) -> Double = { story in
             let messages = Double(story.messages.filter { $0.created_at >= cutoff }.count)

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { requireAdmin } from '@/lib/auth'
-import { adminRpc, fillDays, formatDate, formatTokens, formatUsd, isUuid, num, parseWindow, WINDOWS, type AIRequest, type AISummary } from '@/lib/admin'
+import { adminRpc, fillDays, formatDate, formatTokens, formatUsd, num, parseWindow, WINDOWS, type AIRequest, type AISummary } from '@/lib/admin'
+import { isUuid } from '@/lib/validate'
 import SpendChart from '@/components/admin/SpendChart'
 import styles from '@/components/admin/admin.module.css'
 

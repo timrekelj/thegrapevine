@@ -1,0 +1,16 @@
+/* A printed card on the table: invitations and other one-question pages. */
+.page { min-height: 100dvh; display: grid; place-items: center; padding: 32px 20px; }
+.page a:not(:global(.btn)) { color: inherit; }
+.card { position: relative; width: min(540px, 100%); display: grid; justify-items: center; gap: 18px; padding: 40px 36px 36px; text-align: center; background: var(--raised); border: 1px solid var(--ink); outline: 1px solid var(--ink); outline-offset: -7px; box-shadow: 0 30px 60px -32px rgb(0 0 0 / .45); }
+.brand { font-size: 30px; text-decoration: none; }
+.card > :global(.double-rule) { width: 100%; margin-top: -6px; }
+.title { font: 400 clamp(40px, 10vw, 64px)/1 var(--nameplate); margin: 6px 0 0; overflow-wrap: anywhere; text-wrap: balance; }
+.card :global(.summary) { max-width: 400px; }
+.ornament { font: 400 18px/1 var(--serif); color: var(--ink-3); letter-spacing: .6em; margin-right: -.6em; }
+.form { width: 100%; display: grid; gap: 10px; text-align: left; }
+.form label { font: 600 11px/14px var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+.form input { height: 52px; width: 100%; padding: 0 16px; font: 400 18px/1 var(--serif); color: var(--ink); background: var(--paper); border: 1px solid var(--rule); border-radius: var(--radius); }
+.form input:focus { outline: none; border-color: var(--ink); }
+.form :global(.btn) { height: 48px; margin-top: 6px; }
+.error { margin: 0; color: var(--danger); font: 500 14px/1.4 var(--sans); }
+@media (max-width: 480px) { .card { padding: 32px 22px 28px; } }

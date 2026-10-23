@@ -21,6 +21,8 @@ struct Group: Codable, Identifiable {
     let id: UUID
     let name: String
     let invite_code: String
+    /// The paper's founding day, which numbers its editions.
+    var created_at: Date? = nil
 }
 
 struct Membership: Codable {
@@ -35,7 +37,7 @@ struct Member: Codable, Identifiable {
     var id: UUID { user_id }
 }
 
-struct Story: Codable, Identifiable {
+struct Story: Codable, Identifiable, Equatable {
     let id: UUID
     let group_id: UUID
     let title: String
@@ -43,9 +45,12 @@ struct Story: Codable, Identifiable {
     let category: String?
     let last_activity_at: Date
     let created_at: Date
+
+    /// The columns this model reads. Stories also carry a large embedding, so never select `*`.
+    static let columns = "id,group_id,title,summary,category,last_activity_at,created_at"
 }
 
-struct Source: Codable, Identifiable {
+struct Source: Codable, Identifiable, Equatable {
     let id: UUID
     let story_id: UUID
     let url: String
@@ -59,16 +64,25 @@ struct Source: Codable, Identifiable {
     let submitter_comment: String?
     let extraction_status: String
     let created_at: Date
+
+    /// The columns this model reads. Sources also carry a large embedding, so never select `*`.
+    static let columns = "id,story_id,url,domain,publisher,source_title,excerpt,image_url,author,submitted_by,submitter_comment,extraction_status,created_at"
+
+    /// The shared page, only when it is a web link: the URL is member-supplied and is opened by the system.
+    var webURL: URL? { URL(string: url).flatMap { ["http", "https"].contains($0.scheme?.lowercased() ?? "") ? $0 : nil } }
+
+    /// The publisher's name, or the site's domain when the page didn't name one.
+    var displayPublisher: String { publisher.isEmpty ? domain : publisher }
 }
 
-struct Reaction: Codable, Identifiable {
+struct Reaction: Codable, Identifiable, Equatable {
     let id: UUID
     let message_id: UUID
     let user_id: UUID
     let emoji: String
 }
 
-struct Media: Codable, Identifiable {
+struct Media: Codable, Identifiable, Equatable {
     let id: UUID
     let message_id: UUID
     let kind: String
@@ -110,18 +124,18 @@ struct PickedFile: Transferable {
     }
 }
 
-struct Message: Codable, Identifiable {
+struct Message: Codable, Identifiable, Equatable {
     let id: UUID
     let story_id: UUID
     let author_id: UUID
     let body: String?
     let reply_to: UUID?
     let created_at: Date
-    let reactions: [Reaction]?
+    var reactions: [Reaction]?
     let message_media: [Media]?
 }
 
-struct StoryHistoryEntry: Codable, Identifiable {
+struct StoryHistoryEntry: Codable, Identifiable, Equatable {
     let id: UUID
     let story_id: UUID
     let title: String
@@ -140,6 +154,24 @@ struct StoryRow: Codable, Identifiable {
     let created_at: Date
     let sources: [Source]
     let messages: [Message]
+}
+
+/// An archive row: a story with only the counts of its sources and messages.
+struct ArchiveRow: Decodable, Identifiable, Equatable {
+    /// PostgREST's shape for a count embed: `"sources": [{"count": 3}]`.
+    struct Count: Decodable, Equatable { let count: Int }
+
+    let id: UUID
+    let title: String
+    let category: String?
+    let last_activity_at: Date
+    let sources: [Count]
+    let messages: [Count]
+
+    static let select = "id,title,category,last_activity_at,sources(count),messages(count)"
+
+    var sourceCount: Int { sources.first?.count ?? 0 }
+    var messageCount: Int { messages.first?.count ?? 0 }
 }
 
 struct Session: Codable {
@@ -169,15 +201,22 @@ enum SharedLink {
 
 extension JSONDecoder {
     static let supabase: JSONDecoder = {
+        // Made once: building an ISO8601DateFormatter per decoded date dominated decoding a page of stories.
+        // ISO8601DateFormatter is thread-safe, so the share extension and the app can both use these.
+        nonisolated(unsafe) let withFraction = ISO8601DateFormatter()
+        withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        nonisolated(unsafe) let plain = ISO8601DateFormatter()
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
             let string = try container.decode(String.self)
-            let withFraction = ISO8601DateFormatter()
-            withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            if let date = withFraction.date(from: string) { return date }
-            let plain = ISO8601DateFormatter()
-            if let date = plain.date(from: string) { return date }
+            // Postgres writes microseconds, which ISO8601DateFormatter cuts to milliseconds: parse the
+            // whole seconds and add the fraction, so a time read back as a cursor matches the row exactly.
+            if let dot = string.firstIndex(of: "."), let end = string[dot...].dropFirst().firstIndex(where: { !$0.isNumber }),
+               let fraction = Double(string[dot..<end]), let whole = plain.date(from: String(string[..<dot] + string[end...])) {
+                return whole.addingTimeInterval(fraction)
+            }
+            if let date = withFraction.date(from: string) ?? plain.date(from: string) { return date }
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Invalid date: \(string)")
         }
         return decoder

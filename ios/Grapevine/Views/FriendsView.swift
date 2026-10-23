@@ -6,60 +6,53 @@ struct FriendsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("THE PEOPLE BEHIND THE PAPER")
-                            .font(.system(size: 10, weight: .bold)).tracking(1.5)
-                            .foregroundColor(Theme.ink2)
-                        Text("Friends").font(Theme.display(34))
-                        Text("\(app.members.count) at the table · \(app.group?.name ?? "Your paper")")
-                            .font(.system(size: 14)).foregroundColor(Theme.ink2)
-                    }
-                    VStack(spacing: 0) {
-                        ForEach(app.members) { member in
-                            HStack(spacing: 14) {
-                                Monogram(profile: member.profiles, size: 40)
-                                Text(member.profiles.display_name)
-                                    .font(.system(size: 16, weight: .medium))
-                                Spacer()
-                                if member.role == "owner" {
-                                    Text("Owner").font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(Theme.ink2)
-                                        .padding(.horizontal, 10).padding(.vertical, 5)
-                                        .background(Theme.paper, in: Capsule())
-                                }
+                VStack(alignment: .leading, spacing: 0) {
+                    PageHead(kicker: "The people behind the paper", title: "Friends",
+                             dateline: "\(app.members.count) at the table · \(app.group?.name ?? "Your paper")")
+                    ForEach(Array(app.members.enumerated()), id: \.element.id) { index, member in
+                        if index > 0 { Hairline() }
+                        HStack(spacing: 14) {
+                            MemberAvatar(profile: member.profiles, size: 42)
+                            Text(member.profiles.display_name).font(Theme.headline(20))
+                            Spacer()
+                            if member.role == "owner" {
+                                Kicker(text: "Owner", color: Theme.ink2, size: 10)
+                                    .padding(.horizontal, 7).padding(.vertical, 4)
+                                    .overlay(Rectangle().stroke(Theme.ink2, lineWidth: 1))
                             }
-                            .padding(16)
                         }
+                        .padding(.vertical, 12)
                     }
-                    .background(Theme.raised, in: RoundedRectangle(cornerRadius: 18))
-                    .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.rule, lineWidth: 0.5))
                     if let group = app.group {
-                        VStack(alignment: .leading, spacing: 14) {
-                            Text("Make room for a friend").font(Theme.display(23))
+                        VStack(alignment: .center, spacing: 14) {
+                            Kicker(text: "You’re cordially invited to", color: Theme.ink2, size: 10)
+                            Text(group.name).font(Theme.nameplate(38)).multilineTextAlignment(.center)
+                                .lineLimit(2).minimumScaleFactor(0.5)
+                            Text("◆ ◆ ◆").font(Theme.serif(12)).foregroundColor(Theme.ink3)
                             Text("Good papers start with good company. Share an invitation to yours.")
-                                .font(.system(size: 15)).lineSpacing(3).foregroundColor(Theme.ink2)
-                            Text("INVITE CODE")
-                                .font(.system(size: 10, weight: .semibold)).tracking(1)
-                                .foregroundColor(Theme.ink2)
-                            Text(group.invite_code).font(.system(.body, design: .monospaced))
-                                .textSelection(.enabled)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(14).background(Theme.paper, in: RoundedRectangle(cornerRadius: 10))
+                                .font(Theme.serif(17)).foregroundColor(Theme.ink2).multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                            VStack(spacing: 6) {
+                                Kicker(text: "Invite code", color: Theme.ink2, size: 10)
+                                Text(group.invite_code).font(Theme.mono(17, bold: true))
+                                    .textSelection(.enabled)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .clipping()
+                            }
                             ShareLink(item: Config.webURL.appending(path: "invite").appending(queryItems: [URLQueryItem(name: "code", value: group.invite_code)])) {
                                 Label("Share invitation", systemImage: "square.and.arrow.up")
-                                    .font(.system(size: 15, weight: .semibold))
-                                    .frame(maxWidth: .infinity, minHeight: 48)
                             }
-                            .buttonStyle(.plain)
-                            .background(Theme.ink, in: Capsule()).foregroundColor(Theme.paper)
+                            .buttonStyle(InkButtonStyle())
                         }
-                        .padding(20).background(Theme.raised, in: RoundedRectangle(cornerRadius: 18))
-                        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.rule, lineWidth: 0.5))
+                        .padding(.horizontal, 22).padding(.vertical, 26)
+                        .background(Theme.raised)
+                        .overlay(Rectangle().stroke(Theme.ink, lineWidth: 1))
+                        .overlay(Rectangle().stroke(Theme.ink, lineWidth: 1).padding(5))
+                        .padding(.top, 32)
                     }
-
                 }
-                .padding(24)
+                .padding(.horizontal, 20).padding(.bottom, 24)
             }
             .background(Theme.paper)
             .toolbarVisibility(.hidden, for: .navigationBar)

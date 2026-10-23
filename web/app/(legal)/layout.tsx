@@ -5,8 +5,10 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
   return (
     <main className={styles.page}>
       <header>
-        <Link href="/" className="masthead">The Grapevine</Link>
+        <Link href="/" className="nameplate">The Grapevine</Link>
+        <div className="double-rule" />
         <nav aria-label="Legal pages">
+          <span>Public notices</span>
           <Link href="/terms">Terms of Service</Link>
           <Link href="/privacy">Privacy Policy</Link>
         </nav>

@@ -1,45 +1,36 @@
 package si.timrekelj.thegrapevine
 
-import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 /**
- * The halftone plate: every source image is printed in one ink rather than shown
- * in colour. Mirrors `Plate.swift` — grayscale, then map black to grape ink and
- * white to paper.
+ * The halftone plate: every photograph is printed in colour through a dot screen, as on the web
+ * (`.plate` in globals.css). The photo shows only through the dots; each dot covers as much of its
+ * cell as that part of the picture needs ink.
  *
- * The mapping is kept as plain arithmetic (not an `android.graphics.ColorMatrix`)
- * so it can be unit-tested without an Android runtime.
+ * On paper (light) the dark parts of a picture get the big dots; on the evening edition's black
+ * paper the light parts do. The arithmetic is kept free of Android types so it can be unit-tested.
  */
 object Plate {
 
-    /** Rec.601 luminance — the weights `ColorMatrix.setSaturation(0)` uses. */
-    private const val LR = 0.213f
-    private const val LG = 0.715f
-    private const val LB = 0.072f
+    /** Dot pitch on screen, in dp — the same fine screen as the web's 2.4–2.8px. */
+    const val PITCH_DP = 2.6f
 
-    private const val INK_R = 74f
-    private const val INK_G = 33f
-    private const val INK_B = 96f
-    private const val PAPER_R = 247f
-    private const val PAPER_G = 244f
-    private const val PAPER_B = 238f
+    /** A solid's dot radius, as a fraction of the pitch: neighbours touch at 0.5, so solids just merge. */
+    const val MAX_RADIUS = 0.56f
 
-    /** 4x5 row-major, in Android's `ColorMatrixColorFilter` scale (translation 0..255). */
-    val channels: FloatArray
-        get() = floatArrayOf(
-            (PAPER_R - INK_R) / 255f * LR, (PAPER_R - INK_R) / 255f * LG, (PAPER_R - INK_R) / 255f * LB, 0f, INK_R,
-            (PAPER_G - INK_G) / 255f * LR, (PAPER_G - INK_G) / 255f * LG, (PAPER_G - INK_G) / 255f * LB, 0f, INK_G,
-            (PAPER_B - INK_B) / 255f * LR, (PAPER_B - INK_B) / 255f * LG, (PAPER_B - INK_B) / 255f * LB, 0f, INK_B,
-            0f, 0f, 0f, 1f, 0f,
-        )
+    /** Colour lost to the white between the dots is put back before printing. */
+    const val SATURATION = 1.3f
 
-    /** What one pixel becomes: black prints as ink, white prints as paper. */
-    fun toInk(red: Int, green: Int, blue: Int): IntArray {
-        val luminance = LR * red + LG * green + LB * blue
-        return intArrayOf(
-            (INK_R + (PAPER_R - INK_R) * luminance / 255f).roundToInt().coerceIn(0, 255),
-            (INK_G + (PAPER_G - INK_G) * luminance / 255f).roundToInt().coerceIn(0, 255),
-            (INK_B + (PAPER_B - INK_B) * luminance / 255f).roundToInt().coerceIn(0, 255),
-        )
+    /** Rec.709 luminance of an sRGB pixel, 0 (black) to 1 (white). */
+    fun luminance(red: Int, green: Int, blue: Int): Float =
+        (0.2126f * red + 0.7152f * green + 0.0722f * blue) / 255f
+
+    /** Dot radius as a fraction of the pitch, for a cell of the given luminance. Dot area grows with the ink needed. */
+    fun radius(luminance: Float, dark: Boolean): Float {
+        val coverage = (if (dark) luminance else 1f - luminance).coerceIn(0f, 1f)
+        return MAX_RADIUS * sqrt(coverage)
     }
+
+    /** How many columns of dots a plate this wide gets. */
+    fun columns(widthDp: Float): Int = (widthDp / PITCH_DP).toInt().coerceAtLeast(8)
 }

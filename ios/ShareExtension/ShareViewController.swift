@@ -35,7 +35,6 @@ struct ShareExtensionView: View {
             }
         }
         .background(Theme.paper.ignoresSafeArea())
-        .preferredColorScheme(.light)
         .task {
             async let link = sharedLink()
             await loadGroup()
@@ -47,7 +46,8 @@ struct ShareExtensionView: View {
     private func sharedLink() async -> String? {
         let providers = items.flatMap { $0.attachments ?? [] }
         for provider in providers where provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
-            if let url = try? await provider.loadItem(forTypeIdentifier: UTType.url.identifier) as? URL, !url.isFileURL {
+            if let url = try? await provider.loadItem(forTypeIdentifier: UTType.url.identifier) as? URL,
+               ["http", "https"].contains(url.scheme?.lowercased() ?? "") {
                 return url.absoluteString
             }
         }

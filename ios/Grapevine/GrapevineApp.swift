@@ -6,6 +6,8 @@ struct GrapevineApp: App {
     @State private var paper = PaperStore()
 
     init() {
+        // Avatars and photographs are served with long cache lifetimes; keep them across launches.
+        URLCache.shared = URLCache(memoryCapacity: 8 * 1024 * 1024, diskCapacity: 100 * 1024 * 1024)
         Telemetry.initialize()
         OneSignalManager.shared.initialize()
     }
@@ -47,7 +49,6 @@ struct ContentView: View {
         .background(Theme.paper.ignoresSafeArea())
         .foregroundColor(Theme.ink)
         .tint(Theme.ink)
-        .preferredColorScheme(.light)
         .task(id: app.checked && app.session != nil) {
             if app.checked && app.session != nil {
                 OneSignalManager.shared.requestPushPermission()

@@ -25,6 +25,8 @@ data class Group(
     val id: String,
     val name: String,
     val invite_code: String,
+    /** When the paper was founded: every day since is an edition. */
+    @Serializable(with = InstantSerializer::class) val created_at: Instant? = null,
 )
 
 @Serializable
@@ -39,6 +41,17 @@ data class Member(
     val role: String,
     val profiles: Profile,
 )
+
+/**
+ * Explicit column lists for the tables whose rows carry a large `embedding` vector: never `select=*`.
+ * Each list covers the model's required fields plus the optional ones the app shows (no `excerpt`).
+ */
+object Columns {
+    const val STORY = "id,group_id,title,summary,category,last_activity_at,created_at"
+    const val SOURCE = "id,story_id,url,domain,publisher,source_title,image_url,author,submitted_by," +
+        "submitter_comment,extraction_status,created_at"
+    const val STORY_HISTORY = "id,story_id,title,summary,category,created_at"
+}
 
 @Serializable
 data class Story(
@@ -120,6 +133,24 @@ data class StoryRow(
     val sources: List<Source> = emptyList(),
     val messages: List<Message> = emptyList(),
 )
+
+/** PostgREST's answer to a `table(count)` embed: `[{"count": 3}]`. */
+@Serializable
+data class EmbedCount(val count: Int)
+
+/** An archive row: a story from an earlier edition, with only its counts. */
+@Serializable
+data class ArchivedStory(
+    val id: String,
+    val title: String,
+    val category: String? = null,
+    @Serializable(with = InstantSerializer::class) val last_activity_at: Instant,
+    val sources: List<EmbedCount> = emptyList(),
+    val messages: List<EmbedCount> = emptyList(),
+) {
+    val sourceCount: Int get() = sources.firstOrNull()?.count ?: 0
+    val messageCount: Int get() = messages.firstOrNull()?.count ?: 0
+}
 
 @Serializable
 data class Session(

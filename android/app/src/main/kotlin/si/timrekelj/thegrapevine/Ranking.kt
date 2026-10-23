@@ -25,8 +25,44 @@ object Ranking {
     }
 }
 
+/**
+ * The front page is this week's edition: stories active in the last [DAYS], never fewer than [MIN]
+ * (a quiet paper still has a front page) nor more than [MAX]. Older stories move to the archive,
+ * [ARCHIVE_PAGE] at a time. Mirrors `cutEdition` in the web's `lib/queries.ts`.
+ */
+object Edition {
+    const val DAYS = 7L
+    const val MIN = 10
+    const val MAX = 40
+    const val ARCHIVE_PAGE = 20
+
+    class Cut<T>(
+        val stories: List<T>,
+        /** The archive cursor: the last kept story's activity, when anything older exists. */
+        val earlier: Instant?,
+    )
+
+    /** Cuts an edition from stories newest-activity first (fetched with `MAX + 1` rows). */
+    fun <T> cut(newestFirst: List<T>, now: Instant = Instant.now(), activity: (T) -> Instant): Cut<T> {
+        val cutoff = now.minus(DAYS, ChronoUnit.DAYS)
+        val stories = mutableListOf<T>()
+        for (story in newestFirst) {
+            if (stories.size >= MAX || (stories.size >= MIN && activity(story).isBefore(cutoff))) break
+            stories += story
+        }
+        val earlier = if (newestFirst.size > stories.size) stories.lastOrNull()?.let(activity) else null
+        return Cut(stories, earlier)
+    }
+
+    fun cut(newestFirst: List<StoryRow>, now: Instant = Instant.now()): Cut<StoryRow> =
+        cut(newestFirst, now) { it.last_activity_at }
+}
+
 /** Deep links: https://thegrapevine.si invitations and stories. */
 object DeepLink {
+    /** The only site whose links the app opens (the App Links intent filter's host). */
+    private const val HOST = "thegrapevine.si"
+
     sealed interface Route {
         data class Invite(val code: String) : Route
         data class Story(val id: String) : Route
@@ -37,7 +73,8 @@ object DeepLink {
     /** Where an incoming link should go, or null for links the app doesn't handle. */
     fun route(uri: String): Route? {
         val parsed = runCatching { URI(uri) }.getOrNull() ?: return null
-        if (parsed.scheme != "https" && parsed.scheme != "http") return null
+        // MainActivity is exported, so any app can hand it a VIEW intent: only take our own links.
+        if (parsed.scheme != "https" || !parsed.host.equals(HOST, ignoreCase = true)) return null
         val path = parsed.path.orEmpty().trimEnd('/')
         return when {
             path == "/invite" -> queryParams(parsed.rawQuery.orEmpty())["code"]?.let { Route.Invite(it.trim().lowercase()) }

@@ -3,6 +3,12 @@ package si.timrekelj.thegrapevine.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -26,7 +32,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.foundation.lazy.LazyListState
 import si.timrekelj.thegrapevine.AppState
+import si.timrekelj.thegrapevine.ArchiveState
+import si.timrekelj.thegrapevine.InstantSerializer
 import si.timrekelj.thegrapevine.OneSignalManager
 import si.timrekelj.thegrapevine.PaperState
 import si.timrekelj.thegrapevine.R
@@ -34,9 +43,9 @@ import si.timrekelj.thegrapevine.R
 /** Mirrors `ContentView` in GrapevineApp.swift. */
 @Composable
 fun RootScreen(app: AppState) {
-    Box(Modifier.fillMaxSize().background(Grape.paper)) {
+    Box(Modifier.fillMaxSize().background(Press.paper)) {
         when {
-            !app.checked -> CircularProgressIndicator(color = Grape.ink, modifier = Modifier.align(Alignment.Center))
+            !app.checked -> CircularProgressIndicator(color = Press.ink, strokeWidth = 2.dp, modifier = Modifier.align(Alignment.Center))
             app.session == null -> LoginScreen(app)
             app.group == null -> OnboardingScreen(app)
             else -> MainTabs(app)
@@ -61,54 +70,86 @@ private fun MainTabs(app: AppState) {
         }
     }
 
+    // Earlier editions open over the tabs from the front page; a story opens over either.
+    var openArchive by rememberSaveable { mutableStateOf<String?>(null) }
+    val archiveFrom = openArchive
+    val group = app.group?.id
+    // The archive keeps its place while a story from it is open.
+    val archiveList = rememberSaveable(archiveFrom, saver = LazyListState.Saver) { LazyListState() }
+
     val storyId = openStory
     if (storyId != null) {
-        BackHandler { openStory = null }
-        StoryScreen(storyId = storyId, app = app, onBack = {
+        val close = {
             openStory = null
-            paper.load(app)
-        })
+            if (archiveFrom == null) paper.load(app)
+        }
+        BackHandler(onBack = close)
+        StoryScreen(
+            storyId = storyId,
+            app = app,
+            onBack = close,
+            backLabel = if (archiveFrom != null) "← Archive" else "← Front page",
+        )
+        return
+    }
+    if (archiveFrom != null && group != null) {
+        val archive: ArchiveState = viewModel(key = "archive-$group-$archiveFrom") {
+            ArchiveState(api, group, InstantSerializer.parse(archiveFrom))
+        }
+        BackHandler { openArchive = null }
+        ArchiveScreen(archive, archiveList, onBack = { openArchive = null }, onOpen = { openStory = it })
         return
     }
 
     Scaffold(
-        containerColor = Grape.paper,
+        containerColor = Press.paper,
+        // The tabs draw under the status bar's own paper strip; the bar pads itself.
+        contentWindowInsets = WindowInsets(0),
         bottomBar = {
-            NavigationBar(containerColor = Grape.raised) {
-                val colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Grape.ink,
-                    selectedTextColor = Grape.ink,
-                    unselectedIconColor = Grape.ink2,
-                    unselectedTextColor = Grape.ink2,
-                    indicatorColor = Grape.ink.copy(alpha = 0.10f),
-                )
-                NavigationBarItem(
-                    selected = tab == 0,
-                    onClick = { tab = 0 },
-                    icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = null) },
-                    label = { Text("Paper") },
-                    colors = colors,
-                )
-                NavigationBarItem(
-                    selected = tab == 1,
-                    onClick = { tab = 1 },
-                    icon = { Icon(painterResource(R.drawable.ic_friends), contentDescription = null) },
-                    label = { Text("Friends") },
-                    colors = colors,
-                )
-                NavigationBarItem(
-                    selected = tab == 2,
-                    onClick = { tab = 2 },
-                    icon = { Icon(Icons.Filled.AccountCircle, contentDescription = null) },
-                    label = { Text("Profile") },
-                    colors = colors,
-                )
+            Column {
+                Hairline(color = Press.ink)
+                NavigationBar(containerColor = Press.paper, tonalElevation = 0.dp) {
+                    val colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Press.ink,
+                        selectedTextColor = Press.ink,
+                        unselectedIconColor = Press.ink3,
+                        unselectedTextColor = Press.ink3,
+                        indicatorColor = Press.tint,
+                    )
+                    val label = @Composable { text: String -> Text(text.uppercase(), style = LabelStyle.copy(fontSize = 10.sp, color = androidx.compose.ui.graphics.Color.Unspecified)) }
+                    NavigationBarItem(
+                        selected = tab == 0,
+                        onClick = { tab = 0 },
+                        icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = null) },
+                        label = { label("Paper") },
+                        colors = colors,
+                    )
+                    NavigationBarItem(
+                        selected = tab == 1,
+                        onClick = { tab = 1 },
+                        icon = { Icon(painterResource(R.drawable.ic_friends), contentDescription = null) },
+                        label = { label("Friends") },
+                        colors = colors,
+                    )
+                    NavigationBarItem(
+                        selected = tab == 2,
+                        onClick = { tab = 2 },
+                        icon = { Icon(Icons.Filled.AccountCircle, contentDescription = null) },
+                        label = { label("Profile") },
+                        colors = colors,
+                    )
+                }
             }
         },
     ) { padding ->
-        Box(Modifier.padding(padding)) {
+        Box(Modifier.padding(padding).statusBarsPadding().clipToBounds()) {
             when (tab) {
-                0 -> FrontPageScreen(app, paper, onOpen = { openStory = it })
+                0 -> FrontPageScreen(
+                    app,
+                    paper,
+                    onOpen = { openStory = it },
+                    onEarlier = { openArchive = InstantSerializer.format(it) },
+                )
                 1 -> FriendsScreen(app)
                 else -> ProfileScreen(app, onSignOut = { paper.clear() })
             }

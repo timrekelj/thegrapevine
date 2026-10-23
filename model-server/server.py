@@ -2,24 +2,29 @@
 
 from contextlib import asynccontextmanager
 from threading import Lock
-from typing import Literal
+from typing import Annotated, Literal
 
 import torch
 import uvicorn
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 from strands_decider.infer import EngineConfig, SystemOneEngine
 from strands_decider.modeling import StrandsDeciderModel
 from strands_decider.schema import SystemOneRequest, SystemOneResponse
 
 CHECKPOINT = "StrandsAgents/strands-decider-2B-hobson-v19"
 
+# Bounds every string a caller controls, not just the state, so one request cannot carry
+# megabytes of question names, options or instructions into tokenization.
+Name = Annotated[str, StringConstraints(min_length=1, max_length=64)]
+Option = Annotated[str, StringConstraints(max_length=200)]
+
 
 class Question(BaseModel):
     model_config = ConfigDict(extra="forbid")
     type: Literal["yesno", "choice", "score"]
-    options: list[str] | None = None
-    instructions: str | None = None
+    options: list[Option] | None = None
+    instructions: str | None = Field(default=None, max_length=2000)
 
     @model_validator(mode="after")
     def validate_options(self):
@@ -40,7 +45,7 @@ class Question(BaseModel):
 class DecideRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     state: str = Field(max_length=100_000)
-    questions: dict[str, Question] = Field(min_length=1, max_length=32)
+    questions: dict[Name, Question] = Field(min_length=1, max_length=32)
 
 
 class Decision(BaseModel):

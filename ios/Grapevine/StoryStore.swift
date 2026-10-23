@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 
+@MainActor
 @Observable
 final class StoryStore {
     var story: Story?
@@ -12,35 +13,47 @@ final class StoryStore {
     var error: String?
     var notice: String?
     var pendingMessageId: UUID?
+    /// When the reader last read this story before this visit; nil on a first visit or if it couldn't be fetched.
+    var lastRead: Date?
+    private var visitStarted = false
     private var uploaded: [String] = []
     private var trackedStoryId: UUID?
+    private var pendingReactions: Set<String> = []
 
-    @MainActor
     func load(storyId: UUID) async {
         guard !isLoading else { return }
         isLoading = true
-        error = nil
+        if error != nil { error = nil }
         do {
-            story = try await API.getOne(Story.self, path: "rest/v1/stories",
-                query: [URLQueryItem(name: "id", value: "eq.\(storyId)")])
-            guard story != nil else { throw APIError.network("This story is no longer available.") }
+            // Every list is replaced only when it changed: the story reloads every ten seconds while
+            // open, and an unchanged assignment would still redraw the whole conversation.
+            let story = try await API.getOne(Story.self, path: "rest/v1/stories", query: [
+                URLQueryItem(name: "select", value: Story.columns),
+                URLQueryItem(name: "id", value: "eq.\(storyId)"),
+            ])
+            guard let story else { throw APIError.network("This story is no longer available.") }
+            if self.story != story { self.story = story }
             if trackedStoryId != storyId {
                 Telemetry.capture("story_opened")
                 trackedStoryId = storyId
             }
-            sources = try await API.getMany(Source.self, path: "rest/v1/sources", query: [
+            let sources = try await API.getMany(Source.self, path: "rest/v1/sources", query: [
+                URLQueryItem(name: "select", value: Source.columns),
                 URLQueryItem(name: "story_id", value: "eq.\(storyId)"),
                 URLQueryItem(name: "order", value: "created_at.desc"),
             ])
-            messages = try await API.getMany(Message.self, path: "rest/v1/messages", query: [
+            if self.sources != sources { self.sources = sources }
+            let messages = try await API.getMany(Message.self, path: "rest/v1/messages", query: [
                 URLQueryItem(name: "select", value: "*,reactions(*),message_media(*)"),
                 URLQueryItem(name: "story_id", value: "eq.\(storyId)"),
                 URLQueryItem(name: "order", value: "created_at.asc"),
             ])
-            history = try await API.getMany(StoryHistoryEntry.self, path: "rest/v1/story_history", query: [
+            if self.messages != messages { self.messages = messages }
+            let history = try await API.getMany(StoryHistoryEntry.self, path: "rest/v1/story_history", query: [
                 URLQueryItem(name: "story_id", value: "eq.\(storyId)"),
                 URLQueryItem(name: "order", value: "created_at.desc"),
             ])
+            if self.history != history { self.history = history }
             let authorIds = Set(messages.map(\.author_id) + sources.compactMap(\.submitted_by))
             if !authorIds.isEmpty {
                 let idList = authorIds.map { $0.uuidString }.joined(separator: ",")
@@ -48,15 +61,32 @@ final class StoryStore {
                     URLQueryItem(name: "select", value: "id,display_name,monogram"),
                     URLQueryItem(name: "id", value: "in.(\(idList))"),
                 ])
-                profiles = Dictionary(uniqueKeysWithValues: found.map { ($0.id, $0) })
+                let profiles = Dictionary(found.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
+                if self.profiles != profiles { self.profiles = profiles }
             }
+        } catch where error.isCancellation {
+            // Leaving the story cancels its load; that isn't something to report.
         } catch {
             self.error = error.localizedDescription
         }
         isLoading = false
     }
 
-    @MainActor
+    struct ReadBody: Encodable { let story: UUID }
+
+    /// Records that the reader is reading the story now. The first call of a visit keeps the previous
+    /// read time for the "new since" divider; later calls (while reading, on leaving) only move it on.
+    func markRead(storyId: UUID) async {
+        let first = !visitStarted
+        visitStarted = true
+        do {
+            let previous = try await API.rpc(Date?.self, name: "mark_story_read", body: ReadBody(story: storyId))
+            if first { lastRead = previous }
+        } catch {
+            // No divider rather than an error: reading still works.
+        }
+    }
+
     func postMessage(body: String, replyTo: UUID?, attachments: [Attachment] = []) async -> Bool {
         guard let story, let session = API.session else { return false }
         let trimmed = body.trimmed
@@ -65,8 +95,8 @@ final class StoryStore {
         struct NewMedia: Encodable { let message_id: UUID; let kind: String; let url: String; let position: Int; let alt_text: String }
         do {
             try Attachment.validate(attachments)
-            if pendingMessageId == nil { pendingMessageId = UUID() }
-            let id = pendingMessageId!
+            let id = pendingMessageId ?? UUID()
+            pendingMessageId = id
             // shortcut: abandoned uploads need server-side cleanup before a wider rollout.
             for index in uploaded.count..<attachments.count {
                 let attachment = attachments[index]
@@ -94,21 +124,39 @@ final class StoryStore {
         }
     }
 
-    @MainActor
     func toggleReaction(message: Message, emoji: String) async {
-        guard let session = API.session else { return }
-        let mine = message.reactions?.first { $0.user_id == session.userId && $0.emoji == emoji }
+        guard let session = API.session,
+              let index = messages.firstIndex(where: { $0.id == message.id }) else { return }
+        let key = "\(message.id):\(emoji)"
+        // A second tap while the first is still saving would repeat the same insert or delete.
+        guard !pendingReactions.contains(key) else { return }
+        pendingReactions.insert(key)
+        defer { pendingReactions.remove(key) }
+        let previous = messages[index].reactions
+        let mine = previous?.contains { $0.user_id == session.userId && $0.emoji == emoji } ?? false
+        if mine {
+            messages[index].reactions?.removeAll { $0.user_id == session.userId && $0.emoji == emoji }
+        } else {
+            messages[index].reactions = (previous ?? []) + [Reaction(id: UUID(), message_id: message.id, user_id: session.userId, emoji: emoji)]
+        }
         do {
-            if let mine {
-                try await API.delete(path: "rest/v1/reactions",
-                    query: [URLQueryItem(name: "id", value: "eq.\(mine.id)")])
+            if mine {
+                // By key rather than id: an optimistic reaction has no server id yet.
+                try await API.delete(path: "rest/v1/reactions", query: [
+                    URLQueryItem(name: "message_id", value: "eq.\(message.id)"),
+                    URLQueryItem(name: "user_id", value: "eq.\(session.userId)"),
+                    URLQueryItem(name: "emoji", value: "eq.\(emoji)"),
+                ])
             } else {
                 struct NewReaction: Encodable { let message_id: UUID; let user_id: UUID; let emoji: String }
-                try await API.postVoid(path: "rest/v1/reactions",
-                    body: NewReaction(message_id: message.id, user_id: session.userId, emoji: emoji))
+                do {
+                    try await API.postVoid(path: "rest/v1/reactions",
+                        body: NewReaction(message_id: message.id, user_id: session.userId, emoji: emoji))
+                } catch APIError.http(409, _) { /* Already saved, e.g. from another device. */ }
             }
             if let story { await load(storyId: story.id) }
         } catch {
+            if let index = messages.firstIndex(where: { $0.id == message.id }) { messages[index].reactions = previous }
             self.error = error.localizedDescription
         }
     }
@@ -116,7 +164,6 @@ final class StoryStore {
     struct ReportBody: Encodable { let story_id: UUID; let target: String; let note: String? }
     struct ReportResponse: Codable { let id: UUID; let title: String; let summary: String }
 
-    @MainActor
     func report(target: String, note: String) async -> Bool {
         guard let story else { return false }
         do {

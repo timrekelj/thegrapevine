@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 
+@MainActor
 @Observable
 final class AppState {
     var session: Session? {
@@ -32,7 +33,6 @@ final class AppState {
         }
     }
 
-    @MainActor
     func restoreSession() async {
         guard let data = Keychain.load(),
               let stored = try? JSONDecoder.supabase.decode(Session.self, from: data) else {
@@ -63,32 +63,27 @@ final class AppState {
         checked = true
     }
 
-    @MainActor
     func signIn(email: String) async throws {
         error = nil
         try await API.signInWithOtp(email: email)
     }
 
     /// Signs in with the code from the email.
-    @MainActor
     func verifyCode(email: String, code: String) async throws {
         error = nil
         try await finishSignIn(try await API.verifyOtp(email: email, code: code))
     }
 
-    @MainActor
     func signIn(callback: URL, verifier: String) async throws {
         error = nil
         try await finishSignIn(try await API.exchangeCode(OAuth.code(from: callback), verifier: verifier))
     }
 
-    @MainActor
     func signInWithApple(idToken: String, nonce: String) async throws {
         error = nil
         try await finishSignIn(try await API.signInWithApple(idToken: idToken, nonce: nonce))
     }
 
-    @MainActor
     private func finishSignIn(_ session: Session) async throws {
         try save(session)
         self.session = session
@@ -97,7 +92,6 @@ final class AppState {
         await loadProfileAndGroup()
     }
 
-    @MainActor
     func signOut() {
         Keychain.delete()
         session = nil; profile = nil; group = nil; members = []
@@ -105,7 +99,6 @@ final class AppState {
         checked = true
     }
 
-    @MainActor
     func loadProfileAndGroup() async {
         guard let session else { return }
         do {
@@ -133,7 +126,6 @@ final class AppState {
         }
     }
 
-    @MainActor
     func saveDisplayName(_ name: String) async throws {
         guard let session else { return }
         let name = name.trimmed
@@ -147,7 +139,6 @@ final class AppState {
         }
     }
 
-    @MainActor
     func loadNotificationPreferences() async throws -> NotificationPreferences {
         guard let session, let group else { throw APIError.unauthorized }
         return try await API.getOne(NotificationPreferences.self, path: "rest/v1/notification_preferences", query: [
@@ -156,7 +147,6 @@ final class AppState {
         ]) ?? NotificationPreferences(user_id: session.userId, group_id: group.id)
     }
 
-    @MainActor
     func saveNotificationPreferences(_ preferences: NotificationPreferences) async throws -> NotificationPreferences {
         guard preferences.user_id == session?.userId, preferences.group_id == group?.id else { throw APIError.unauthorized }
         return try await API.upsertRow(NotificationPreferences.self, path: "rest/v1/notification_preferences", body: preferences)
@@ -165,7 +155,6 @@ final class AppState {
     struct NewGroupBody: Encodable { let name: String; let created_by: UUID }
     struct NewMemberBody: Encodable { let group_id: UUID; let user_id: UUID; let role = "owner" }
 
-    @MainActor
     func createGroup(name: String) async throws {
         guard let session else { return }
         let created: Group = try await API.postRow(Group.self, path: "rest/v1/groups",
@@ -179,7 +168,6 @@ final class AppState {
 
     struct JoinBody: Encodable { let code: String }
 
-    @MainActor
     func joinGroup(code: String) async throws {
         let code = URLComponents(string: code.trimmed)?.queryItems?.first(where: { $0.name == "code" })?.value ?? code.trimmed
         let joined: UUID = try await API.rpc(UUID.self, name: "join_group_with_invite",
@@ -200,8 +188,11 @@ enum AppLink: Equatable {
     case invite(String)
     case story(UUID)
 
+    /// Hosts whose links the app opens: the site (claimed through associated domains) and, in development, the local web app.
+    static let hosts: Set<String> = ["thegrapevine.si", "www.thegrapevine.si", Config.webURL.host() ?? "thegrapevine.si"]
+
     init?(_ url: URL) {
-        guard ["https", "http"].contains(url.scheme ?? "") else { return nil }
+        guard ["https", "http"].contains(url.scheme ?? ""), let host = url.host()?.lowercased(), Self.hosts.contains(host) else { return nil }
         let parts = url.pathComponents.filter { $0 != "/" }
         if parts == ["invite"],
            let code = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems?.first(where: { $0.name == "code" })?.value?.trimmed,
