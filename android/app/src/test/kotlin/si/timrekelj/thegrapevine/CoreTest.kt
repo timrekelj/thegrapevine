@@ -195,8 +195,18 @@ class CoreTest {
     }
 
     @Test
-    fun accountDeletionCallsTheEdgeFunction() {
+    fun deleteAccountAcceptsOnlyDeletedTrueAndSurfacesTheErrorField() {
         assertEquals("functions/v1/delete-account", Api.DELETE_ACCOUNT_FUNCTION)
+        assertTrue(accountWasDeleted("""{"deleted":true}"""))
+        assertFalse(accountWasDeleted("""{"deleted":false}"""))
+        assertFalse(accountWasDeleted("{}"))
+        assertFalse(accountWasDeleted(""))
+        // 401 is not rewritten for this call, so the function's error text is what the dialog shows.
+        assertEquals("Invalid session", ApiError.Http(401, """{"error":"Invalid session"}""").message)
+        assertEquals(
+            "Your account could not be deleted. Nothing was removed. Please try again.",
+            ApiError.Http(500, """{"error":"Your account could not be deleted. Nothing was removed. Please try again."}""").message,
+        )
     }
 
     @Test
