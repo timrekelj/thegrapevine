@@ -32,6 +32,16 @@ The experimental stack keeps separate data per Git branch. Use `supabase status`
 
 `supabase db reset` also loads `supabase/seed.sql`: the fictional paper "The Grapevine" from the design mockups — five members (tim@, luka@, nika@, jure@, maja@example.com), five stories with sources, messages and reactions. Sign in as any of them with a code from `supabase/scripts/sign-in-code.sh`. The group's invite code is `grapevinedemo`. Demo images live in `web/public/seed/`; run the web dev server to serve them.
 
+## Reports (bugs and ideas)
+
+Members can report a bug, suggest an improvement or ask for a feature from the web (`/report`, linked from the front page, the account page and error messages) and from Profile → About & support in both apps. On a phone, shaking the device opens the form with a screenshot of the current screen attached, and error messages offer "Report" with the error filled in.
+
+`submit-feedback` saves each report in the private `feedback` table, has Mistral draft a title and a structured summary (the member's own words are always kept, quoted), and files a GitHub issue labelled `report` plus `bug`, `enhancement` or `feature`. The repository is public, so the form says reports are public; screenshots are stored in the public `feedback` bucket under random names so GitHub can show them, and the issue never names the reporter. If GitHub is unreachable the report stays in `feedback` with no `issue_number`.
+
+Set the secrets before deploying the function (a fine-grained token with Issues: read and write on this repository only):
+
+    supabase secrets set GITHUB_TOKEN=github_pat_... GITHUB_REPO=timrekelj/thegrapevine
+
 ## Admin dashboard
 
 `/admin` on the web shows every user, every group with its members and stories, correction reports with each story's generated versions, and AI usage: tokens and cost per day, per model, per group, and per request, with each request expandable into its individual model calls.

@@ -8,6 +8,8 @@ struct ShareView: View {
     var notice: String?
     /// Replaces dismissing the sheet; the share extension completes its request.
     var close: (() -> Void)?
+    /// Opens a bug report for a failed post; nil in the share extension, which has no report form.
+    var onReport: ((String) -> Void)?
     @Environment(\.dismiss) private var dismiss
     @State private var url: String
     @State private var comment = ""
@@ -15,12 +17,14 @@ struct ShareView: View {
     @State private var result: String?
     /// Set when the link is on the paper, for the success tap.
     @State private var filed = false
+    @State private var failed = false
     @FocusState private var editing: Bool
 
-    init(group: Group?, url: String = "", notice: String? = nil, close: (() -> Void)? = nil) {
+    init(group: Group?, url: String = "", notice: String? = nil, close: (() -> Void)? = nil, onReport: ((String) -> Void)? = nil) {
         self.group = group
         self.notice = notice
         self.close = close
+        self.onReport = onReport
         _url = State(initialValue: url)
     }
 
@@ -85,6 +89,13 @@ struct ShareView: View {
             .font(Theme.mono(11)).foregroundColor(Theme.ink3)
         if let result {
             Text(result).font(Theme.serif(17)).padding(.vertical, 4).arrives()
+            if failed, let onReport {
+                Button("Report this problem") { onReport(result) }
+                    .font(.system(size: 13, weight: .medium)).underline().foregroundColor(Theme.ink2)
+                    .frame(minHeight: 44)
+                    .buttonStyle(PressStyle())
+                    .arrives()
+            }
         }
         Button { Task { await post() } } label: {
             Text("Share with your paper")
@@ -112,6 +123,7 @@ struct ShareView: View {
         editing = false
         result = nil
         filed = false
+        failed = false
         do {
             let submitted: SubmitResult = try await API.postObject(SubmitResult.self, path: "functions/v1/submit-source",
                 body: SubmitBody(group_id: group.id, url: url.trimmed,
@@ -130,6 +142,7 @@ struct ShareView: View {
             }
         } catch {
             result = error.localizedDescription
+            failed = true
         }
         busy = false
     }

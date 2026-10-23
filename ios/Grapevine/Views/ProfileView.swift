@@ -58,7 +58,7 @@ struct ProfileView: View {
                         if nameSaved {
                             Label("Name saved", systemImage: "checkmark").font(Theme.mono(12)).foregroundColor(Theme.ink2).arrives()
                         }
-                        if let nameError { Text(nameError).font(.caption).foregroundColor(Theme.danger).arrives() }
+                        if let nameError { ErrorNote(message: nameError, screen: "Profile").arrives() }
                     }
                     .animation(.snappy(duration: 0.3), value: nameSaved)
                     .animation(.snappy(duration: 0.3), value: nameError)
@@ -89,7 +89,7 @@ struct ProfileView: View {
                         .disabled(!canChangeEmail)
                         .busyAccessibility(savingEmail, "Sending…")
                         if let emailMessage { Text(emailMessage).font(Theme.serif(17)).foregroundColor(Theme.ink2).arrives() }
-                        if let emailError { Text(emailError).font(.caption).foregroundColor(Theme.danger).arrives() }
+                        if let emailError { ErrorNote(message: emailError, screen: "Profile").arrives() }
                     }
                     .animation(.snappy(duration: 0.3), value: emailMessage)
                     .animation(.snappy(duration: 0.3), value: emailError)
@@ -123,7 +123,7 @@ struct ProfileView: View {
                             .arrives()
                         }
                         if let preferenceError {
-                            Text(preferenceError).font(.caption).foregroundColor(Theme.danger).arrives()
+                            ErrorNote(message: preferenceError, screen: "Profile").arrives()
                             if preferences == nil {
                                 Button("Try again") { Task { await loadPreferences() } }.frame(minHeight: 44)
                             }
@@ -147,6 +147,9 @@ struct ProfileView: View {
 
                     VStack(alignment: .leading, spacing: 12) {
                         SectionHead(title: "About & support")
+                        Button { Feedback.present(FeedbackRequest(screen: "Profile")) } label: {
+                            Label("Report a problem or idea", systemImage: "exclamationmark.bubble").frame(minHeight: 44)
+                        }
                         Link(destination: URL(string: "mailto:hello@thegrapevine.si")!) {
                             Label("Help & account requests", systemImage: "envelope").frame(minHeight: 44)
                         }
@@ -184,7 +187,7 @@ struct ProfileView: View {
                         .font(.system(size: 15, weight: .semibold)).frame(minHeight: 44)
                         .disabled(accountBusy)
                         .busyAccessibility(deleting, "Deleting your account…")
-                        if let deleteError { Text(deleteError).font(.caption).foregroundColor(Theme.danger).arrives() }
+                        if let deleteError { ErrorNote(message: deleteError, screen: "Profile").arrives() }
                     }
                     .animation(.snappy(duration: 0.3), value: deleteError)
                 }

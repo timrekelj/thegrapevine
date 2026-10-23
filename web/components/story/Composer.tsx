@@ -6,6 +6,7 @@ import { validateAttachments, type Message, type Story } from './queries'
 import { capture, captureError } from '@/lib/telemetry'
 import { plural } from '@/lib/format'
 import { BusyLabel } from '@/components/print/InkDots'
+import ReportLink from '@/components/report/ReportLink'
 
 type Gif = { id: string; title: string; url: string; still: string }
 export default function Composer({ story, userId, reply, clearReply, refresh, gifsEnabled }: { story: Story; userId: string; reply: Message | null; clearReply: () => void; refresh: () => Promise<void>; gifsEnabled: boolean }) {
@@ -83,7 +84,7 @@ export default function Composer({ story, userId, reply, clearReply, refresh, gi
   }
 
   return <div className="story-composer">
-    {error && <p role="alert" className="meta">{error}</p>}
+    {error && <p role="alert" className="meta">{error} <ReportLink error={error} /></p>}
     {reply && <div className="meta story-composer-note"><span>Replying to: {reply.body?.slice(0, 80) || 'Attachment'}</span> <button type="button" className="story-text-button" onClick={clearReply} disabled={busy || draftLocked}>Cancel</button></div>}
     {(files.length > 0 || gif) && <div className="meta story-composer-note"><span>{files.length > 0 && plural(files.length, 'attachment')} {gif?.title}</span> <button type="button" className="story-text-button" onClick={() => { setFiles([]); setGif(null); if (input.current) input.current.value = '' }} disabled={busy || draftLocked}>Remove</button></div>}
     {searchOpen && <section className="story-gif-search" aria-label="GIPHY search">

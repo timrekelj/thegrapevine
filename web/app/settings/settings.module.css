@@ -38,6 +38,10 @@
 .primary:disabled, .quiet:disabled, .danger:disabled { opacity: .45; cursor: default; }
 .primary:focus-visible, .quiet:focus-visible, .danger:focus-visible, .dangerLink:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
+.quietLink { height: 48px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--rule); border-radius: var(--radius); font: 600 15px/1 var(--sans); text-decoration: none; }
+.quietLink:hover { border-color: var(--ink); }
+.quietLink:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
 .keep { justify-self: center; font: 500 14px/1 var(--sans); text-underline-offset: 3px; }
 
 .error, .status { margin: 0; display: flex; gap: 8px; align-items: flex-start; font: 500 14px/1.4 var(--sans); }

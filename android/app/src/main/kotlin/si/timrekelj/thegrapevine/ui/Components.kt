@@ -269,7 +269,7 @@ private fun Busy(busy: Boolean, ink: Color, label: @Composable () -> Unit) {
 
 /** An underlined text action, like the web's `.story-text-button`. The ink lifts when pressed. */
 @Composable
-fun TextAction(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
+fun TextAction(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClickLabel: String? = null, onClick: () -> Unit) {
     Text(
         text,
         style = MetaStyle.copy(
@@ -277,7 +277,7 @@ fun TextAction(text: String, modifier: Modifier = Modifier, enabled: Boolean = t
             fontWeight = FontWeight.SemiBold,
             textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
         ),
-        modifier = modifier.pressable(enabled = enabled, give = Give.Type, role = Role.Button, onClick = onClick)
+        modifier = modifier.pressable(enabled = enabled, give = Give.Type, onClickLabel = onClickLabel, role = Role.Button, onClick = onClick)
             .padding(vertical = 6.dp),
     )
 }

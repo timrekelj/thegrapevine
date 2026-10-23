@@ -244,7 +244,12 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit, backLabel: S
             Column(Modifier.background(Press.paper).navigationBarsPadding().imePadding()) {
                 Hairline(color = Press.ink)
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Insert(store.error) { Text(it, style = MetaStyle.copy(color = Press.danger)) }
+                    Insert(store.error) { error ->
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text(error, style = MetaStyle.copy(color = Press.danger), modifier = Modifier.weight(1f))
+                            ReportAction(error, "Story")
+                        }
+                    }
                     Insert(attachments.size.takeIf { it > 0 }) { count ->
                         ComposerNote(plural(count, "attachment"), "Remove", enabled = !locked) { attachments = emptyList() }
                     }

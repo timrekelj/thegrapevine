@@ -51,6 +51,10 @@ struct ContentView: View {
         .background(Theme.paper.ignoresSafeArea())
         .foregroundColor(Theme.ink)
         .tint(Theme.ink)
+        // Shaking the phone anywhere, once signed in, opens a bug report with a screenshot.
+        .onReceive(NotificationCenter.default.publisher(for: .deviceDidShake)) { _ in
+            if app.checked && app.session != nil { Feedback.presentForShake() }
+        }
         .task(id: app.checked && app.session != nil) {
             if app.checked && app.session != nil {
                 OneSignalManager.shared.requestPushPermission()
