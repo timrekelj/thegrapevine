@@ -158,6 +158,24 @@ final class CoreTests: XCTestCase {
         XCTAssertNil(bare.new_email)
     }
 
+    func testDeleteAccountErrorBodyIsTheMessageShown() {
+        let failure = APIError.http(500, #"{"error":"Your account could not be deleted. Nothing was removed. Please try again."}"#)
+        XCTAssertEqual(failure.localizedDescription, "Your account could not be deleted. Nothing was removed. Please try again.")
+        let denied = APIError.http(401, #"{"error":"Sign in first"}"#)
+        XCTAssertEqual(denied.localizedDescription, "Sign in first")
+        let gateway = APIError.http(401, #"{"message":"Invalid JWT"}"#)
+        XCTAssertEqual(gateway.localizedDescription, "Invalid JWT")
+    }
+
+    @MainActor
+    func testAccountDeletionRequiresTheDeletedFlag() throws {
+        let ok = try JSONDecoder().decode(API.AccountDeletion.self, from: Data(#"{"deleted":true}"#.utf8))
+        XCTAssertTrue(ok.deleted)
+        let refused = try JSONDecoder().decode(API.AccountDeletion.self, from: Data(#"{"deleted":false}"#.utf8))
+        XCTAssertFalse(refused.deleted)
+        XCTAssertThrowsError(try JSONDecoder().decode(API.AccountDeletion.self, from: Data(#"{}"#.utf8)))
+    }
+
     @MainActor
     func testVerifyBodySendsEmailType() throws {
         let body = try JSONSerialization.jsonObject(with: JSONEncoder().encode(API.VerifyBody(email: "tim@example.com", token: "123456"))) as? [String: String]
