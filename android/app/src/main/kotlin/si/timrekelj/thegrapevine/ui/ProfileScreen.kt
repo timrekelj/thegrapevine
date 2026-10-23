@@ -44,6 +44,7 @@ import si.timrekelj.thegrapevine.ApiError
 import si.timrekelj.thegrapevine.AppState
 import si.timrekelj.thegrapevine.BuildConfig
 import si.timrekelj.thegrapevine.Config
+import si.timrekelj.thegrapevine.FeedbackKind
 import si.timrekelj.thegrapevine.NotificationPreferences
 
 @Composable
@@ -130,7 +131,12 @@ fun ProfileScreen(app: AppState, onSignOut: () -> Unit) {
             }
             if (name.trim().length > 80) Text("Use a name up to 80 characters.", color = MaterialTheme.colorScheme.error, style = MetaStyle)
             Insert(if (nameSaved) "Name saved" else null) { Text(it, style = MetaStyle) }
-            Insert(nameError) { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 13.sp) }
+            Insert(nameError) { error ->
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(error, color = MaterialTheme.colorScheme.error, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                    ReportAction(error, "Profile")
+                }
+            }
         }
         Column(
             Modifier.fillMaxWidth().padding(top = 4.dp),
@@ -168,7 +174,10 @@ fun ProfileScreen(app: AppState, onSignOut: () -> Unit) {
             }
             preferenceError?.let { error ->
                 Text(error, color = MaterialTheme.colorScheme.error, fontSize = 13.sp)
-                if (preferences == null) TextAction("Try again") { scope.launch { loadPreferences() } }
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    if (preferences == null) TextAction("Try again") { scope.launch { loadPreferences() } }
+                    ReportAction(error, "Profile")
+                }
             }
             Text("Push notifications also need permission on this device.", style = MetaStyle)
             SettingsLink("Device notification settings") {
@@ -180,6 +189,7 @@ fun ProfileScreen(app: AppState, onSignOut: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             SectionHead("About & support")
+            SettingsLink("Report a problem or idea") { app.report(FeedbackKind.Bug, "Profile") }
             SettingsLink("Help & account requests") { open(Intent(Intent.ACTION_VIEW, "mailto:hello@thegrapevine.si".toUri())) }
             SettingsLink("Privacy policy") { open(Intent(Intent.ACTION_VIEW, "${Config.webURL}/privacy".toUri())) }
             SettingsLink("Terms of service") { open(Intent(Intent.ACTION_VIEW, "${Config.webURL}/terms".toUri())) }

@@ -8,6 +8,7 @@ import Composer from './Composer'
 import Plate from '@/components/print/Plate'
 import Avatar from '@/components/print/Avatar'
 import { BusyLabel } from '@/components/print/InkDots'
+import ReportLink from '@/components/report/ReportLink'
 import { capture, correctionsEnabled } from '@/lib/telemetry'
 import { clock as time, dayline as day } from '@/lib/format'
 import { safeUrl } from '@/lib/validate'
@@ -203,7 +204,7 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
 
       <section aria-labelledby="story-conversation-title" className="story-conversation">
         <h2 id="story-conversation-title" className="story-section-head">The conversation</h2>
-        {error && <p role="alert" className="meta story-error">{error} <button className="story-text-button" disabled={retrying} aria-busy={retrying} onClick={() => { setRetrying(true); void refresh().finally(() => setRetrying(false)) }}><BusyLabel busy={retrying} label="Trying again…">Try again</BusyLabel></button></p>}
+        {error && <p role="alert" className="meta story-error">{error} <button className="story-text-button" disabled={retrying} aria-busy={retrying} onClick={() => { setRetrying(true); void refresh().finally(() => setRetrying(false)) }}><BusyLabel busy={retrying} label="Trying again…">Try again</BusyLabel></button> <ReportLink error={error} /></p>}
         {timeline.length === 0 && <p className="summary">Start the conversation.</p>}
         {timeline.map((entry, index) => {
           const previous = timeline[index - 1]

@@ -92,7 +92,10 @@ fun FrontPageScreen(app: AppState, paper: PaperState, onOpen: (String) -> Unit, 
                 error != null -> item {
                     Column(Modifier.padding(Gutter), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text(error, style = BodyStyle)
-                        TextAction("Try again") { paper.load(app) }
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            TextAction("Try again") { paper.load(app) }
+                            ReportAction(error, "Front page")
+                        }
                     }
                 }
                 // First load: the page in galley proof; the stories fade in over it as they arrive.

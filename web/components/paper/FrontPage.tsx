@@ -63,6 +63,7 @@ export default function FrontPage({ group, members, stories, earlier = null, loa
       <nav className={styles.sections} aria-label="Sections">
         <div className={styles.sectionList}><b>Front page</b>{categories.map(category => <span key={category}>{category}</span>)}</div>
         <div className={styles.tools}>
+          <Link href="/report?kind=bug&from=%2F" className={styles.account}>Feedback</Link>
           <Link href="/settings" className={styles.account}>Account</Link>
           <ShareLink groupId={group.id} groupName={group.name} />
         </div>

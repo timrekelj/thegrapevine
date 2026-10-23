@@ -14,8 +14,10 @@
 		113129736FB478CFB940A255 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDB6677CAC2B83257AAA8859 /* Theme.swift */; };
 		1422B42ED3F2A5F8A413CE16 /* Newsreader-Text-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 17753F5F8473DA8B5BDB91D5 /* Newsreader-Text-SemiBold.ttf */; };
 		14DEEB16251B3E6461A6F447 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CB4D3D864AF68A30B38FC16 /* NotificationService.swift */; };
+		17B365F5557B6C244B2728C8 /* FeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 903605E6BD71AC34281117BB /* FeedbackView.swift */; };
 		18C3E13B50A62D301F43CE57 /* Newsreader-Text-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AABF818F264A9CC6C455B069 /* Newsreader-Text-Regular.ttf */; };
 		18F01319F7D9C01095F1D4C2 /* Newsreader-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = 6128D364223594395C348FA2 /* Newsreader-OFL.txt */; };
+		1E13A358CB97A37D914ED56E /* Feedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C54F3F6028EC5B1E91F7B1D /* Feedback.swift */; };
 		1EA0DBCA6970D6670CBE22A1 /* Newsreader-Text-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 93DA6A2F97F5590E1DEEA2F1 /* Newsreader-Text-Italic.ttf */; };
 		2383E940A0E736291960C098 /* PostHog in Frameworks */ = {isa = PBXBuildFile; productRef = 06E24CDF044B25C3F7D74A53 /* PostHog */; };
 		2459C61E407D29BDDFE0C5E0 /* Newsreader-Text-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AABF818F264A9CC6C455B069 /* Newsreader-Text-Regular.ttf */; };
@@ -111,6 +113,7 @@
 /* Begin PBXFileReference section */
 		090A32009737A8ACB7374B07 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
 		0BF45D35F556C83C43D35756 /* IBMPlexMono-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "IBMPlexMono-Medium.ttf"; sourceTree = "<group>"; };
+		0C54F3F6028EC5B1E91F7B1D /* Feedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Feedback.swift; sourceTree = "<group>"; };
 		0DA69381B67C37C52E985388 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		0E30017B4A1B80E39BA16B79 /* IBMPlexMono-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "IBMPlexMono-SemiBold.ttf"; sourceTree = "<group>"; };
 		112A7292AC40C7C2E6C897CD /* Newsreader-Text-MediumItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Newsreader-Text-MediumItalic.ttf"; sourceTree = "<group>"; };
@@ -140,6 +143,7 @@
 		8807C25BF3BBA7FC0BB51B29 /* StoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryView.swift; sourceTree = "<group>"; };
 		8AA540084F673BB60FCCF1DE /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
 		9015C7B22C73C503BDE83F02 /* GalleyProof.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleyProof.swift; sourceTree = "<group>"; };
+		903605E6BD71AC34281117BB /* FeedbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackView.swift; sourceTree = "<group>"; };
 		93DA6A2F97F5590E1DEEA2F1 /* Newsreader-Text-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Newsreader-Text-Italic.ttf"; sourceTree = "<group>"; };
 		9A5C8193729AF0E1ACC4019C /* ArchiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchiveView.swift; sourceTree = "<group>"; };
 		9A87474B1BE72D38231B54B7 /* ShareExtension.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = ShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -202,6 +206,7 @@
 			children = (
 				9A5C8193729AF0E1ACC4019C /* ArchiveView.swift */,
 				2E08268B923B30869950C713 /* Components.swift */,
+				903605E6BD71AC34281117BB /* FeedbackView.swift */,
 				2DC1B16391CF7F7E95222560 /* FriendsView.swift */,
 				D0F4EC19C9B801E1E2690AE1 /* FrontPageView.swift */,
 				9015C7B22C73C503BDE83F02 /* GalleyProof.swift */,
@@ -290,6 +295,7 @@
 				BFC4CB83A7051D6FE9F40A2A /* Assets.xcassets */,
 				090A32009737A8ACB7374B07 /* Config.swift */,
 				4A68D7D84A1FD022DBB869A7 /* Edition.swift */,
+				0C54F3F6028EC5B1E91F7B1D /* Feedback.swift */,
 				7DB8EDC53C4F0E03749B0418 /* Grapevine.entitlements */,
 				27DEB58B2B6E443497BAC3BA /* GrapevineApp.swift */,
 				3DE5D3B104F5C2FAFAC96267 /* Halftone.swift */,
@@ -571,6 +577,8 @@
 				59FB85F152C28994AB829C2F /* Components.swift in Sources */,
 				B9C89D3372A5D7799F84985E /* Config.swift in Sources */,
 				78B5E130CCB338151A7E50E6 /* Edition.swift in Sources */,
+				1E13A358CB97A37D914ED56E /* Feedback.swift in Sources */,
+				17B365F5557B6C244B2728C8 /* FeedbackView.swift in Sources */,
 				E4B329A63B2AF3F47662532B /* FriendsView.swift in Sources */,
 				601B5DA60D9540F83B768A7B /* FrontPageView.swift in Sources */,
 				C34E9B6DA19ECDF7FB7B033A /* GalleyProof.swift in Sources */,

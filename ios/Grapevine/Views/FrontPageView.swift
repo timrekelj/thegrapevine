@@ -21,7 +21,7 @@ struct FrontPageView: View {
                     masthead
                     if let error = paper.error {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text(error).font(Theme.serif(17))
+                            ErrorNote(message: error, screen: "Front page", font: Theme.serif(17), color: Theme.ink)
                             Button("Try again") { Task { await paper.load(app: app) } }
                                 .font(.system(size: 15, weight: .semibold)).underline()
                                 .buttonStyle(PressStyle())
@@ -52,7 +52,9 @@ struct FrontPageView: View {
             .navigationDestination(for: UUID.self) { id in StoryView(storyId: id) }
             .navigationDestination(for: ArchiveRoute.self) { route in ArchiveView(before: route.before) }
             .toolbarVisibility(.hidden, for: .navigationBar)
-            .sheet(isPresented: $share, onDismiss: { Task { await paper.load(app: app) } }) { ShareView(group: app.group) }
+            .sheet(isPresented: $share, onDismiss: { Task { await paper.load(app: app) } }) {
+                ShareView(group: app.group, onReport: { Feedback.present(FeedbackRequest(screen: "Share a link", error: $0)) })
+            }
             .refreshable { await paper.load(app: app) }
             .task(id: app.group?.id) { await paper.load(app: app); loadedOnce = true }
             .onChange(of: app.pendingStoryId, initial: true) {

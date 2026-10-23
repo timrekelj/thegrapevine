@@ -195,9 +195,10 @@ class Api(
 
     // ------------------------------------------------------------------- media
 
-    suspend fun upload(attachment: Attachment, path: String) {
+    /** Story media goes to `media`; screenshots for reports to `feedback`. */
+    suspend fun upload(attachment: Attachment, path: String, bucket: String = "media") {
         request(
-            path = "storage/v1/object/media/$path",
+            path = "storage/v1/object/$bucket/$path",
             method = HttpMethod.Post,
             file = attachment.data,
             fileContentType = attachment.contentType,

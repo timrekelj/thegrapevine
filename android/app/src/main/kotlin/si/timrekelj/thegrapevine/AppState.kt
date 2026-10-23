@@ -34,6 +34,10 @@ class AppState(
     /** A story link, opened once the paper is showing. */
     var pendingStoryId by mutableStateOf<String?>(null)
 
+    /** The problem or idea being reported; the root shows its sheet while this is set. */
+    var feedback by mutableStateOf<FeedbackDraft?>(null)
+        private set
+
     private val sessionListener: (Session) -> Unit = { refreshed ->
         store.save(refreshed)
         session = refreshed
@@ -136,6 +140,7 @@ class AppState(
         profile = null
         group = null
         members = emptyList()
+        feedback = null
         api.session = null
     }
 
@@ -252,6 +257,37 @@ class AppState(
         Telemetry.capture("paper_joined")
         group = api.getOne<Group>("rest/v1/groups", listOf("id" to "eq.$joined"))
         loadProfileAndGroup()
+    }
+
+    /** Opens the report sheet, unless one is already open; [screenshot] is attached, removably. */
+    fun report(kind: FeedbackKind, screen: String?, error: String? = null, screenshot: FeedbackImage? = null) {
+        if (feedback != null || session == null) return
+        feedback = FeedbackDraft(kind, screen, error).apply { screenshot?.let { images += it } }
+    }
+
+    fun closeReport() {
+        if (feedback?.busy == true) return
+        feedback = null
+    }
+
+    /** Sends the open report. On failure the draft stays as written, with the reason. */
+    fun sendReport() {
+        val draft = feedback ?: return
+        val userId = session?.userId ?: return
+        if (!draft.canSend) return
+        draft.busy = true
+        draft.failure = null
+        viewModelScope.launch {
+            try {
+                draft.result = Feedback.send(api, userId, draft)
+                Telemetry.capture("feedback_sent")
+            } catch (e: Exception) {
+                draft.failure = e.message ?: "Could not send your report. Please try again."
+                if (e is ApiError.Unauthorized) signOut()
+            } finally {
+                draft.busy = false
+            }
+        }
     }
 
     override fun onCleared() {

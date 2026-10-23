@@ -67,7 +67,7 @@ struct StoryView: View {
                     .transition(.opacity)
                 } else if let error = store.error, !store.isLoading {
                     SwiftUI.Group {
-                        Text(error).font(Theme.serif(17)).padding(.vertical)
+                        ErrorNote(message: error, screen: "Story", font: Theme.serif(17), color: Theme.ink).padding(.vertical)
                         Button("Try again") { Task { await store.load(storyId: storyId) } }
                             .font(.system(size: 15, weight: .semibold)).underline()
                             .buttonStyle(PressStyle())
@@ -244,7 +244,7 @@ extension StoryView {
     private var composer: some View {
         VStack(alignment: .leading, spacing: 8) {
             if let error = store.error {
-                Text(error).font(.system(size: 13, weight: .medium)).foregroundColor(Theme.danger)
+                ErrorNote(message: error, screen: "Story", font: .system(size: 13, weight: .medium))
                     .arrives()
             }
             if !attachments.isEmpty {
@@ -672,7 +672,7 @@ struct ReportSheet: View {
                 }
                 .disabled(busy)
                 .busyAccessibility(busy, "Reporting…")
-                if let error = store.error { Text(error).font(.caption).arrives() }
+                if let error = store.error { ErrorNote(message: error, screen: "Story correction", color: Theme.ink).arrives() }
             }
             .scrollContentBackground(.hidden).background(Theme.paper)
             .navigationTitle("Report a correction")

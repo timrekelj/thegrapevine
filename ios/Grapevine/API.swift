@@ -140,8 +140,8 @@ enum API {
         _ = try await request(path: path, method: "DELETE", query: query)
     }
 
-    static func upload(_ attachment: Attachment, path: String) async throws {
-        _ = try await request(path: "storage/v1/object/media/\(path)", method: "POST", file: attachment.data, contentType: attachment.contentType)
+    static func upload(_ attachment: Attachment, path: String, bucket: String = "media") async throws {
+        _ = try await request(path: "storage/v1/object/\(bucket)/\(path)", method: "POST", file: attachment.data, contentType: attachment.contentType)
     }
 
     /// Signed media links by storage path, reused until shortly before they expire: a fresh signature

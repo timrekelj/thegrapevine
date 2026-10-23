@@ -44,6 +44,7 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", on
     var comment by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<String?>(null) }
+    var failed by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -77,12 +78,18 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", on
             Text("YOUR COMMENT (OPTIONAL)", style = LabelStyle)
             PaperField(comment, { comment = it }, "Why it caught your eye", singleLine = false)
             app.group?.let { Text("Everyone in ${it.name} sees this with your name.", style = MetaStyle.copy(color = Press.ink3)) }
-            Insert(result) { Text(it, style = BodyStyle.copy(fontWeight = FontWeight.SemiBold)) }
+            Insert(result) { message ->
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(message, style = BodyStyle.copy(fontWeight = FontWeight.SemiBold))
+                    if (failed) ReportAction(message, "Share", before = onDismiss)
+                }
+            }
             InkButton("Share with your paper", enabled = !busy && url.isNotBlank() && app.group != null, busy = busy, busyLabel = "Posting…") {
                 val group = app.group ?: return@InkButton
                 scope.launch {
                     busy = true
                     result = null
+                    failed = false
                     result = try {
                         val submitted: SubmitResult = api.postObject(
                             "functions/v1/submit-source",
@@ -97,6 +104,7 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", on
                             else -> "Posted."
                         }
                     } catch (e: Exception) {
+                        failed = true
                         e.message
                     }
                     busy = false

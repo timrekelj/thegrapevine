@@ -108,6 +108,12 @@ export default async function SettingsPage({ searchParams }: PageProps<'/setting
           </form>
         </section>
 
+        <section className={styles.section} aria-labelledby="report-heading">
+          <h2 id="report-heading" className="label">Problems &amp; ideas</h2>
+          <p className="summary">Report a bug, suggest an improvement or ask for a feature. Screenshots welcome.</p>
+          <Link className={styles.quietLink} href="/report?kind=bug&from=%2Fsettings">Report a problem or idea</Link>
+        </section>
+
         <section className={styles.section} aria-labelledby="session-heading">
           <h2 id="session-heading" className="label">This browser</h2>
           <p className="summary">Signing out here leaves your account as it is, including on a phone where you are also signed in.</p>

@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 @testable import Grapevine
 
 final class CoreTests: XCTestCase {
@@ -251,5 +252,53 @@ final class CoreTests: XCTestCase {
         XCTAssertNil(UnreadDivider(messages: [old, first], lastRead: nil, userId: me))
         XCTAssertNil(UnreadDivider(messages: [old, mine], lastRead: lastRead, userId: me))
         XCTAssertNil(UnreadDivider(messages: [message(friend, at: 1_000)], lastRead: lastRead, userId: me))
+    }
+
+    func testFeedbackImagesFitWithin2048AsJPEG() throws {
+        XCTAssertEqual(FeedbackImage.fittedSize(CGSize(width: 4032, height: 3024)), CGSize(width: 2048, height: 1536))
+        XCTAssertEqual(FeedbackImage.fittedSize(CGSize(width: 1206, height: 2622)), CGSize(width: 942, height: 2048))
+        XCTAssertEqual(FeedbackImage.fittedSize(CGSize(width: 800, height: 600)), CGSize(width: 800, height: 600))
+
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 3
+        let screen = UIGraphicsImageRenderer(size: CGSize(width: 402, height: 874), format: format).image { context in
+            UIColor.red.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 402, height: 874))
+        }
+        let shot = FeedbackImage.jpeg(from: screen)
+        XCTAssertEqual(Array(shot.prefix(2)), [0xFF, 0xD8])
+        XCTAssertEqual(UIImage(data: shot)?.cgImage.map { CGSize(width: $0.width, height: $0.height) }, CGSize(width: 942, height: 2048))
+
+        // A picked PNG comes back as a downscaled JPEG.
+        format.scale = 1
+        let png = UIGraphicsImageRenderer(size: CGSize(width: 3000, height: 1000), format: format).pngData { context in
+            UIColor.blue.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 3000, height: 1000))
+        }
+        let picked = try XCTUnwrap(FeedbackImage.jpeg(from: png))
+        XCTAssertEqual(Array(picked.prefix(2)), [0xFF, 0xD8])
+        XCTAssertEqual(UIImage(data: picked)?.cgImage.map { CGSize(width: $0.width, height: $0.height) }, CGSize(width: 2048, height: 683))
+        XCTAssertNil(FeedbackImage.jpeg(from: Data("not an image".utf8)))
+
+        let image = try XCTUnwrap(FeedbackImage(jpeg: picked))
+        let user = UUID()
+        XCTAssertEqual(image.path(for: user), "\(user.uuidString.lowercased())/\(image.id.uuidString.lowercased()).jpg")
+    }
+
+    func testFeedbackBodyMatchesTheFunction() throws {
+        let body = FeedbackBody(kind: FeedbackKind.enhancement.rawValue, description: "Bigger type", images: ["a/b.jpg"],
+                                context: FeedbackContext(app_version: "1.2 (34)", os: "iOS 26.1", device: "iPhone17,1", screen: "Profile"))
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(body)) as? [String: Any])
+        XCTAssertEqual(object["kind"] as? String, "enhancement")
+        XCTAssertEqual(object["images"] as? [String], ["a/b.jpg"])
+        // No error was shown, so none is sent.
+        XCTAssertEqual(object["context"] as? [String: String],
+                       ["platform": "ios", "app_version": "1.2 (34)", "os": "iOS 26.1", "device": "iPhone17,1", "screen": "Profile"])
+        XCTAssertEqual(FeedbackKind.allCases.map(\.rawValue), ["bug", "enhancement", "feature"])
+
+        let filed = try JSONDecoder().decode(FeedbackResult.self, from: Data(#"{"id":"3f1c","issue_number":42,"issue_url":"https://github.com/x/y/issues/42"}"#.utf8))
+        XCTAssertEqual(filed.issue_number, 42)
+        let saved = try JSONDecoder().decode(FeedbackResult.self, from: Data(#"{"id":"3f1c","issue_number":null,"issue_url":null}"#.utf8))
+        XCTAssertNil(saved.issue_url)
     }
 }
