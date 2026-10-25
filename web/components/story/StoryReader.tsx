@@ -1,12 +1,14 @@
 'use client'
 
-import Link from '@/components/print/PressLink'
 import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { loadStory, mergeTimeline, type Message, type Source, type Story, type StoryDetails } from './queries'
 import Composer from './Composer'
 import Plate from '@/components/print/Plate'
+import Bunch from '@/components/print/Bunch'
+import CatchUp from './CatchUp'
 import Avatar from '@/components/print/Avatar'
+import Brand from '@/components/print/Brand'
 import { BusyLabel } from '@/components/print/InkDots'
 import ReportLink from '@/components/report/ReportLink'
 import { capture, correctionsEnabled } from '@/lib/telemetry'
@@ -29,7 +31,7 @@ function SourceCard({ source }: { source: Source }) {
   const note = source.extraction_status === 'paywalled' ? 'Paywalled — headline only. The summary does not use this source.' : source.extraction_status === 'deleted' ? 'Post deleted or unavailable' : source.extraction_status === 'failed' ? "Couldn't read this page" : null
   return <div className="story-source-card">
     <Plate src={source.image_url} label={publisher(source)} className="story-source-thumb" />
-    <div className="story-source-content"><b className="label">{publisher(source)}{source.author && ' · on X'}</b><div className="story-source-title">{source.extraction_status === 'failed' ? source.url : source.source_title || source.url}</div>
+    <div className="story-source-content"><b className="meta">{publisher(source)}{source.author && ' · on X'}</b><div className="story-source-title">{source.extraction_status === 'failed' ? source.url : source.source_title || source.url}</div>
       <div className="meta story-source-foot"><time dateTime={source.created_at}>{time(source.created_at)}</time>{safeUrl(source.url) && <a href={safeUrl(source.url)} target="_blank" rel="noopener noreferrer">Open{source.author ? ' on X' : ''} ↗</a>}</div>
       {note && <div className="meta story-source-note">{source.extraction_status === 'paywalled' && <LockIcon />}{note}</div>}
     </div>
@@ -154,11 +156,11 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
     }
     reportDialog.current?.close(); setNote(''); setToast('Reported — it will be re-checked'); await refresh()
   }
+  const order = details.people.map(person => person.id)
   const person = (id: string | null) => details.people.find(person => person.id === id) || { id: id ?? 'member', display_name: 'Member', monogram: '?' }
   const timeline = mergeTimeline(details.sources, details.messages)
   const unread = lastViewed ? timeline.filter(entry => entry.kind === 'message' && Date.parse(entry.created_at) > Date.parse(lastViewed) && entry.author_id !== userId) : []
   const firstUnread = unread[0]?.id
-  const lead = [...details.sources].reverse().find(source => source.image_url) || details.sources[0]
   const openHistory = () => historyDialog.current?.showModal()
   const openReport = (target: string) => { setTarget(target); reportDialog.current?.showModal() }
   // Story links open the app on phones that have it, and this page everywhere else.
@@ -174,30 +176,26 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
 
   return <div className="story-page">
     <header className="story-top">
-      <Link href="/" className="story-back meta">← Front page</Link>
-      <Link href="/" className="masthead">The Grapevine</Link>
-      <button className="story-text-button meta" onClick={() => void shareStory()}>Share story</button>
+      <Brand />
+      <button className="btn ghost" onClick={() => void shareStory()}>Share story</button>
     </header>
-    <div className="double-rule" />
 
     <main className="story-layout fresh-ink">
       <article className="story-article">
-        <div className="story-kicker"><span className="label">{story.category || 'Unfiled'}</span><span className="meta">Updated {time(details.history[0]?.created_at || story.last_activity_at)}</span></div>
+        <div className="story-kicker"><span className="meta">{story.category || 'Unfiled'}</span><span className="meta">Updated {time(details.history[0]?.created_at || story.last_activity_at)}</span></div>
         <h1 className="display story-title">{story.title || 'Reading this story'}</h1>
-        <p className="meta story-byline">Filed from <b>{okSources}</b> of <b>{details.sources.length}</b> {details.sources.length === 1 ? 'source' : 'sources'} · <button className="story-text-button" onClick={openHistory}>What changed</button></p>
-        <figure className="story-figure">
-          <Plate src={lead?.image_url} label={lead ? publisher(lead) : 'The paper'} className="story-hero" eager />
-          {lead && <figcaption className="meta">Pictured via {publisher(lead)}</figcaption>}
-        </figure>
-        <p className={`story-summary ${story.summary ? 'column dropcap' : ''}`}>{story.summary || 'The summary could not be written.'}</p>
-        {!story.summary && <button className="btn ghost" onClick={() => openReport('summary')}>Retry summary</button>}
-        <div className="story-correction meta">Something off? <button className="story-text-button" onClick={() => openReport('summary')}>Report the summary</button> · <button className="story-text-button" onClick={() => openReport('category')}>wrong category</button>{story.flagged && <span className="story-flag">Flagged for review</span>}</div>
+        <CatchUp storyId={story.id} userId={userId} version={story.summary}>
+          <p className="story-summary">{story.summary || 'The summary could not be written.'}</p>
+          <div className="meta story-byline"><span>{okSources} of {details.sources.length} sources</span><button className="story-text-button" onClick={openHistory}>What changed</button><button className="story-text-button" onClick={() => openReport('summary')}>Report</button></div>
+          {!story.summary && <button className="btn ghost" onClick={() => openReport('summary')}>Retry summary</button>}
+        </CatchUp>
+        <div className="story-correction meta"><button className="story-text-button" onClick={() => openReport('title')}>Report title</button> · <button className="story-text-button" onClick={() => openReport('category')}>Report category</button>{story.flagged && <span className="story-flag">Flagged for review</span>}</div>
       </article>
 
       <aside className="story-clippings" aria-label="Sources, newest first">
-        <h2 className="label story-clippings-head">Clippings <span className="meta">{details.sources.length}</span></h2>
+        <h2 className="story-clippings-head">Sources · {details.sources.length}</h2>
         <div className="story-clipping-list">{details.sources.map(source => <a className="story-clipping" key={source.id} href={`#source-${source.id}`}>
-          <Plate src={source.image_url} label={publisher(source)} className="story-clipping-thumb" />
+          <Bunch sources={[source]} fresh={isNew(source.created_at) ? 1 : 0} size={32} order={order} />
           <div><b className={`meta ${isNew(source.created_at) ? 'new' : ''}`}>{publisher(source)}</b><div className="story-clipping-title">{source.source_title || source.url}</div>{source.extraction_status === 'paywalled' && <small className="meta"><LockIcon /> Headline only</small>}</div>
         </a>)}</div>
       </aside>
@@ -214,17 +212,17 @@ export default function StoryReader({ initialStory, initialDetails, userId, gifs
           const grouped = entry.kind === 'message' && previous?.kind === 'message' && previous.author_id === authorId && !newDay && entry.id !== firstUnread
           const parent = entry.kind === 'message' && entry.reply_to ? details.messages.find(message => message.id === entry.reply_to) : null
           return <Fragment key={entry.id}>
-            {newDay && <div className="story-day label">{day(entry.created_at)}</div>}
-            {entry.id === firstUnread && lastViewed && <div className="story-new-divider label">{unread.length} new since {time(lastViewed)}</div>}
+            {newDay && <div className="story-day">{day(entry.created_at)}</div>}
+            {entry.id === firstUnread && lastViewed && <div className="story-new-divider"><span>{unread.length} new since {time(lastViewed)}</span></div>}
             <article id={`${entry.kind}-${entry.id}`} className={`story-entry ${grouped ? 'story-grouped' : ''}`} {...(entry.kind === 'message' ? holdToReact(entry.id) : {})}>
-              {!grouped ? <Avatar seed={author.id} /> : <span className="story-avatar-space" />}
+              {!grouped ? <Avatar seed={author.id} name={author.display_name} order={order} /> : <span className="story-avatar-space" />}
               <div className="story-entry-body">
                 {!grouped && <div className="story-who"><b>{authorId === userId ? 'You' : author.display_name}</b>{entry.kind === 'source' && <span className="meta">filed a source</span>}<time className="meta" dateTime={entry.created_at}>{time(entry.created_at)}</time></div>}
                 {entry.kind === 'source' ? <>{entry.submitter_comment && <p>{entry.submitter_comment}</p>}<SourceCard source={entry} /></> : <>
                   {parent && <div className="story-quote"><b>{person(parent.author_id).display_name}</b> {parent.body ? `${parent.body.slice(0, 100)}${parent.body.length > 100 ? '…' : ''}` : 'Attachment'}</div>}
                   {entry.body && <p>{entry.body}</p>}
                   {entry.message_media.map(media => <div key={media.id} className="story-media">
-                    {media.kind === 'video' && media.display_url ? <video controls preload="metadata" src={safeUrl(media.display_url)} aria-label={media.alt_text || 'Shared video'} /> : media.kind === 'gif' && reducedMotion && !playingGifs.includes(media.id) ? <button className="story-gif-paused meta" onClick={() => setPlayingGifs([...playingGifs, media.id])}>▶ Play GIF · {media.alt_text || 'Animated reaction'}</button> : <Plate src={media.display_url} label="Attachment unavailable" alt={media.alt_text || 'Shared image'} className="story-media-plate reveal" screen={media.kind !== 'gif'} />}
+                    {media.kind === 'video' && media.display_url ? <video controls preload="metadata" src={safeUrl(media.display_url)} aria-label={media.alt_text || 'Shared video'} /> : media.kind === 'gif' && reducedMotion && !playingGifs.includes(media.id) ? <button className="story-gif-paused meta" onClick={() => setPlayingGifs([...playingGifs, media.id])}>▶ Play GIF · {media.alt_text || 'Animated reaction'}</button> : <Plate src={media.display_url} label="Attachment unavailable" alt={media.alt_text || 'Shared image'} className="story-media-plate" />}
                     {media.kind === 'gif' && <div className="meta">GIF · {media.alt_text || 'Animated reaction'}{playingGifs.includes(media.id) && <> · <button className="story-text-button" onClick={() => setPlayingGifs(playingGifs.filter(id => id !== media.id))}>Pause</button></>}</div>}
                   </div>)}
                   <div className="story-message-actions"><div className="story-reactions">{usedEmojis(entry).map(emoji => {

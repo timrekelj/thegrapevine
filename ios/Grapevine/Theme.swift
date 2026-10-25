@@ -1,48 +1,48 @@
 import SwiftUI
 import UIKit
 
-/// The paper's tokens — the same as `web/app/globals.css`. Newsprint and ink carry the page;
-/// colour comes only from photographs and members' discs. Press red has one meaning: new to you.
-/// Every colour has an evening edition that follows the system appearance.
+/// Shared vine roles: leaf-white surfaces, green-black ink, and green for new contributions.
+/// Each role has an evening appearance that follows the system.
 enum Theme {
-    private static let newsprint: UInt32 = 0xF4F1EA, eveningPaper: UInt32 = 0x121110
-    static let paper = Color(light: newsprint, dark: eveningPaper)
-    /// The paper for drawing outside SwiftUI: the halftone plates print onto it.
-    static func paper(dark: Bool) -> UIColor { UIColor(hex: dark ? eveningPaper : newsprint) }
-    static let raised = Color(light: 0xFBF9F4, dark: 0x1B1A17)
-    static let ink = Color(light: 0x161513, dark: 0xEDE9E1)
-    static let ink2 = Color(light: 0x4A4740, dark: 0xB9B3A8)
-    static let ink3 = Color(light: 0x75716A, dark: 0x8C877D)
-    static let rule = Color(light: 0x161513, dark: 0xEDE9E1, opacity: 0.16)
-    static let tint = Color(light: 0x161513, dark: 0xEDE9E1, opacity: 0.06)
-    /// The spot ink: only for things that are new to you.
-    static let red = Color(light: 0xC8231B, dark: 0xFF5B4F)
-    static let onRed = Color(light: 0xFFFFFF, dark: 0x1A0705)
-    static let danger = Color(light: 0xA3261F, dark: 0xFF8A80)
+    /// The ground: leaf-white by day, night on the vine in dark mode. (Legacy role name.)
+    static let paper = Color(light: 0xF0F4EB, dark: 0x0E1711)
+    static let raised = Color(light: 0xFFFFFF, dark: 0x172219)
+    static let ink = Color(light: 0x15221B, dark: 0xEEF3EA)
+    static let ink2 = Color(light: 0x3F4C45, dark: 0xB5C1B8)
+    static let ink3 = Color(light: 0x5E6B63, dark: 0x8C9A90)
+    static let rule = Color(light: 0x15221B, dark: 0xEEF3EA, opacity: 0.16)
+    static let tint = Color(light: 0x15221B, dark: 0xEEF3EA, opacity: 0.06)
+    /// Legacy role name retained across the app; vine green means new to you.
+    static let red = Color(light: 0x1E7A39, dark: 0x4CC46F)
+    static let onRed = Color(light: 0xFFFFFF, dark: 0x0E1711)
+    static let danger = Color(light: 0xB42318, dark: 0xFF7A6E)
 
-    // MARK: Type
-    // A blackletter nameplate, a news serif with optical sizes for everything you read,
-    // a typewriter mono for datelines and counts, and the system sans for controls.
+    static let raised2 = Color(light: 0xF6F8F3, dark: 0x1F2C22)
+    static let vineSoft = Color(light: 0xDCEFE0, dark: 0x1D3A26)
+    static let catchUp = Color(light: 0x15221B, dark: 0x1D3A26)
+    static let onCatchUp = Color(hex: 0xEEF3EA)
 
-    /// Nameplates only: the paper's name and "The Grapevine".
-    static func nameplate(_ size: CGFloat) -> Font { .custom("UnifrakturMaguntia", size: size) }
-    /// Headlines. Large sizes use Newsreader's display cut, small ones its text cut.
     static func headline(_ size: CGFloat) -> Font {
-        .custom(size >= 28 ? "Newsreader72pt-SemiBold" : "Newsreader-SemiBold", size: size)
+        .custom("BricolageGrotesque-96ptExtraBold", size: size, relativeTo: size >= 28 ? .largeTitle : .headline).weight(size >= 28 ? .heavy : .bold)
     }
-    static func serif(_ size: CGFloat) -> Font { .custom("Newsreader-Regular", size: size) }
-    static func italic(_ size: CGFloat, medium: Bool = false) -> Font {
-        .custom(medium ? "Newsreader-MediumItalic" : "Newsreader-Italic", size: size)
+    /// SF Pro at `size` and `weight`, scaled with Dynamic Type.
+    static func text(_ size: CGFloat, weight: UIFont.Weight = .regular) -> Font { scaledSystem(size, weight, .body) }
+    // `serif`, `italic` and `mono` are legacy names: all three are SF Pro now.
+    static func serif(_ size: CGFloat) -> Font { scaledSystem(size, .regular, .body) }
+    static func italic(_ size: CGFloat, medium: Bool = false) -> Font { scaledSystem(size, medium ? .semibold : .regular, .body) }
+    static func mono(_ size: CGFloat, bold: Bool = false) -> Font { scaledSystem(max(11, size), bold ? .semibold : .regular, .caption1).monospacedDigit() }
+    /// SF Pro at a design size, scaled with Dynamic Type. (`Font.custom` cannot resolve the system face by name.)
+    private static func scaledSystem(_ size: CGFloat, _ weight: UIFont.Weight, _ style: UIFont.TextStyle) -> Font {
+        Font(UIFontMetrics(forTextStyle: style).scaledFont(for: UIFont.systemFont(ofSize: size, weight: weight)))
     }
-    static func mono(_ size: CGFloat, bold: Bool = false) -> Font {
-        .custom(bold ? "IBMPlexMono-SemiBold" : "IBMPlexMono-Medium", size: size)
-    }
+    static let radius: CGFloat = 14
 
-    /// Corner radius for fields and buttons: set square, like type in a forme.
-    static let radius: CGFloat = 3
+    /// The pillow shadow under raised objects (cards, clip cards).
+    static let shadow = Color(hex: 0x15221B).opacity(0.12)
 }
 
 extension Color {
+    init(hex: UInt32) { self.init(uiColor: UIColor(hex: hex)) }
     init(light: UInt32, dark: UInt32, opacity: CGFloat = 1) {
         self.init(uiColor: UIColor { traits in
             UIColor(hex: traits.userInterfaceStyle == .dark ? dark : light, alpha: opacity)
@@ -56,26 +56,13 @@ extension UIColor {
     }
 }
 
-/// Small caps label: mono, uppercase, tracked.
-struct Kicker: View {
+/// A sentence-case label in the platform face: field names, section labels, small headings over a group.
+struct FieldLabel: View {
     let text: String
-    var color: Color = Theme.ink
-    var size: CGFloat = 11
+    var color: Color = Theme.ink2
+    var size: CGFloat = 13
     var body: some View {
-        Text(text.uppercased())
-            .font(Theme.mono(size, bold: true)).tracking(size * 0.12)
-            .foregroundColor(color)
-    }
-}
-
-/// The thick-and-thin rule under a nameplate.
-struct DoubleRule: View {
-    var body: some View {
-        VStack(spacing: 2) {
-            Rectangle().fill(Theme.ink).frame(height: 3)
-            Rectangle().fill(Theme.ink).frame(height: 1)
-        }
-        .accessibilityHidden(true)
+        Text(text).font(Theme.text(size, weight: .semibold)).foregroundColor(color)
     }
 }
 
@@ -84,9 +71,9 @@ struct Hairline: View {
     var body: some View { Rectangle().fill(color).frame(height: 1).accessibilityHidden(true) }
 }
 
-// The ink block button, `InkButtonStyle`, is with the rest of the press in Press.swift.
+// The ink capsule button, `InkButtonStyle`, is in Press.swift with the other touch and loading styles.
 
-/// A paper field: raised, hairline, square corners, set in the serif.
+/// A raised field with rounded corners and a clear focus boundary.
 struct PaperFieldStyle: ViewModifier {
     var focused = false
     var invalid = false

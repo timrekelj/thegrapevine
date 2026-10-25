@@ -79,7 +79,7 @@ Tests:
 
     xcodebuild -project Grapevine.xcodeproj -scheme Grapevine -destination 'platform=iOS Simulator,name=iPhone 17' test
 
-The pilot includes the paper, sources/history/correction reports, chronological conversation, quoted replies, reactions, private image/video uploads, group creation/joining, invite sharing, and Keychain session refresh. Both mobile apps include a Profile tab for display-name editing, per-paper notification preferences (new stories, replies, mentions, and mute), device notification settings, support, and sign-out. Preferences sync through Supabase. Images are limited to 10 per selection; each attachment is capped at 20 MB. Visible stories refresh every 10 seconds and support pull-to-refresh.
+The pilot includes the paper, sources/history/correction reports, chronological conversation, quoted replies, reactions, private image/video uploads, group creation/joining, invite sharing, and Keychain session refresh. Both mobile apps include account settings opened from the paper’s header for display-name editing, per-paper notification preferences (new stories, replies, mentions, and mute), device notification settings, support, and sign-out. Preferences sync through Supabase. Images are limited to 10 per selection; each attachment is capped at 20 MB. Visible stories refresh every 10 seconds and support pull-to-refresh.
 
 The membership-permission regression can be run against seeded local data with `psql` (`brew install libpq`):
 
@@ -91,7 +91,7 @@ Still required before release: GIPHY search credentials, push notifications, dis
 
 ## Android app
 
-A native Kotlin + Jetpack Compose port of the iOS app (`android/`): the same screens, the same Supabase REST calls, and the same one-ink plates. Sessions are stored encrypted (Android Keystore), and `https://thegrapevine.si/invite?code=…` links open the app.
+A native Kotlin + Jetpack Compose port of the iOS app (`android/`): the same screens, the same Supabase REST calls, and the same vine identity, member colours and clean photography. Sessions are stored encrypted (Android Keystore), and `https://thegrapevine.si/invite?code=…` links open the app.
 
 Requires JDK 25 (LTS) and the Android SDK with platform 37 (Android Studio installs both). Start Supabase as above, then forward the local ports to the emulator or a USB device — API 37 blocks apps from LAN addresses like `10.0.2.2`, so debug builds use `localhost`:
 
@@ -123,7 +123,7 @@ When a Google Play account is available, switch the workflow from `assembleRelea
 
 The hosted web app (Vercel) needs `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `NEXT_PUBLIC_SITE_URL=https://thegrapevine.si`.
 
-Every app supports emailed one-time codes alongside Google, Apple, and X. In the hosted project (Authentication → Emails) both the **Magic Link** and **Confirm signup** templates must show the code: paste `supabase/templates/sign_in_code.html` into each.
+Every app supports emailed one-time codes alongside Google, Apple, and X. In the hosted project (Authentication → Emails) both the **Magic Link** and **Confirm signup** templates must show the code: paste `supabase/templates/sign_in_code.html` into each. Paste it again whenever the template changes; the hosted project keeps its own copy.
 
 App links: `https://thegrapevine.si/invite?code=…` and `/story/<id>` open the iOS and Android apps when installed, and the website otherwise. The sites' verification files are in `web/public/.well-known/`: `assetlinks.json` holds the Android release keystore's SHA-256 fingerprint, and `apple-app-site-association` holds Apple team `6JCT56CM9H`. Update them if either changes, or links fall back to the browser.
 

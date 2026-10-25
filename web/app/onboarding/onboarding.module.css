@@ -1,28 +1,19 @@
 /* Onboarding: a preview of the paper being made, then one form. Shares field and button styles with sign-in. */
-.intro { display: grid; gap: 10px; }
-.intro :global(.display) { font-size: 46px; line-height: .98; }
+.intro { display: grid; gap: 28px; justify-items: start; }
 
-/* ---------- the preview: a first edition lying on the table, its nameplate set as you type ---------- */
-.sheet { position: relative; margin: 8px 4px 0; padding: 14px 18px 18px; background: var(--raised); border: 1px solid var(--rule); transform: rotate(-1deg); box-shadow: 0 1px 0 var(--rule), 0 24px 44px -26px rgb(0 0 0 / .4); }
+/* the preview: the new paper as a card, its name set as you type */
+.sheet { display: grid; gap: 4px; padding: 20px; background: var(--raised); border-radius: 24px; box-shadow: var(--press); }
 .sheetTop { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.sheetTop :global(.label) { font-size: 9px; color: var(--ink-2); }
-.sheetTop :global(.av) { width: 34px; height: 34px; }
-.masthead { font: 400 40px/1.05 var(--nameplate); text-align: center; margin: 10px 0 0; overflow-wrap: anywhere; }
+.masthead { font: 800 26px/1.1 var(--display); letter-spacing: -.02em; margin: 0; overflow-wrap: anywhere; }
 .masthead[data-empty="true"] { color: var(--ink-3); }
-.rules { height: 5px; border-top: 2px solid var(--ink); border-bottom: 1px solid var(--ink); margin: 10px 0 14px; }
-.lead { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; align-items: center; }
-.plate { height: 72px; }
-.plate span { font-size: 12px; }
-.headline { font: 600 18px/1.1 var(--serif); margin: 0 0 6px; text-wrap: balance; }
-.stamp { position: absolute; top: -12px; right: 14px; transform: rotate(4deg); }
+.lead { display: flex; gap: 14px; align-items: center; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--rule); }
+.headline { font: 700 17px/1.2 var(--display); letter-spacing: -.01em; margin: 0 0 4px; text-wrap: balance; }
 
-/* ---------- form ---------- */
 .fields { display: grid; gap: 8px; }
 .fields > label:not(:first-child) { margin-top: 10px; }
 .join { display: grid; gap: 8px; padding-top: 4px; }
 .join > p { margin: 0; }
 
 @media (prefers-reduced-motion: no-preference) {
-  .sheet { animation: settle .5s ease-out both; }
-  @keyframes settle { from { opacity: 0; transform: translateY(8px) rotate(-2deg); } }
+  .sheet { animation: rise-in .4s ease-out both; }
 }

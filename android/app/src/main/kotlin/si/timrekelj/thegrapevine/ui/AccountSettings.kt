@@ -1,7 +1,6 @@
 package si.timrekelj.thegrapevine.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -86,7 +85,8 @@ fun AccountSettings(
                 emailNotice = null
                 emailError = null
             },
-            "Email",
+            "you@example.com",
+            label = "Email",
             enabled = enabled && !sending && !deleting,
             keyboardType = KeyboardType.Email,
             isError = emailError != null,
@@ -139,10 +139,10 @@ fun AccountSettings(
         ) {
             Column(
                 Modifier.widthIn(max = 400.dp).fillMaxWidth().verticalScroll(rememberScrollState())
-                    .background(Press.paper).border(1.dp, Press.ink).padding(20.dp),
+                    .background(Press.raised, CardCorner).padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Text("Delete your account?", style = display(26))
+                Text("Delete your account?", style = display(24))
                 Text(
                     "This permanently deletes your account and signs you out of The Grapevine. Your name comes off the paper. Stories and links you shared stay, without your name. This cannot be undone.",
                     style = BodyStyle.copy(color = Press.ink2),
@@ -175,20 +175,20 @@ fun AccountSettings(
     }
 }
 
-/** The one irreversible action: an ink button in the danger ink. */
+/** The one irreversible action: a capsule in the negative colour. */
 @Composable
 private fun DangerButton(text: String, busy: Boolean, onClick: () -> Unit) {
     InkButton(text, busy = busy, busyLabel = "Deleting…", fill = Press.danger, onFill = Press.onRed, onClick = onClick)
 }
 
-/** A quiet word in the danger ink, with room enough for a thumb. */
+/** A quiet word in the negative colour, with room enough for a thumb. */
 @Composable
 private fun DangerLink(text: String, enabled: Boolean, onClick: () -> Unit) {
     Box(
-        Modifier.heightIn(min = 44.dp).pressable(enabled = enabled, give = Give.Type, role = Role.Button, onClick = onClick)
+        Modifier.heightIn(min = 48.dp).pressable(enabled = enabled, give = Give.Type, role = Role.Button, onClick = onClick)
             .alpha(if (enabled) 1f else 0.4f).padding(horizontal = 12.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
-        Text(text, style = MetaStyle.copy(color = Press.danger, fontWeight = FontWeight.SemiBold))
+        Text(text, style = MetaStyle.copy(fontSize = 15.sp, color = Press.danger, fontWeight = FontWeight.SemiBold))
     }
 }

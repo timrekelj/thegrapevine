@@ -1,8 +1,6 @@
 package si.timrekelj.thegrapevine.ui
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -14,15 +12,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -34,14 +29,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.CancellationException
@@ -92,7 +83,7 @@ fun OnboardingScreen(app: AppState) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Column(Modifier.widthIn(max = 468.dp).fillMaxWidth().weight(1f)) {
-                Text("MAKE YOURSELF AT HOME", style = LabelStyle)
+                Text("Make yourself at home", style = LabelStyle)
                 Spacer(Modifier.height(10.dp))
                 Text("Your people.\nYour paper.", style = display(46))
                 Spacer(Modifier.height(36.dp))
@@ -105,18 +96,14 @@ fun OnboardingScreen(app: AppState) {
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
                 Spacer(Modifier.height(28.dp))
-                Text("YOUR NAME", style = LabelStyle)
-                Spacer(Modifier.height(8.dp))
-                OnboardingField(displayName, { displayName = it }, "What friends call you", capitalize = true)
+                OnboardingField(displayName, { displayName = it }, "Your name", "What friends call you", capitalize = true)
                 AnimatedContent(joining, label = "onboarding path") { join ->
                     Column {
-                        Spacer(Modifier.height(18.dp))
-                        Text(if (join) "INVITE CODE" else "NAME YOUR PAPER", style = LabelStyle)
-                        Spacer(Modifier.height(8.dp))
+                        Spacer(Modifier.height(14.dp))
                         if (join) {
-                            OnboardingField(inviteCode, { inviteCode = it }, "From your friend’s invite")
+                            OnboardingField(inviteCode, { inviteCode = it }, "Invite code", "From your friend’s invite")
                         } else {
-                            OnboardingField(groupName, { groupName = it }, "The Sunday Club", capitalize = true)
+                            OnboardingField(groupName, { groupName = it }, "Name your paper", "The Sunday Club", capitalize = true)
                         }
                         ErrorLine(localError)
                         app.error?.let { error ->
@@ -154,56 +141,43 @@ fun OnboardingScreen(app: AppState) {
 }
 
 @Composable
-private fun OnboardingField(value: String, onChange: (String) -> Unit, placeholder: String, capitalize: Boolean = false) {
-    OutlinedTextField(
+private fun OnboardingField(value: String, onChange: (String) -> Unit, label: String, placeholder: String, capitalize: Boolean = false) {
+    PaperField(
         value = value,
         onValueChange = onChange,
-        placeholder = { Text(placeholder, style = BodyStyle.copy(color = Press.ink3)) },
-        textStyle = BodyStyle,
-        singleLine = true,
+        placeholder = placeholder,
+        label = label,
         keyboardOptions = KeyboardOptions(capitalization = if (capitalize) KeyboardCapitalization.Words else KeyboardCapitalization.None, autoCorrectEnabled = false),
-        shape = Corner,
-        colors = fieldColors(),
-        modifier = Modifier.fillMaxWidth(),
     )
 }
 
-/** The paper being made, updated as you type: its nameplate in blackletter, a first-edition stamp. */
+/** The paper being made, updated as you type: a lead card with the paper's name and your disc. */
 @Composable
 private fun PaperPreview(name: String, paper: String, placeholder: String, avatarSeed: String, modifier: Modifier = Modifier) {
-    val sheet = RoundedCornerShape(2.dp)
-    Box(modifier.rotate(-1f)) {
-        Column(
-            Modifier.fillMaxWidth().shadow(14.dp, sheet, ambientColor = Color.Black, spotColor = Color.Black)
-                .background(Press.raised, sheet).border(1.dp, Press.rule, sheet)
-                .padding(start = 18.dp, end = 18.dp, top = 14.dp, bottom = 18.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE d MMMM")).uppercase(),
-                    style = LabelStyle.copy(fontSize = 9.sp, color = Press.ink2),
-                    modifier = Modifier.weight(1f),
-                )
-                Avatar(avatarSeed, 30.dp)
-            }
+    Column(
+        modifier.fillMaxWidth().card(CardCorner).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                paper.trim().ifEmpty { placeholder },
-                style = nameplate(38).copy(color = if (paper.isBlank()) Press.ink3 else Press.ink, textAlign = androidx.compose.ui.text.style.TextAlign.Center),
-                maxLines = 2, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp),
+                LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE d MMMM")),
+                style = LabelStyle.copy(color = Press.ink3),
+                modifier = Modifier.weight(1f),
             )
-            DoubleRule()
-            Spacer(Modifier.height(14.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                TypePlate("Your first link", Modifier.size(96.dp, 72.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Share a link and it becomes the lead story.", style = display(18))
-                    Text("${name.trim().ifEmpty { "You" }} · 1 member", style = MetaStyle, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            }
+            Avatar(avatarSeed, 30.dp)
         }
-        Box(Modifier.align(Alignment.TopEnd).offset(x = (-14).dp, y = (-12).dp).rotate(4f)) {
-            Stamp("First edition")
+        Text(
+            paper.trim().ifEmpty { placeholder },
+            style = display(32).copy(color = if (paper.isBlank()) Press.ink3 else Press.ink),
+            maxLines = 2, overflow = TextOverflow.Ellipsis,
+        )
+        Hairline()
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            PublisherTile("Your first link", Modifier.size(88.dp, 64.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Share a link and it becomes the lead story.", style = display(17))
+                Text("${name.trim().ifEmpty { "You" }} · 1 member", style = MetaStyle.copy(color = Press.ink3), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
     }
 }

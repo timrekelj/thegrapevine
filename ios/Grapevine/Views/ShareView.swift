@@ -8,8 +8,7 @@ struct ShareView: View {
     var notice: String?
     /// Replaces dismissing the sheet; the share extension completes its request.
     var close: (() -> Void)?
-    /// Opens a bug report for a failed post; nil in the share extension, which has no report form.
-    var onReport: ((String) -> Void)?
+    var onOpenStory: ((UUID) -> Void)?
     @Environment(\.dismiss) private var dismiss
     @State private var url: String
     @State private var comment = ""
@@ -17,14 +16,18 @@ struct ShareView: View {
     @State private var result: String?
     /// Set when the link is on the paper, for the success tap.
     @State private var filed = false
+    @State private var filedStoryId: UUID?
+    /// Opens a bug report for a failed post; nil in the share extension, which has no report form.
+    var onReport: ((String) -> Void)?
     @State private var failed = false
     @FocusState private var editing: Bool
 
-    init(group: Group?, url: String = "", notice: String? = nil, close: (() -> Void)? = nil, onReport: ((String) -> Void)? = nil) {
+    init(group: Group?, url: String = "", notice: String? = nil, close: (() -> Void)? = nil, onOpenStory: ((UUID) -> Void)? = nil, onReport: ((String) -> Void)? = nil) {
+        self.onReport = onReport
         self.group = group
         self.notice = notice
         self.close = close
-        self.onReport = onReport
+        self.onOpenStory = onOpenStory
         _url = State(initialValue: url)
     }
 
@@ -35,14 +38,7 @@ struct ShareView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Kicker(text: "Filing for \(group?.name ?? "your paper")", color: Theme.ink2)
-                        Text("Found a good read?")
-                            .font(Theme.headline(32)).fixedSize(horizontal: false, vertical: true)
-                        Text("Share it with your paper.")
-                            .font(Theme.serif(17)).foregroundColor(Theme.ink2)
-                    }
-                    DoubleRule().padding(.bottom, 6)
+                    Text("Share a link").font(Theme.headline(30)).padding(.bottom, 8)
                     if let notice {
                         Text(notice).font(Theme.serif(17))
                     } else {
@@ -64,12 +60,18 @@ struct ShareView: View {
                 }
             }
         }
-        .presentationDetents([.height(580), .large])
+        .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
     }
 
     @ViewBuilder private var form: some View {
-        Kicker(text: "Link")
+        if busy || filed {
+            FilingMark(busy: busy, confirmed: filed).frame(maxWidth: .infinity)
+            if busy { Text("Reading the page").font(Theme.headline(24)).frame(maxWidth: .infinity) }
+            if filed { Text("+1 source").font(Theme.headline(34)).frame(maxWidth: .infinity) }
+        }
+        if !filed {
+        FieldLabel(text: "Link")
         TextField("https://…", text: $url)
             .focused($editing)
             .keyboardType(.URL)
@@ -77,8 +79,8 @@ struct ShareView: View {
             .textContentType(.URL)
             .paperField()
         HStack(spacing: 6) {
-            Kicker(text: "Your comment")
-            Text("(optional)").font(Theme.mono(11)).foregroundColor(Theme.ink3)
+            FieldLabel(text: "Add a line")
+            Text("(optional)").font(Theme.text(13)).foregroundColor(Theme.ink3)
         }
         .padding(.top, 4)
         TextField("Add a thought", text: $comment, axis: .vertical)
@@ -86,7 +88,8 @@ struct ShareView: View {
             .padding(.vertical, 12)
             .paperField()
         Text("Everyone in \(group?.name ?? "your paper") sees this with your name.")
-            .font(Theme.mono(11)).foregroundColor(Theme.ink3)
+            .font(Theme.text(13)).foregroundColor(Theme.ink3)
+        }
         if let result {
             Text(result).font(Theme.serif(17)).padding(.vertical, 4).arrives()
             if failed, let onReport {
@@ -97,13 +100,23 @@ struct ShareView: View {
                     .arrives()
             }
         }
+        if !filed {
         Button { Task { await post() } } label: {
-            Text("Share with your paper")
+            Text("File it")
         }
         .buttonStyle(InkButtonStyle(enabled: !(busy || url.trimmed.isEmpty || group == nil), busy: busy))
         .disabled(busy || url.trimmed.isEmpty || group == nil)
         .busyAccessibility(busy, "Filing…")
         .padding(.top, 6)
+        }
+        if filed, let filedStoryId {
+            if let onOpenStory {
+                Button("Open the story") { finish(); onOpenStory(filedStoryId) }.buttonStyle(InkButtonStyle())
+            } else {
+                Link("Open the story", destination: Config.webURL.appending(path: "story/\(filedStoryId.uuidString.lowercased())"))
+                    .buttonStyle(InkButtonStyle())
+            }
+        }
         if result != nil {
             Button("Done") { finish() }
                 .font(.system(size: 15, weight: .medium)).underline().foregroundColor(Theme.ink)
@@ -128,11 +141,12 @@ struct ShareView: View {
             let submitted: SubmitResult = try await API.postObject(SubmitResult.self, path: "functions/v1/submit-source",
                 body: SubmitBody(group_id: group.id, url: url.trimmed,
                                 comment: comment.trimmed.isEmpty ? nil : comment.trimmed))
-            filed = submitted.status != "duplicate"
+            filed = ["joined", "new_story"].contains(submitted.status)
+            filedStoryId = submitted.story_id
             let title = submitted.story_title.flatMap { $0.isEmpty ? nil : $0 } ?? "the story"
             switch submitted.status {
             case "duplicate":
-                result = "Your contribution was not added because it was a duplicate."
+                result = "Already in the paper. Your link was not added again."
             case "joined":
                 result = "Filed under \(title)."
             case "new_story":
@@ -141,8 +155,8 @@ struct ShareView: View {
                 result = "Posted."
             }
         } catch {
-            result = error.localizedDescription
             failed = true
+            result = error.localizedDescription
         }
         busy = false
     }

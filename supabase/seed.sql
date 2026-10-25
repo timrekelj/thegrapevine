@@ -28,12 +28,13 @@ insert into public.groups (id, name, invite_code, created_by) values
   ('00000000-0000-0000-0000-0000000000a1', 'The Grapevine', 'grapevinedemo', '00000000-0000-0000-0000-000000000001')
 on conflict (id) do nothing;
 
-insert into public.group_members (group_id, user_id, role, last_seen_at) values
-  ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-000000000001', 'owner',  now() - interval '30 minutes'),
-  ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-000000000002', 'member', now() - interval '2 hours'),
-  ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-000000000003', 'member', now() - interval '2 hours'),
-  ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-000000000004', 'member', now() - interval '2 hours'),
-  ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-000000000005', 'member', now() - interval '2 hours')
+-- joined_at sets each member's colour: the founder raspberry, then marigold, terra, sky, grape.
+insert into public.group_members (group_id, user_id, role, last_seen_at, joined_at) values
+  ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-000000000001', 'owner',  now() - interval '30 minutes', now() - interval '14 days'),
+  ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-000000000002', 'member', now() - interval '2 hours',    now() - interval '13 days'),
+  ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-000000000003', 'member', now() - interval '2 hours',    now() - interval '12 days'),
+  ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-000000000004', 'member', now() - interval '2 hours',    now() - interval '11 days'),
+  ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-000000000005', 'member', now() - interval '2 hours',    now() - interval '10 days')
 on conflict do nothing;
 
 -- stories

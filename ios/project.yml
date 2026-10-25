@@ -34,7 +34,7 @@ targets:
         # Only standard HTTPS encryption, so no export-compliance documents are needed.
         ITSAppUsesNonExemptEncryption: false
         UILaunchScreen: {}
-        UIAppFonts: [UnifrakturMaguntia-Regular.ttf, Newsreader-Display-SemiBold.ttf, Newsreader-Text-Regular.ttf, Newsreader-Text-SemiBold.ttf, Newsreader-Text-Italic.ttf, Newsreader-Text-MediumItalic.ttf, IBMPlexMono-Medium.ttf, IBMPlexMono-SemiBold.ttf]
+        UIAppFonts: [BricolageGrotesque.ttf]
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UIBackgroundModes: [remote-notification]
         # Debug only: removed from other configurations by a build phase below.
@@ -125,18 +125,15 @@ targets:
       - path: Grapevine/Theme.swift
       - path: Grapevine/Press.swift
       - path: Grapevine/Views/ShareView.swift
-      # Only the faces the share form sets (see ShareView): mono for kickers, the display headline, the text serif.
-      - path: Grapevine/Resources/Fonts/IBMPlexMono-Medium.ttf
-      - path: Grapevine/Resources/Fonts/IBMPlexMono-SemiBold.ttf
-      - path: Grapevine/Resources/Fonts/Newsreader-Display-SemiBold.ttf
-      - path: Grapevine/Resources/Fonts/Newsreader-Text-Regular.ttf
+      # The display face for the share form's titles; its UI text is SF Pro.
+      - path: Grapevine/Resources/Fonts/BricolageGrotesque.ttf
     info:
       path: ShareExtension/Info.plist
       properties:
         CFBundleDisplayName: The Grapevine
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        UIAppFonts: [Newsreader-Display-SemiBold.ttf, Newsreader-Text-Regular.ttf, IBMPlexMono-Medium.ttf, IBMPlexMono-SemiBold.ttf]
+        UIAppFonts: [BricolageGrotesque.ttf]
         # Debug only: removed from other configurations by a build phase below.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true

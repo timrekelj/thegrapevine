@@ -17,7 +17,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -95,18 +95,19 @@ fun ProfileScreen(app: AppState, onSignOut: () -> Unit) {
     }
 
     Column(
-        Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 14.dp),
+        Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(top = 4.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        Column {
-            Text("Your Corner", style = nameplate(44), modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-            DoubleRule()
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            app.profile?.let { Avatar(it.id, 60.dp) }
-            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                Text(app.profile?.display_name ?: "Your account", style = display(26))
-                Text(app.session?.email.orEmpty(), style = MetaStyle)
+        Text("You", style = display(30))
+        Row(
+            Modifier.fillMaxWidth().card(Corner).padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            app.profile?.let { MemberDisc(it.id, it.display_name, 48.dp) }
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(app.profile?.display_name ?: "Your account", style = NameStyle.copy(fontSize = 17.sp))
+                Text(app.session?.email.orEmpty(), style = MetaStyle.copy(color = Press.ink3))
             }
         }
         Column(
@@ -115,7 +116,7 @@ fun ProfileScreen(app: AppState, onSignOut: () -> Unit) {
         ) {
             SectionHead("Your name")
             Text("This is how you appear to your friends.", style = MetaStyle)
-            PaperField(name, { name = it; nameSaved = false; nameError = null }, "Display name", enabled = !savingName)
+            PaperField(name, { name = it; nameSaved = false; nameError = null }, "What friends call you", label = "Display name", enabled = !savingName)
             val canSave = !savingName && !accountBusy && name.trim().isNotEmpty() && name.trim().length <= 80 && name.trim() != app.profile?.display_name
             InkButton("Save name", enabled = canSave, busy = savingName, busyLabel = "Saving…") {
                 savingName = true
@@ -232,11 +233,11 @@ private fun PreferenceToggle(title: String, detail: String, checked: Boolean, en
 @Composable
 private fun SettingsLink(title: String, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().pressable(give = Give.Story, role = Role.Button, onClick = onClick).heightIn(min = 44.dp),
+        Modifier.fillMaxWidth().pressable(give = Give.Story, role = Role.Button, onClick = onClick).heightIn(min = 48.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(title, style = BodyStyle.copy(fontSize = 16.sp), modifier = Modifier.weight(1f))
         Spacer(Modifier.padding(4.dp))
-        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Press.ink)
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Press.ink3)
     }
 }

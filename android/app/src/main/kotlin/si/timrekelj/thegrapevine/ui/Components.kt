@@ -2,26 +2,19 @@ package si.timrekelj.thegrapevine.ui
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.BitmapShader
 import android.graphics.Canvas
-import android.graphics.ColorMatrix
-import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
 import android.graphics.Rect
-import android.graphics.Shader
 import android.util.LruCache
 import androidx.core.graphics.createBitmap
-import androidx.core.graphics.get
-import androidx.core.graphics.scale
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -30,54 +23,46 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.ImageShader
-import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.ShaderBrush
-import androidx.compose.ui.graphics.TileMode
-import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.UriHandler
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.times
-import androidx.compose.ui.zIndex
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
@@ -86,37 +71,37 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import si.timrekelj.thegrapevine.Api
-import si.timrekelj.thegrapevine.Config
-import si.timrekelj.thegrapevine.Plate
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.roundToInt
 
+val LocalMemberNames = staticCompositionLocalOf<Map<String, String>> { emptyMap() }
+
 val LocalApi = staticCompositionLocalOf<Api> { error("No Api provided") }
 
-/** Square-ish corners for fields and buttons, like the web's 3px radius. */
-val Corner = RoundedCornerShape(3.dp)
+/** Thumbnails and clip cards. */
+val Corner = RoundedCornerShape(14.dp)
 
-// ---------- avatars ----------
+/** Fields and chips. */
+val FieldCorner = RoundedCornerShape(10.dp)
 
-/** A member's Disco disc from the web's `/avatar/<id>.png`, generated from their id. */
+/** The lead card and the catch-up card. */
+val CardCorner = RoundedCornerShape(28.dp)
+
+/** Bottom sheets: the top corners of [CardCorner]. */
+val SheetCorner = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+
+// ---------- people ----------
+
+/** A member's disc: their initial on their own hue (see [MemberDisc]), named from [LocalMemberNames]. */
 @Composable
 fun Avatar(seed: String, size: Dp = 32.dp, modifier: Modifier = Modifier) {
-    val api = LocalApi.current
-    val url = "${Config.webURL}/avatar/$seed.png"
-    val image by produceState(Pictures.cached(url)?.asImageBitmap(), url) {
-        if (value != null) return@produceState
-        Pictures.load(url) { api.fetchBytes(url).let { BitmapFactory.decodeByteArray(it, 0, it.size) } }
-            ?.let { value = it.asImageBitmap() }
-    }
-    Box(modifier.size(size).clip(CircleShape).background(Press.tint)) {
-        image?.let { Image(it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.matchParentSize()) }
-    }
+    MemberDisc(seed, LocalMemberNames.current[seed].orEmpty(), size, modifier)
 }
 
-/** Overlapping avatars with a ring of paper between them. */
+/** Overlapping discs with a ring of the ground between them. */
 @Composable
 fun AvatarStack(seeds: List<String>, size: Dp = 26.dp) {
     val ring = Press.paper
@@ -132,22 +117,16 @@ fun AvatarStack(seeds: List<String>, size: Dp = 26.dp) {
 
 // ---------- marks ----------
 
-/** A block of red, set square: the only stamp on the page means "new". */
+/** The vine-green pill that means "new to you", like "3 new" on the lead photo. */
 @Composable
-fun Stamp(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text.uppercase(),
-        style = LabelStyle.copy(color = Press.onRed, fontSize = 10.sp, letterSpacing = 0.06.sp),
-        modifier = modifier.background(Press.red).padding(horizontal = 7.dp, vertical = 3.dp),
-    )
-}
-
-/** "New to you": a red dot before the count. */
-@Composable
-fun NewMark(text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        NewDot()
-        Text(text, style = MetaStyle.copy(color = Press.ink, fontWeight = FontWeight.SemiBold))
+fun NewBadge(text: String, modifier: Modifier = Modifier) {
+    Row(
+        modifier.background(Press.red, CircleShape).padding(start = 10.dp, end = 12.dp, top = 5.dp, bottom = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(Modifier.size(6.dp).background(Press.onRed, CircleShape))
+        Text(text, style = MetaStyle.copy(color = Press.onRed, fontWeight = FontWeight.SemiBold))
     }
 }
 
@@ -156,53 +135,33 @@ fun MetaRow(text: String, modifier: Modifier = Modifier) {
     Text(text, style = MetaStyle, modifier = modifier)
 }
 
-/** Thick-and-thin rule under a nameplate. */
-@Composable
-fun DoubleRule(modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxWidth()) {
-        Box(Modifier.fillMaxWidth().height(3.dp).background(Press.ink))
-        Spacer(Modifier.height(2.dp))
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Press.ink))
-    }
-}
-
 @Composable
 fun Hairline(modifier: Modifier = Modifier, color: Color = Press.rule) {
     Box(modifier.fillMaxWidth().height(1.dp).background(color))
 }
 
-/** A section head: a heavy rule, then an italic serif title. */
+/** A section title in the display face, like "The conversation". */
 @Composable
 fun SectionHead(title: String, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxWidth()) {
-        Box(Modifier.fillMaxWidth().height(3.dp).background(Press.ink))
-        Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(title, style = SectionStyle)
-            Spacer(Modifier.size(14.dp))
-            Hairline(Modifier.weight(1f))
-        }
-    }
+    Text(title, style = SectionStyle, modifier = modifier.fillMaxWidth())
 }
 
-/** The dashed edge of a clipping cut from the page. */
-fun Modifier.clipping(color: Color, fill: Color): Modifier = drawBehind {
-    drawRect(fill)
-    val inset = 0.5.dp.toPx()
-    drawRoundRect(
-        color = color,
-        topLeft = Offset(inset, inset),
-        size = androidx.compose.ui.geometry.Size(size.width - inset * 2, size.height - inset * 2),
-        cornerRadius = CornerRadius.Zero,
-        style = Stroke(width = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))),
-    )
+/**
+ * A raised object on the ground (a clip card, the lead card): the raised fill with a soft pillow
+ * shadow in light mode. Dark mode lifts by the lighter fill alone.
+ */
+fun Modifier.card(shape: Shape = Corner): Modifier = composed {
+    val palette = LocalPalette.current
+    val lifted = if (palette.isDark) this else shadow(10.dp, shape, ambientColor = palette.ink.copy(alpha = 0.04f), spotColor = palette.ink.copy(alpha = 0.16f))
+    lifted.clip(shape).background(palette.raised)
 }
 
 // ---------- buttons & fields ----------
 
 /**
- * An ink block; the main action. It sinks like a stamp when pressed and taps the haptic engine.
- * While [busy] the label stays set but unseen, so the block keeps its size, and ink dots in paper
- * colour print over it; [busyLabel] ("Sending…") is what TalkBack reads meanwhile.
+ * The main action: an ink capsule. It sinks a little when pressed and taps the haptic engine.
+ * While [busy] the label stays in place but unseen, so the capsule keeps its size, and three dots
+ * pulse over it; [busyLabel] ("Sending…") is what TalkBack reads meanwhile.
  */
 @Composable
 fun InkButton(
@@ -221,7 +180,7 @@ fun InkButton(
         modifier
             .pressable(enabled = enabled && !busy, haptic = true, role = Role.Button, onClick = onClick)
             .semantics { if (busy) contentDescription = busyLabel ?: text }
-            .heightIn(min = height).clip(Corner)
+            .heightIn(min = height).clip(CircleShape)
             .background(if (live) fill else fill.copy(alpha = 0.4f))
             .padding(horizontal = 18.dp),
         contentAlignment = Alignment.Center,
@@ -232,7 +191,7 @@ fun InkButton(
     }
 }
 
-/** A ruled outline; the secondary action. Busy the same way as [InkButton], in ink. */
+/** The secondary action: a tonal capsule. Busy the same way as [InkButton], in ink. */
 @Composable
 fun GhostButton(
     text: String,
@@ -247,17 +206,17 @@ fun GhostButton(
         modifier
             .pressable(enabled = enabled && !busy, role = Role.Button, onClick = onClick)
             .semantics { if (busy) contentDescription = busyLabel ?: text }
-            .heightIn(min = 46.dp).clip(Corner).border(1.dp, if (live) Press.rule else Color.Transparent, Corner)
-            .padding(horizontal = 16.dp),
+            .heightIn(min = 48.dp).clip(CircleShape).background(Press.tint)
+            .padding(horizontal = 18.dp),
         contentAlignment = Alignment.Center,
     ) {
         Busy(busy, Press.ink) {
-            Text(text, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = if (live) Press.ink else Press.ink3, textAlign = TextAlign.Center)
+            Text(text, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = if (live) Press.ink else Press.ink3, textAlign = TextAlign.Center)
         }
     }
 }
 
-/** The label crossfades to ink dots while busy; the label still sets the size underneath. */
+/** The label crossfades to [InkDots] while busy; the label still sets the size underneath. */
 @Composable
 private fun Busy(busy: Boolean, ink: Color, label: @Composable () -> Unit) {
     val shown by animateFloatAsState(if (busy) 0f else 1f, tween(180), label = "busy")
@@ -267,7 +226,7 @@ private fun Busy(busy: Boolean, ink: Color, label: @Composable () -> Unit) {
     }
 }
 
-/** An underlined text action, like the web's `.story-text-button`. The ink lifts when pressed. */
+/** An underlined text action, like "What changed". It fades a little when pressed. */
 @Composable
 fun TextAction(text: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClickLabel: String? = null, onClick: () -> Unit) {
     Text(
@@ -275,124 +234,110 @@ fun TextAction(text: String, modifier: Modifier = Modifier, enabled: Boolean = t
         style = MetaStyle.copy(
             color = if (enabled) Press.ink else Press.ink3,
             fontWeight = FontWeight.SemiBold,
-            textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline,
+            textDecoration = TextDecoration.Underline,
         ),
         modifier = modifier.pressable(enabled = enabled, give = Give.Type, onClickLabel = onClickLabel, role = Role.Button, onClick = onClick)
             .padding(vertical = 6.dp),
     )
 }
 
+/**
+ * A Material filled text field on the raised-2 fill. With a [label] the label floats inside the
+ * field ("Link", "Add a line (optional)"); [pill] makes the composer's capsule without an indicator.
+ */
 @Composable
 fun PaperField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
     modifier: Modifier = Modifier.fillMaxWidth(),
+    label: String? = null,
     keyboardType: KeyboardType = KeyboardType.Text,
     singleLine: Boolean = true,
     enabled: Boolean = true,
     isError: Boolean = false,
     keyboardOptions: KeyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-    keyboardActions: androidx.compose.foundation.text.KeyboardActions = androidx.compose.foundation.text.KeyboardActions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    pill: Boolean = false,
 ) {
-    OutlinedTextField(
+    TextField(
         value = value,
         enabled = enabled,
         onValueChange = onValueChange,
+        label = label?.let { { Text(it) } },
         placeholder = { Text(placeholder, style = BodyStyle.copy(color = Press.ink3)) },
         singleLine = singleLine,
         isError = isError,
         textStyle = BodyStyle,
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
-        shape = Corner,
-        colors = fieldColors(),
+        shape = if (pill) CircleShape else RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = Press.raised2, unfocusedContainerColor = Press.raised2,
+            disabledContainerColor = Press.raised2, errorContainerColor = Press.raised2,
+            focusedIndicatorColor = if (pill) Color.Transparent else Press.ink,
+            unfocusedIndicatorColor = if (pill) Color.Transparent else Press.ink3,
+            disabledIndicatorColor = if (pill) Color.Transparent else Press.rule,
+            errorIndicatorColor = Press.danger,
+            focusedLabelColor = Press.ink2, unfocusedLabelColor = Press.ink3, errorLabelColor = Press.danger,
+            cursorColor = Press.ink, errorCursorColor = Press.danger,
+            focusedTextColor = Press.ink, unfocusedTextColor = Press.ink, errorTextColor = Press.ink,
+            disabledTextColor = Press.ink3,
+        ),
         modifier = modifier,
     )
 }
 
-@Composable
-fun fieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedContainerColor = Press.raised,
-    unfocusedContainerColor = Press.raised,
-    disabledContainerColor = Press.raised,
-    errorContainerColor = Press.raised,
-    focusedBorderColor = Press.ink,
-    unfocusedBorderColor = Press.rule,
-    errorBorderColor = Press.danger,
-    cursorColor = Press.ink,
-    focusedTextColor = Press.ink,
-    unfocusedTextColor = Press.ink,
-    errorTextColor = Press.ink,
-)
-
-// ---------- plates ----------
+// ---------- photographs ----------
 
 /**
- * A photograph printed in colour through a halftone screen (see [Plate]), or — without a usable
- * picture — a type plate with the publisher's name. `screen = false` prints the photo clean.
+ * A source's own preview photo, shown clean and cropped to fill the frame, or (without a usable
+ * picture) a plain tile with the publisher's name. [shape] is the frame: 14 for thumbnails and
+ * clips, none when a card already clips it.
  */
 @Composable
-fun PlateView(url: String?, label: String, modifier: Modifier = Modifier, screen: Boolean = true) {
+fun PhotoView(url: String?, label: String, modifier: Modifier = Modifier, shape: Shape = Corner) {
     val api = LocalApi.current
-    val palette = LocalPalette.current
-    BoxWithConstraints(modifier.clip(RectangleShape).background(palette.tint), contentAlignment = Alignment.Center) {
-        // Printed at the pixel size it is shown, so a thumbnail costs a thumbnail's memory.
+    BoxWithConstraints(modifier.clip(shape).background(Press.tint), contentAlignment = Alignment.Center) {
+        // Decoded at the pixel size it is shown, so a thumbnail costs a thumbnail's memory.
         val width = if (constraints.hasBoundedWidth) constraints.maxWidth else 0
         val height = if (constraints.hasBoundedHeight) constraints.maxHeight else 0
-        val columns = if (screen) Plate.columns(maxWidth.value) else 0
-        val key = "$url|${width}x$height|$columns|${palette.isDark}"
+        val key = "$url|${width}x$height"
         val image by produceState(url?.let { Pictures.cached(key)?.asImageBitmap() }, key) {
             if (url == null || value != null || width <= 0) return@produceState
-            Pictures.load(key) { Pictures.bytes(url) { api.fetchBytes(url) }?.let { print(it, width, height, columns, palette) } }
+            Pictures.load(key) { Pictures.bytes(url) { api.fetchBytes(url) }?.let { decodeToBox(it, width, height) } }
                 ?.let { value = it.asImageBitmap() }
         }
         val bitmap: ImageBitmap? = image
         if (bitmap != null) {
             Image(bitmap, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.matchParentSize())
         } else {
-            TypePlate(label, Modifier.matchParentSize())
+            PublisherTile(label, Modifier.matchParentSize(), shape)
         }
     }
 }
 
-/** A source with no picture: the publisher's name on a light screen. */
+/** A source with no picture: the publisher's name in the display face on a raised-2 tile. */
 @Composable
-fun TypePlate(label: String, modifier: Modifier = Modifier) {
-    val dots = Press.rule
-    val density = LocalDensity.current
-    val screen = remember(dots, density) { with(density) { dotScreen(dots, 4.dp.toPx(), 0.9.dp.toPx()) } }
-    BoxWithConstraints(modifier.background(Press.raised).border(1.dp, Press.rule), contentAlignment = Alignment.Center) {
-        Box(Modifier.matchParentSize().background(screen))
-        val fontSize = (maxWidth.value * 0.12f).coerceIn(11f, 30f)
+fun PublisherTile(label: String, modifier: Modifier = Modifier, shape: Shape = Corner) {
+    BoxWithConstraints(modifier.clip(shape).background(Press.raised2), contentAlignment = Alignment.Center) {
+        val fontSize = (maxWidth.value * 0.16f).coerceIn(11f, 18f)
         Text(
             label,
-            style = BodyStyle.copy(fontStyle = FontStyle.Italic, fontWeight = FontWeight.SemiBold, fontSize = fontSize.sp, lineHeight = (fontSize * 1.08f).sp, textAlign = TextAlign.Center),
+            style = display(18).copy(color = Press.ink2, fontSize = fontSize.sp, lineHeight = (fontSize * 1.12f).sp, textAlign = TextAlign.Center),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(8.dp).background(Press.raised).padding(horizontal = 5.dp, vertical = 2.dp),
+            modifier = Modifier.padding(8.dp),
         )
     }
 }
 
-/** One dot of the type plate's light screen, tiled across the plate in a single draw. */
-private fun dotScreen(color: Color, step: Float, radius: Float): ShaderBrush {
-    val size = step.roundToInt().coerceAtLeast(2)
-    val tile = ImageBitmap(size, size)
-    androidx.compose.ui.graphics.Canvas(tile).drawCircle(
-        Offset(size / 2f, size / 2f),
-        radius,
-        androidx.compose.ui.graphics.Paint().apply { this.color = color; isAntiAlias = true },
-    )
-    return ShaderBrush(ImageShader(tile, TileMode.Repeated, TileMode.Repeated))
-}
-
 /**
- * Decoded pictures shared by every avatar and plate on screen. Each picture is fetched and printed
- * once at a time however many views ask for it; the work runs off the main thread.
+ * Decoded pictures shared by every photo on screen. Each picture is fetched and decoded once at a
+ * time however many views ask for it; the work runs off the main thread.
  */
 private object Pictures {
-    private val printed = object : LruCache<String, Bitmap>(24 * 1024 * 1024) {
+    private val decoded = object : LruCache<String, Bitmap>(24 * 1024 * 1024) {
         override fun sizeOf(key: String, value: Bitmap) = value.byteCount
     }
 
@@ -405,10 +350,10 @@ private object Pictures {
     private val inFlight = HashMap<String, Deferred<Any?>>()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-    fun cached(key: String): Bitmap? = printed.get(key)
+    fun cached(key: String): Bitmap? = decoded.get(key)
 
     suspend fun load(key: String, make: suspend () -> Bitmap?): Bitmap? =
-        printed.get(key) ?: share(key) { make()?.also { printed.put(key, it) } } as Bitmap?
+        decoded.get(key) ?: share(key) { make()?.also { decoded.put(key, it) } } as Bitmap?
 
     suspend fun bytes(url: String, fetch: suspend () -> ByteArray): ByteArray? =
         downloads.get(url) ?: share("bytes|$url") { fetch().also { downloads.put(url, it) } } as ByteArray?
@@ -429,10 +374,9 @@ private object Pictures {
 
 /**
  * Decodes the photo, crops it to the box the way [ContentScale.Crop] would, and scales it to the box's
- * pixels. With `columns > 0` it is then printed through a dot screen that many dots wide.
- * A `height` of 0 keeps the photo's own proportions.
+ * pixels. A `height` of 0 keeps the photo's own proportions.
  */
-private fun print(bytes: ByteArray, width: Int, height: Int, columns: Int, palette: Palette): Bitmap? {
+private fun decodeToBox(bytes: ByteArray, width: Int, height: Int): Bitmap? {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
     if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
@@ -446,48 +390,45 @@ private fun print(bytes: ByteArray, width: Int, height: Int, columns: Int, palet
     val cropHeight = (boxHeight / scale).roundToInt().coerceIn(1, decoded.height)
     val left = (decoded.width - cropWidth) / 2
     val top = (decoded.height - cropHeight) / 2
-    val source = createBitmap(width, boxHeight)
-    Canvas(source).drawBitmap(
+    val boxed = createBitmap(width, boxHeight)
+    Canvas(boxed).drawBitmap(
         decoded,
         Rect(left, top, left + cropWidth, top + cropHeight),
         Rect(0, 0, width, boxHeight),
         Paint(Paint.FILTER_BITMAP_FLAG),
     )
     decoded.recycle()
-    if (columns <= 0) return source
+    return boxed
+}
 
-    // The colour plate: a little extra saturation (and light, on black paper) for the ink lost between dots.
-    val colour = createBitmap(source.width, source.height)
-    val matrix = ColorMatrix().apply {
-        setSaturation(Plate.SATURATION)
-        if (palette.isDark) postConcat(ColorMatrix().apply { setScale(1.12f, 1.12f, 1.12f, 1f) })
-    }
-    Canvas(colour).drawBitmap(source, 0f, 0f, Paint().apply { colorFilter = ColorMatrixColorFilter(matrix) })
+// ---------- glyphs ----------
 
-    // Luminance per cell, on a grid whose alternate rows are offset by half a dot.
-    val pitch = source.width.toFloat() / columns
-    val rowStep = pitch * 0.866f
-    val rows = (source.height / rowStep).roundToInt().coerceAtLeast(1)
-    val grid = source.scale(columns, rows)
-    source.recycle()
+/** Material Symbols outlines that the core icon set lacks, drawn from their 24-unit paths. */
+private fun glyph(name: String, path: String): ImageVector =
+    ImageVector.Builder(name, 24.dp, 24.dp, 24f, 24f)
+        .addPath(PathParser().parsePathString(path).toNodes(), fill = SolidColor(Color.Black))
+        .build()
 
-    val printed = createBitmap(colour.width, colour.height)
-    val canvas = Canvas(printed)
-    canvas.drawColor(palette.paper.toArgb())
-    val ink = Paint(Paint.ANTI_ALIAS_FLAG).apply { shader = BitmapShader(colour, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP) }
-    for (row in 0 until rows) {
-        val y = (row + 0.5f) * rowStep
-        val shift = if (row % 2 == 1) 0.5f else 0f
-        for (column in 0..columns) {
-            val x = (column + 0.25f + shift) * pitch
-            val pixel = grid[column.coerceAtMost(columns - 1), row]
-            val r = Plate.radius(Plate.luminance((pixel shr 16) and 0xFF, (pixel shr 8) and 0xFF, pixel and 0xFF), palette.isDark) * pitch
-            if (r > 0.15f) canvas.drawCircle(x, y, r, ink)
-        }
-    }
-    grid.recycle()
-    colour.recycle()
-    return printed
+/** "link", on the Share a link button. */
+val LinkGlyph: ImageVector by lazy {
+    glyph(
+        "Link",
+        "M3.9,12c0,-1.71 1.39,-3.1 3.1,-3.1h4V7H7c-2.76,0 -5,2.24 -5,5s2.24,5 5,5h4v-1.9H7c-1.71,0 -3.1,-1.39 -3.1,-3.1z" +
+            "M8,13h8v-2H8v2zM17,7h-4v1.9h4c1.71,0 3.1,1.39 3.1,3.1s-1.39,3.1 -3.1,3.1h-4V17h4c2.76,0 5,-2.24 5,-5s-2.24,-5 -5,-5z",
+    )
+}
+
+/** "open_in_new", on a clip that opens its source. */
+val OpenInNewGlyph: ImageVector by lazy {
+    glyph(
+        "OpenInNew",
+        "M19,19H5V5h7V3H5c-1.11,0 -2,0.9 -2,2v14c0,1.1 0.89,2 2,2h14c1.1,0 2,-0.9 2,-2v-7h-2v7zM14,3v2h3.59l-9.83,9.83 1.41,1.41L19,6.41V10h2V3h-7z",
+    )
+}
+
+/** "arrow_upward", on the composer's send button. */
+val ArrowUpGlyph: ImageVector by lazy {
+    glyph("ArrowUpward", "M4,12l1.41,1.41L11,7.83V20h2V7.83l5.58,5.59L20,12l-8,-8 -8,8z")
 }
 
 // ---------- links ----------
@@ -518,4 +459,3 @@ fun clock(instant: Instant): String =
 fun dayLabel(instant: Instant): String =
     DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.getDefault())
         .format(instant.atZone(ZoneId.systemDefault()))
-        .uppercase()

@@ -1,14 +1,13 @@
 import Link from '@/components/print/PressLink'
+import Brand from '@/components/print/Brand'
 import styles from './legal.module.css'
 
 export default function LegalLayout({ children }: { children: React.ReactNode }) {
   return (
     <main className={styles.page}>
       <header>
-        <Link href="/" className="nameplate">The Grapevine</Link>
-        <div className="double-rule" />
+        <Brand />
         <nav aria-label="Legal pages">
-          <span>Public notices</span>
           <Link href="/terms">Terms of Service</Link>
           <Link href="/privacy">Privacy Policy</Link>
         </nav>

@@ -208,7 +208,7 @@ class Api(
     /**
      * A short-lived signed URL, or the original URL when it is already absolute. Signed URLs are
      * reused while they have a while left, so a photo scrolled away and back keeps the same URL and
-     * comes from the picture caches instead of being signed, downloaded and printed again.
+     * comes from the picture caches instead of being signed, downloaded and decoded again.
      */
     suspend fun mediaURL(path: String): String {
         if (path.startsWith("http://") || path.startsWith("https://")) return path
@@ -226,7 +226,7 @@ class Api(
     }
 
     /**
-     * Raw bytes for avatars and the halftone plates; Coil is deliberately not a dependency.
+     * Raw bytes for the photos on stories and in messages; Coil is deliberately not a dependency.
      * Image URLs come from scraped pages, so the size is capped rather than trusted.
      */
     suspend fun fetchBytes(url: String): ByteArray {

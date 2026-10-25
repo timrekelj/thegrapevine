@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
 
 /**
- * The paper's loading mark, in place of a spinner: three dots of ink printed one after another.
- * With a `kicker` it is set as a mono line ("Going to press"); otherwise `label` is read out only.
+ * The loading mark, in place of a spinner: three dots that brighten in turn.
+ * With a `kicker` it is shown as a short line of text; otherwise `label` is read out only.
  * `status={false}` inside a control, where `aria-busy` already says it is working.
  */
 export default function InkDots({ label = 'Loading', kicker, size = 'md', status = true, className = '' }: {

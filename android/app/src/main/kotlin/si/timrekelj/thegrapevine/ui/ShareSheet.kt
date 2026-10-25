@@ -1,6 +1,8 @@
 package si.timrekelj.thegrapevine.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
@@ -45,23 +47,20 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", on
     var busy by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<String?>(null) }
     var failed by remember { mutableStateOf(false) }
+    var filed by remember { mutableStateOf(false) }
+    var filedStoryId by remember { mutableStateOf<String?>(null) }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = Press.paper,
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp),
+        containerColor = Press.raised,
+        shape = SheetCorner,
     ) {
         Column(
             Modifier.fillMaxWidth().imePadding().padding(horizontal = 20.dp).padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("FILING FOR ${(app.group?.name ?: "your paper").uppercase()}", style = LabelStyle.copy(color = Press.ink2))
-                Text("Share a link", style = display(32))
-            }
-            DoubleRule()
-            Text("Found something worth reading? Bring it to the table.", style = BodyStyle.copy(color = Press.ink2))
+            Text("Share a link", style = display(26))
             val notice = when {
                 !app.checked -> null
                 app.session == null -> "Sign in to The Grapevine to share links with your paper."
@@ -73,18 +72,26 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", on
                 onOpenApp?.let { InkButton("Open The Grapevine", onClick = it) }
                 return@Column
             }
-            Text("LINK", style = LabelStyle)
-            PaperField(url, { url = it }, "https://…", keyboardType = KeyboardType.Uri)
-            Text("YOUR COMMENT (OPTIONAL)", style = LabelStyle)
-            PaperField(comment, { comment = it }, "Why it caught your eye", singleLine = false)
-            app.group?.let { Text("Everyone in ${it.name} sees this with your name.", style = MetaStyle.copy(color = Press.ink3)) }
+            if (busy || filed) {
+                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    FilingMark(busy, filed)
+                    Text(if (filed) "+1 source" else "Reading the page", style = display(30))
+                }
+            }
+            if (!filed) {
+                PaperField(url, { url = it }, "https://…", label = "Link", keyboardType = KeyboardType.Uri)
+                PaperField(comment, { comment = it }, "Why it caught your eye", label = "Add a line (optional)", singleLine = false)
+                app.group?.let { Text("Everyone in ${it.name} sees this with your name.", style = MetaStyle.copy(color = Press.ink3)) }
+            }
             Insert(result) { message ->
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(message, style = BodyStyle.copy(fontWeight = FontWeight.SemiBold))
                     if (failed) ReportAction(message, "Share", before = onDismiss)
                 }
             }
-            InkButton("Share with your paper", enabled = !busy && url.isNotBlank() && app.group != null, busy = busy, busyLabel = "Posting…") {
+            if (!filed) Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (result == null) GhostButton("Cancel", enabled = !busy, modifier = Modifier.weight(1f), onClick = onDismiss)
+            InkButton("File it", enabled = !busy && url.isNotBlank() && app.group != null, modifier = Modifier.weight(1f), busy = busy, busyLabel = "Filing…") {
                 val group = app.group ?: return@InkButton
                 scope.launch {
                     busy = true
@@ -96,9 +103,11 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", on
                             encodeBody(SubmitBody(group.id, url.trim(), comment.trim().ifEmpty { null })),
                         )
                         // A 429 (too many links in ten minutes) arrives as ApiError with the server's message.
+                        filed = submitted.status in listOf("joined", "new_story")
+                        filedStoryId = submitted.story_id
                         val title = submitted.story_title?.takeIf { it.isNotBlank() } ?: "the story"
                         when (submitted.status) {
-                            "duplicate" -> "Your contribution was not added because it was a duplicate."
+                            "duplicate" -> "Already in the paper. Your link was not added again."
                             "joined" -> "Filed under $title."
                             "new_story" -> "New story: $title."
                             else -> "Posted."
@@ -110,6 +119,8 @@ fun ShareSheet(app: AppState, onDismiss: () -> Unit, initialUrl: String = "", on
                     busy = false
                 }
             }
+            }
+            if (filed && filedStoryId != null) InkButton("Open the story") { app.pendingStoryId = filedStoryId; onDismiss() }
             Insert(result) { GhostButton("Done", onClick = onDismiss) }
         }
     }

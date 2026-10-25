@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>The Grapevine, current app (before)</title>
+<link rel="stylesheet" href="file:///Users/timrekelj/.claude/skills/app-designer-pro/assets/device.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=IBM+Plex+Mono:wght@500;600&display=block" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4F1EA; --raised:#FBF9F4; --ink:#161513; --ink2:#4A4740; --ink3:#75716A;
+  --rule:rgba(22,21,19,.16); --tint:rgba(22,21,19,.06); --red:#C8231B; --on-red:#fff;
+  --nameplate:"UnifrakturMaguntia",serif; --serif:"Newsreader",Georgia,serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+.screen{background:var(--paper);color:var(--ink);font-family:var(--serif)}
+.screen[data-os="android"]{font-family:var(--serif)}
+.page{position:absolute;inset:var(--safe-top) 0 0;display:flex;flex-direction:column}
+.scroll{flex:1;min-height:0;overflow:hidden;padding:0 20px}
+.nameplate{font:400 46px/1 var(--nameplate);text-align:center;padding:12px 0 12px;margin:0}
+.double{height:6px;border-top:3px solid var(--ink);border-bottom:1px solid var(--ink)}
+.kick{font:600 10px/14px var(--mono);letter-spacing:.12em;text-transform:uppercase}
+.kick.red{color:var(--red)}
+.kick.dim{color:var(--ink2)}
+.row{display:flex;justify-content:space-between;align-items:center;padding:8px 0}
+.hair{height:1px;background:var(--rule)}
+.inkline{height:1px;background:var(--ink)}
+.date{font:500 16px/1.2 var(--serif);font-style:italic}
+.avs{display:flex}
+.av{width:24px;height:24px;border-radius:50%;border:2px solid var(--paper);margin-left:-5px;background:
+  radial-gradient(circle at 30% 30%, #D86A4A 1.6px, transparent 1.7px) 0 0/5px 5px,
+  radial-gradient(circle at 70% 70%, #2C5BB8 1.4px, transparent 1.5px) 2px 2px/5px 5px, #E8E1D4}
+.av:first-child{margin-left:0}
+.av.b{background:radial-gradient(circle at 30% 30%, #2C8A5B 1.6px, transparent 1.7px) 0 0/5px 5px,radial-gradient(circle at 70% 70%, #D8A24A 1.4px, transparent 1.5px) 2px 2px/5px 5px,#E8E1D4}
+.av.c{background:radial-gradient(circle at 30% 30%, #B8392C 1.6px, transparent 1.7px) 0 0/5px 5px,radial-gradient(circle at 70% 70%, #2C7BB8 1.4px, transparent 1.5px) 2px 2px/5px 5px,#E8E1D4}
+.av.d{background:radial-gradient(circle at 30% 30%, #7A4AB8 1.6px, transparent 1.7px) 0 0/5px 5px,radial-gradient(circle at 70% 70%, #D8D24A 1.4px, transparent 1.5px) 2px 2px/5px 5px,#E8E1D4}
+.av.e{background:radial-gradient(circle at 30% 30%, #2CA0B8 1.6px, transparent 1.7px) 0 0/5px 5px,radial-gradient(circle at 70% 70%, #D84A8A 1.4px, transparent 1.5px) 2px 2px/5px 5px,#E8E1D4}
+.sections{display:flex;gap:20px;padding:12px 0 10px;white-space:nowrap;overflow:hidden}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;height:44px;background:var(--ink);color:var(--paper);border-radius:3px;font:600 16px/1 -apple-system,"SF Pro",sans-serif;margin:0 0 10px}
+.btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
+.stamp{display:inline-block;background:var(--red);color:#fff;font:600 11px/14px var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:3px 7px;transform:rotate(-2deg)}
+.lead{padding-top:22px}
+.lead .kickrow{display:flex;gap:10px;align-items:center}
+h1.head{font:600 38px/1.0 var(--serif);font-variation-settings:"opsz" 72;letter-spacing:-.015em;margin:10px 0 16px}
+h2.head{font:600 28px/1.08 var(--serif);font-variation-settings:"opsz" 72;letter-spacing:-.015em;margin:8px 0 8px}
+h3.head{font:600 23px/1.1 var(--serif);letter-spacing:-.01em;margin:8px 0 8px}
+h4.head{font:600 21px/1.1 var(--serif);letter-spacing:-.01em;margin:8px 0 8px}
+/* the halftone plate, as on the web */
+.plate{position:relative;overflow:hidden;isolation:isolate;background:var(--paper)}
+.plate img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.plate .photo{filter:saturate(1.3) contrast(1.06)}
+.plate .scr{position:absolute;inset:0;overflow:hidden;background:#fff;filter:contrast(40);mix-blend-mode:screen}
+.plate .scr img{filter:grayscale(1) brightness(1.04) contrast(1.1) blur(.25px)}
+.plate .scr::after{content:"";position:absolute;inset:-60%;background:radial-gradient(circle closest-side,#000,#fff) 0 0/2.4px 2.4px;opacity:.5;transform:rotate(28deg)}
+.plate::after{content:"";position:absolute;inset:0;z-index:1;background:var(--paper);mix-blend-mode:multiply;pointer-events:none}
+.cap{font:500 11px/16px var(--mono);color:var(--ink3);padding:8px 0}
+.sum{font:400 18px/1.5 var(--serif);margin:14px 0}
+.sum::first-letter{float:left;font:600 4em/.8 var(--serif);margin:.06em .08em 0 0}
+.sum.small{font-size:16px;color:var(--ink2);margin:0 0 8px}
+.meta{font:500 12px/18px var(--mono);color:var(--ink2);display:flex;gap:12px;align-items:flex-start}
+.meta b{font-weight:600;color:var(--ink)}
+.meta .avs{margin-left:auto}
+.new{display:inline-flex;align-items:center;gap:5px;font:600 12px/18px var(--mono);color:var(--ink)}
+.new::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--red)}
+.newrow{display:flex;gap:12px;margin-top:6px}
+.story{padding:20px 0}
+.story.rowed{display:flex;gap:16px;padding:18px 0}
+.story.rowed .txt{flex:1}
+.story.rowed .plate{width:96px;height:96px;flex:none}
+.sechead{margin-top:40px}
+.sechead .bar{height:3px;background:var(--ink)}
+.sechead .t{display:flex;align-items:center;gap:14px;margin-top:10px}
+.sechead .t span{font:500 26px/1 var(--serif);font-style:italic}
+.sechead .t i{flex:1;height:1px;background:var(--rule)}
+/* tab bar (system, ink tint) */
+.tabbar{height:83px;flex:none;border-top:1px solid var(--rule);background:rgba(244,241,234,.92);display:flex;justify-content:space-around;padding:8px 10px 0}
+.tab{display:flex;flex-direction:column;align-items:center;gap:4px;font:500 10px/12px -apple-system,"SF Pro",sans-serif;color:#8E8E93;width:76px}
+.tab svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tab.on{color:var(--ink)}
+/* story screen */
+.nav{height:44px;display:flex;align-items:center;justify-content:center;position:relative;border-bottom:1px solid var(--rule)}
+.nav .back{position:absolute;left:12px;top:8px;width:28px;height:28px}
+.nav .back svg,.nav .share svg{width:22px;height:22px;fill:none;stroke:var(--ink);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.nav .share{position:absolute;right:16px;top:9px;width:24px;height:24px}
+.nav .np{font:400 24px/1 var(--nameplate)}
+.filed{font:500 12px/18px var(--mono);color:var(--ink2);padding:9px 0;border-top:1px solid var(--ink);border-bottom:1px solid var(--rule)}
+.filed b{color:var(--ink);font-weight:600}.filed u{color:var(--ink);font-weight:600}
+.off{font:500 12px/18px var(--mono);color:var(--ink3);padding:12px 0;border-top:1px solid var(--rule)}
+.off b{color:var(--ink);text-decoration:underline;font-weight:600}
+.clips{display:flex;gap:10px;overflow:hidden;padding:12px 0}
+.clip{flex:none;width:200px;padding:10px;background:var(--raised);outline:1px dashed var(--ink3);outline-offset:-1px}
+.clip .pub{font:600 12px/16px var(--mono)}
+.clip .ttl{font:400 15px/1.3 var(--serif);margin-top:4px}
+.clip .lock{font:500 10px/14px var(--mono);color:var(--ink2);margin-top:6px}
+.dayrule{display:flex;align-items:center;gap:12px;padding:16px 0 2px}
+.dayrule i{flex:1;height:1px;background:var(--rule)}
+.dayrule span{font:600 10px/14px var(--mono);letter-spacing:1.2px;color:var(--ink3)}
+.entry{display:flex;gap:12px;padding:12px 0}
+.entry .av{width:32px;height:32px;margin:0;border:0}
+.entry .who{font:600 12px/18px var(--mono)}
+.entry .who span{font-weight:500;color:var(--ink3)}
+.entry .body{font:400 18px/1.4 var(--serif);margin-top:2px}
+.entry .quote{font:400 13px/18px -apple-system,"SF Pro",sans-serif;color:var(--ink2);border-left:2px solid var(--rule);padding-left:8px;margin:4px 0}
+.entry .quote b{font-weight:600;color:var(--ink)}
+.react{display:inline-flex;align-items:center;gap:4px;font:600 12px/16px var(--mono);border:1px solid var(--rule);padding:3px 7px;margin-top:6px;border-radius:3px}
+.newsince{display:flex;align-items:center;gap:12px;padding:10px 0}
+.newsince i{flex:1;height:1px;background:var(--red)}
+.composer{flex:none;display:flex;gap:10px;align-items:center;padding:10px 20px calc(var(--safe-bottom) + 6px);border-top:1px solid var(--rule);background:var(--paper)}
+.composer .field{flex:1;height:44px;border:1px solid var(--rule);background:var(--raised);border-radius:3px;display:flex;align-items:center;padding:0 12px;font:400 17px/1 var(--serif);color:var(--ink3)}
+.composer .send{height:44px;padding:0 16px;background:var(--ink);color:var(--paper);display:flex;align-items:center;border-radius:3px;font:600 15px/1 -apple-system,"SF Pro",sans-serif}
+.composer .att{width:30px;height:30px}
+.composer .att svg{width:24px;height:24px;fill:none;stroke:var(--ink);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+/* android */
+.navbar{height:80px;flex:none;display:flex;justify-content:space-around;align-items:center;background:var(--paper);padding:0 8px 4px}
+.navbar .ti{display:flex;flex-direction:column;align-items:center;gap:4px;font:600 10px/14px var(--mono);letter-spacing:.1em;color:var(--ink2)}
+.navbar .ti.on{color:var(--ink)}
+.navbar .ti .ms{color:inherit}
+.navbar .ti.on .pill{background:var(--tint)}
+.navbar .pill{width:56px;height:32px;border-radius:16px;display:grid;place-items:center}
+.gest{height:var(--safe-bottom);flex:none}
+</style></head>
+<body>
+
+<!-- ============ iOS front page, as shipped ============ -->
+<section class="screen" data-name="before-front" data-time="21:14" data-kind="core">
+  <div class="page">
+    <div class="scroll" data-scrolls>
+      <h1 class="nameplate">The Grapevine</h1>
+      <div class="double"></div>
+      <div class="row"><span class="kick dim">Vol. I · No. 12</span><span><span class="kick dim">5 stories</span><span class="kick red"> · 3 new</span></span></div>
+      <div class="hair"></div>
+      <div class="row"><span class="date">Thursday 23 October 2026</span><span class="avs"><i class="av"></i><i class="av b"></i><i class="av c"></i><i class="av d"></i><i class="av e"></i></span></div>
+      <div class="inkline"></div>
+      <div class="sections"><span class="kick">Front page</span><span class="kick dim">Space</span><span class="kick dim">Travel</span><span class="kick dim">Games</span><span class="kick dim">Sport</span><span class="kick dim">City</span></div>
+      <div class="btn"><svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>Share a link</div>
+      <div class="hair"></div>
+
+      <div class="lead">
+        <div class="kickrow"><span class="kick">Space</span><span class="stamp">+1 source</span></div>
+        <h1 class="head">Reusable booster lands at sea on its second try</h1>
+        <div class="plate" style="aspect-ratio:16/9"><img class="photo" src="../web/public/seed/rocket.jpg" alt=""><div class="scr"><img src="../web/public/seed/rocket.jpg" alt=""></div></div>
+        <div class="cap">Pictured via Orbit Weekly, shared by Nika</div>
+        <div class="hair"></div>
+        <p class="sum">Vela Orbital's Nimbus booster landed on a barge in the North Sea on Sunday night, two months after its first attempt tipped over. Ferrite reports the next flight will carry a paying customer.</p>
+        <div class="meta"><span><b>4</b> sources: Ferrite, The Meridian, Orbit Weekly, @launchwatch&nbsp;&nbsp;<b>5</b> messages</span><span class="avs"><i class="av b"></i><i class="av c"></i><i class="av"></i></span></div>
+        <div class="newrow"><span class="new">1 new source</span><span class="new">2 new messages</span></div>
+      </div>
+
+      <div class="hair" style="margin:20px 0"></div>
+      <div class="story" style="padding-top:0">
+        <div class="plate" style="aspect-ratio:3/2;margin-bottom:12px"><img class="photo" src="../web/public/seed/bus.jpg" alt=""><div class="scr"><img src="../web/public/seed/bus.jpg" alt=""></div></div>
+        <span class="kick">Travel</span>
+        <h2 class="head">Night buses to the coast stop for winter</h2>
+        <p class="sum small">Night bus routes to the coast are suspended until April, cutting the November trip to Split for everyone who relied on them.</p>
+        <div class="meta"><span><b>1</b> source&nbsp;&nbsp;<b>0</b> messages</span><span class="avs"><i class="av e"></i></span></div>
+        <div class="newrow"><span class="new">1 new source</span></div>
+      </div>
+    </div>
+    <div class="tabbar" data-system>
+      <div class="tab on"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/></svg>Paper</div>
+      <div class="tab"><svg viewBox="0 0 24 24"><circle cx="9" cy="9" r="3.2"/><circle cx="16.5" cy="10" r="2.6"/><path d="M3.5 19c.6-3.3 2.8-5 5.5-5s4.9 1.7 5.5 5M14.5 19c.4-2.2 1.6-3.6 3.4-3.6s2.7 1.4 3.1 3.6"/></svg>Friends</div>
+      <div class="tab"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M5.8 19.2c1.3-2.6 3.5-4 6.2-4s4.9 1.4 6.2 4"/></svg>Profile</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ iOS story, as shipped ============ -->
+<section class="screen" data-name="before-story" data-time="21:14" data-kind="detail">
+  <div class="page">
+    <div class="nav"><span class="back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span><span class="np">The Grapevine</span><span class="share"><svg viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4M5 12v8h14v-8"/></svg></span></div>
+    <div class="scroll" data-scrolls>
+      <div style="display:flex;gap:12px;align-items:baseline;padding-top:16px"><span class="kick">Space</span><span class="cap" style="padding:0">Updated 45 min ago</span></div>
+      <h1 class="head" style="font-size:40px">Reusable booster lands at sea on its second try</h1>
+      <div class="filed">Filed from <b>3</b> of <b>4</b> sources · <u>What changed</u></div>
+      <div class="plate" style="aspect-ratio:16/9;margin-top:20px"><img class="photo" src="../web/public/seed/rocket.jpg" alt=""><div class="scr"><img src="../web/public/seed/rocket.jpg" alt=""></div></div>
+      <div class="cap">Pictured via Orbit Weekly</div>
+      <p class="sum" style="font-size:19px;margin:20px 0">Vela Orbital's Nimbus booster landed on a barge in the North Sea on Sunday night, two months after its first attempt tipped over. Ferrite reports the next flight will carry a paying customer.</p>
+      <div class="off">Something off? <b>Report the summary</b> · <b>wrong category</b></div>
+      <div class="row" style="border-bottom:1px solid var(--ink)"><span class="kick">Clippings</span><span class="meta">4</span></div>
+      <div class="clips" data-scrolls>
+        <div class="clip"><div class="pub">@launchwatch</div><div class="ttl">Nimbus is down on the barge. Upright, legs out. Second attempt and they stuck it.</div></div>
+        <div class="clip"><div class="pub">Orbit Weekly</div><div class="ttl">Vela lands Nimbus booster at sea, a first for a European company</div></div>
+        <div class="clip"><div class="pub">The Meridian</div><div class="ttl">Europe's launch market gets its first reusable stage</div><div class="lock">Headline only</div></div>
+      </div>
+      <div class="sechead" style="margin-top:12px"><div class="bar"></div><div class="t"><span>The conversation</span><i></i></div></div>
+      <div class="dayrule"><i></i><span>TUESDAY 21 OCTOBER</span><i></i></div>
+      <div class="entry"><i class="av"></i><div><div class="who">Luka <span>· 20:14</span></div><div class="body" data-ugc>Replay from 1:42:10 if you missed it.</div></div></div>
+      <div class="dayrule"><i></i><span>THURSDAY 23 OCTOBER</span><i></i></div>
+      <div class="entry"><i class="av c"></i><div><div class="who">Jure <span>· 14:02</span></div><div class="body" data-ugc>Second try is still a landing. Ask anyone how many tries the first ones took.</div><span class="react">👍 2</span></div></div>
+      <div class="entry"><i class="av e"></i><div><div class="who">Maja <span>· 14:05</span></div><div class="quote"><b>Jure</b> Second try is still a landing. Ask anyone…</div><div class="body" data-ugc>The first one tipped over in front of a camera crew. It counts as a try.</div></div></div>
+      <div class="newsince"><i></i><span class="kick red">3 new since 19:10</span><i></i></div>
+      <div class="entry"><i class="av b"></i><div><div class="who">Nika <span>· 19:12</span></div><div class="body" data-ugc>This is the actual news.</div></div></div>
+    </div>
+    <div class="composer"><span class="att"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16" cy="9" r="1.5"/></svg></span><div class="field">Write to the table…</div><div class="send">Send</div></div>
+  </div>
+</section>
+
+<!-- ============ Android front page, as shipped ============ -->
+<section class="screen" data-os="android" data-name="before-front-android" data-time="21:14" data-kind="core">
+  <div class="page">
+    <div class="scroll" data-scrolls>
+      <h1 class="nameplate">The Grapevine</h1>
+      <div class="double"></div>
+      <div class="row"><span class="kick dim">Vol. I · No. 12</span><span><span class="kick dim">5 stories</span><span class="kick red"> · 3 new</span></span></div>
+      <div class="hair"></div>
+      <div class="row"><span class="date">Thursday 23 October 2026</span><span class="avs"><i class="av"></i><i class="av b"></i><i class="av c"></i><i class="av d"></i><i class="av e"></i></span></div>
+      <div class="inkline"></div>
+      <div class="sections"><span class="kick">Front page</span><span class="kick dim">Space</span><span class="kick dim">Travel</span><span class="kick dim">Games</span><span class="kick dim">Sport</span><span class="kick dim">City</span></div>
+      <div class="btn"><svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>Share a link</div>
+      <div class="hair"></div>
+      <div class="lead">
+        <div class="kickrow"><span class="kick">Space</span><span class="stamp">+1 source</span></div>
+        <h1 class="head">Reusable booster lands at sea on its second try</h1>
+        <div class="plate" style="aspect-ratio:16/9"><img class="photo" src="../web/public/seed/rocket.jpg" alt=""><div class="scr"><img src="../web/public/seed/rocket.jpg" alt=""></div></div>
+        <div class="cap">Pictured via Orbit Weekly, shared by Nika</div>
+        <div class="hair"></div>
+        <p class="sum">Vela Orbital's Nimbus booster landed on a barge in the North Sea on Sunday night, two months after its first attempt tipped over. Ferrite reports the next flight will carry a paying customer.</p>
+        <div class="meta"><span><b>4</b> sources: Ferrite, The Meridian, Orbit Weekly, @launchwatch&nbsp;&nbsp;<b>5</b> messages</span><span class="avs"><i class="av b"></i><i class="av c"></i><i class="av"></i></span></div>
+        <div class="newrow"><span class="new">1 new source</span><span class="new">2 new messages</span></div>
+      </div>
+      <div class="hair" style="margin:20px 0"></div>
+      <div class="story" style="padding-top:0">
+        <div class="plate" style="aspect-ratio:3/2;margin-bottom:12px"><img class="photo" src="../web/public/seed/bus.jpg" alt=""><div class="scr"><img src="../web/public/seed/bus.jpg" alt=""></div></div>
+        <span class="kick">Travel</span>
+        <h2 class="head">Night buses to the coast stop for winter</h2>
+        <div class="meta"><span><b>1</b> source&nbsp;&nbsp;<b>0</b> messages</span></div>
+      </div>
+    </div>
+    <div class="navbar" data-system>
+      <div class="ti on"><span class="pill"><span class="ms">list</span></span>PAPER</div>
+      <div class="ti"><span class="pill"><span class="ms">group</span></span>FRIENDS</div>
+      <div class="ti"><span class="pill"><span class="ms">account_circle</span></span>PROFILE</div>
+    </div>
+    <div class="gest"></div>
+  </div>
+</section>
+
+<script src="file:///Users/timrekelj/.claude/skills/app-designer-pro/assets/device.js"></script>
+</body></html>

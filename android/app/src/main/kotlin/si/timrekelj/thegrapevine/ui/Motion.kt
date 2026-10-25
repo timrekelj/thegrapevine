@@ -2,7 +2,6 @@ package si.timrekelj.thegrapevine.ui
 
 import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -31,16 +30,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -55,8 +51,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * How the paper moves. Nothing spins: work in progress is ink going down (the dots, the galley
- * proofs), a press sinks like a stamp, and late news is set into the page rather than dropped on it.
+ * How the app moves. Nothing spins: work in progress is three pulsing dots or a placeholder of the
+ * layout (Skeletons.kt), a pressed surface sinks a little, and late items unfold into the page
+ * rather than dropping onto it.
  */
 
 /** True when the reader has turned animations off (Developer options or Accessibility → Remove animations). */
@@ -68,12 +65,9 @@ fun rememberReducedMotion(): Boolean {
     }
 }
 
-// ---------- ink dots ----------
+// ---------- busy dots ----------
 
-/**
- * Three dots of ink printed one after another, like a roller passing over type: the paper's only
- * "busy" mark. With reduced motion they only fade.
- */
+/** Three ink dots that swell one after another: the app's only "busy" mark. With reduced motion they only fade. */
 @Composable
 fun InkDots(
     modifier: Modifier = Modifier,
@@ -128,9 +122,9 @@ fun InkDots(
 private const val DOT_CYCLE = 1100
 private const val DOT_STAGGER = 150
 
-/** Ink dots over a mono line, for a whole screen that is still on the press. */
+/** Dots over a quiet line, for a whole screen that is still loading. */
 @Composable
-fun GoingToPress(modifier: Modifier = Modifier, label: String = "Going to press…") {
+fun LoadingMark(modifier: Modifier = Modifier, label: String = "Opening the paper") {
     Column(
         modifier.clearAndSetSemantics {
             contentDescription = label
@@ -139,21 +133,21 @@ fun GoingToPress(modifier: Modifier = Modifier, label: String = "Going to press�
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         InkDots(dotSize = 8.dp, contentDescription = null)
-        Text(label.uppercase(), style = LabelStyle.copy(color = Press.ink3), modifier = Modifier.padding(top = 14.dp))
+        Text(label, style = LabelStyle.copy(color = Press.ink3), modifier = Modifier.padding(top = 14.dp))
     }
 }
 
-// ---------- presses ----------
+// ---------- pressing ----------
 
 /** How far a pressed thing gives. */
 enum class Give(val scale: Float, val fade: Float, val drop: Dp) {
-    /** A button: a stamp pushed into the sheet. */
-    Stamp(0.97f, 1f, 1.dp),
+    /** A button: pushed in and down a little. */
+    Button(0.97f, 1f, 1.dp),
 
-    /** A story on the page: barely moves, the ink lifts a little. */
+    /** A story on the page: barely moves, fades a little. */
     Story(0.985f, 0.82f, 0.dp),
 
-    /** A word: the ink lifts more than it moves. */
+    /** A word: fades more than it moves. */
     Type(0.96f, 0.55f, 0.dp),
 
     /** A chip or a small key: pressed in, no fade. */
@@ -164,7 +158,7 @@ enum class Give(val scale: Float, val fade: Float, val drop: Dp) {
  * Sinks when pressed, instead of Material's ripple; [interactionSource] is the press to follow.
  * Use with Material buttons by handing both the same source.
  */
-fun Modifier.sink(interactionSource: InteractionSource, give: Give = Give.Stamp): Modifier = composed {
+fun Modifier.sink(interactionSource: InteractionSource, give: Give = Give.Button): Modifier = composed {
     val pressed by interactionSource.collectIsPressedAsState()
     val depth by animateFloatAsState(
         if (pressed) 1f else 0f,
@@ -186,7 +180,7 @@ fun Modifier.sink(interactionSource: InteractionSource, give: Give = Give.Stamp)
  */
 fun Modifier.pressable(
     enabled: Boolean = true,
-    give: Give = Give.Stamp,
+    give: Give = Give.Button,
     haptic: Boolean = false,
     onClickLabel: String? = null,
     role: Role? = null,
@@ -206,10 +200,10 @@ fun Modifier.pressable(
     }
 }
 
-// ---------- late news ----------
+// ---------- late items ----------
 
 /**
- * A late item set into the page: it unfolds and inks in, and folds away when pulled. The last
+ * A late item set into the page: it unfolds and fades in, and folds away when removed. The last
  * value stays on the page while it leaves.
  */
 @Composable
@@ -223,31 +217,4 @@ fun <T : Any> Insert(value: T?, content: @Composable (T) -> Unit) {
     ) {
         last?.let { content(it) }
     }
-}
-
-/**
- * The red "new to you" dot, which spreads once like fresh ink when it first lands and then holds still.
- */
-@Composable
-fun NewDot(modifier: Modifier = Modifier, size: Dp = 7.dp) {
-    val red = Press.red
-    val reduced = rememberReducedMotion()
-    // Saved, so a dot scrolled away and back doesn't spread again.
-    var landed by rememberSaveable { mutableStateOf(reduced) }
-    val spread = remember { Animatable(if (landed) 1f else 0f) }
-    LaunchedEffect(Unit) {
-        if (!landed) {
-            spread.animateTo(1f, tween(900, delayMillis = 250, easing = LinearOutSlowInEasing))
-            landed = true
-        }
-    }
-    Box(
-        modifier.size(size).drawBehind {
-            val t = spread.value
-            if (t in 0.001f..0.999f) {
-                drawCircle(red.copy(alpha = 0.45f * (1f - t)), radius = this.size.minDimension / 2f * (1f + 1.6f * t))
-            }
-            drawCircle(red)
-        },
-    )
 }

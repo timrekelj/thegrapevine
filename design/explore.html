@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>The Grapevine: three directions</title>
+<link rel="stylesheet" href="file:///Users/timrekelj/.claude/skills/app-designer-pro/assets/device.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=Big+Shoulders+Display:wght@100..900&family=Archivo:wdth,wght@62..125,100..900&display=block" rel="stylesheet">
+<style>
+/* ===================================================================
+   Shared skeleton. Each direction sets its own tokens on its screen.
+   =================================================================== */
+.screen{background:var(--g);color:var(--ink)}
+.page{position:absolute;inset:0;display:flex;flex-direction:column}
+.scroll{position:absolute;inset:0;overflow:hidden}
+.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block}
+.tnum{font-variant-numeric:tabular-nums}
+
+/* ===================================================================
+   A. The Grapevine is a vine.
+   Leaf-white ground, green-black ink, one accent (vine green: new to
+   you), five member hues on avatars and grapes. Bricolage Grotesque.
+   =================================================================== */
+.a{--g:#F3F5EE;--raised:#FFFFFF;--ink:#15221B;--ink2:#3E4B44;--ink3:#5E6B63;--rule:rgba(21,34,27,.08);
+   --vine:#1E7A39;--vine-soft:#DDF2E2;--luka:#E3A512;--nika:#E2552B;--jure:#2F7BEA;--maja:#8E4FD8;--tim:#D23D7E;
+   --disp:"Bricolage Grotesque",var(--sf);--glass:rgba(255,255,255,.66)}
+.a .scroll{padding:0 20px 120px}
+.a .top{height:var(--safe-top)}
+.a .bar{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.a .wordmark{height:44px;padding:0 16px;border-radius:22px;display:flex;align-items:center;font:800 17px/1 var(--disp);font-variation-settings:"opsz" 24;letter-spacing:-.01em}
+.a .you{width:44px;height:44px;border-radius:22px;display:grid;place-items:center}
+.a .dateline{display:flex;justify-content:space-between;align-items:center;margin:22px 0 14px}
+.a .dateline .d{font:600 15px/20px var(--sf);letter-spacing:-.2px;color:var(--ink2)}
+.a .dateline .d b{color:var(--vine);font-weight:600}
+.a .disc{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font:700 12px/1 var(--sf);color:#15221B;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 1px 2px rgba(21,34,27,.15)}
+.a .stack{display:flex}.a .stack .disc{margin-left:-7px;box-shadow:0 0 0 2px var(--g)}.a .stack .disc:first-child{margin-left:0}
+.a .luka{background:linear-gradient(170deg,#F2BE3E,var(--luka))}.a .nika{background:linear-gradient(170deg,#F07A55,var(--nika))}.a .jure{background:linear-gradient(170deg,#5C9BF5,var(--jure))}.a .maja{background:linear-gradient(170deg,#AB7AE6,var(--maja))}.a .tim{background:linear-gradient(170deg,#E66A9C,var(--tim))}
+/* the lead: a story is an object you pick up */
+.a .lead{background:linear-gradient(180deg,#FFFFFF,#FBFCF8);border-radius:28px;overflow:hidden;
+  box-shadow:0 1px 1px rgba(21,34,27,.04),0 12px 30px -12px rgba(21,34,27,.16),inset 0 0 0 1px rgba(21,34,27,.04)}
+.a .lead .photo{height:214px;background:url(../web/public/seed/rocket.jpg) center 40%/cover;position:relative}
+.a .lead .photo .badge{position:absolute;left:16px;top:16px}
+.a .badge{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px 0 9px;border-radius:14px;background:var(--vine);color:#fff;font:600 13px/1 var(--sf);letter-spacing:-.1px;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.a .badge i{width:8px;height:8px;border-radius:50%;background:#fff}
+.a .lead .body{padding:16px 20px 18px}
+.a .kick{font:600 13px/16px var(--sf);color:var(--ink3);letter-spacing:-.1px;display:flex;gap:8px;align-items:center}
+.a .kick .sep{width:3px;height:3px;border-radius:50%;background:var(--ink3)}
+.a .lead h1{font:800 30px/1.03 var(--disp);font-variation-settings:"opsz" 96;letter-spacing:-.02em;margin:8px 0 14px;text-wrap:balance}
+.a .bunchrow{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.a .bunch{flex:none}
+.a .counts{font:400 15px/20px var(--sf);color:var(--ink2);letter-spacing:-.2px}
+.a .counts b{font-weight:600;color:var(--ink)}
+.a .said{display:flex;gap:10px;align-items:center;padding-top:14px;border-top:1px solid var(--rule)}
+.a .said .disc{width:26px;height:26px;font-size:11px}
+.a .said p{margin:0;font:400 15px/20px var(--sf);letter-spacing:-.2px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.a .said p b{font-weight:600;color:var(--nika)}
+.a .said .t{margin-left:auto;font:400 13px/16px var(--sf);color:var(--ink3);flex:none}
+/* the rest: rows of stories, grouped by space and hairlines */
+.a .rows{margin-top:10px}
+.a .row{display:flex;gap:14px;align-items:center;padding:16px 0;border-bottom:1px solid var(--rule)}
+.a .row:last-child{border-bottom:0}
+.a .row .txt{flex:1;min-width:0}
+.a .row h2{font:700 19px/1.15 var(--disp);font-variation-settings:"opsz" 24;letter-spacing:-.015em;margin:0 0 6px;text-wrap:balance}
+.a .row .meta{display:flex;align-items:center;gap:8px;font:400 13px/16px var(--sf);color:var(--ink3)}
+.a .row .meta .new{color:var(--vine);font-weight:600}
+.a .row .thumb{width:64px;height:64px;border-radius:14px;flex:none;background-size:cover;background-position:center}
+.a .row .bunch{width:34px;flex:none}
+/* floating primary action */
+.a .fab{position:absolute;right:20px;bottom:44px;height:52px;padding:0 20px 0 16px;border-radius:26px;background:var(--ink);color:#fff;display:flex;align-items:center;gap:8px;font:600 15px/1 var(--sf);letter-spacing:-.2px;box-shadow:0 10px 24px -8px rgba(21,34,27,.45)}
+
+/* ===================================================================
+   B. The Grapevine is the late show on the friends' own station.
+   Blue-black ground, one amber lamp (on air: new), photography full
+   bleed with a warm grade, Big Shoulders Display.
+   =================================================================== */
+.b{--g:#0B0D12;--raised:#15181F;--ink:#F4F1EA;--ink2:#B9BEC9;--ink3:#8F96A3;--rule:rgba(244,241,234,.1);--amber:#FFB020;
+   --disp:"Big Shoulders Display",var(--sf);--glass-dark:rgba(20,22,30,.5)}
+.b .hero{position:absolute;inset:0 0 auto;height:560px;background:url(../web/public/seed/rocket.jpg) center 35%/cover;filter:saturate(1.15)}
+.b .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,13,18,.55) 0,rgba(11,13,18,0) 22%,rgba(11,13,18,0) 42%,rgba(11,13,18,.92) 78%,#0B0D12 100%)}
+.b .scroll{padding:0 20px 120px}
+.b .top{height:var(--safe-top)}
+.b .bar{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.b .onair{display:flex;align-items:center;gap:8px;height:44px;padding:0 16px 0 14px;border-radius:22px;font:600 13px/1 var(--sf);letter-spacing:.08em;text-transform:uppercase;color:var(--amber)}
+.b .onair i{width:9px;height:9px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 3px rgba(255,176,32,.25)}
+.b .name{font:600 17px/1 var(--sf);letter-spacing:-.2px;color:var(--ink)}
+.b .you{width:44px;height:44px;border-radius:22px;display:grid;place-items:center;font:700 13px/1 var(--sf);color:var(--ink)}
+.b .leadtxt{margin-top:300px}
+.b .kick{font:600 12px/16px var(--sf);letter-spacing:.06em;text-transform:uppercase;color:var(--amber);display:flex;gap:10px;align-items:center}
+.b .kick span.dim{color:var(--ink2);letter-spacing:.02em;text-transform:none;font-weight:500;font-size:13px}
+.b h1{font:800 56px/.92 var(--disp);letter-spacing:-.005em;margin:10px 0 14px;text-transform:uppercase;text-wrap:balance}
+.b .counts{display:flex;align-items:center;gap:10px;font:400 15px/20px var(--sf);color:var(--ink2);letter-spacing:-.2px}
+.b .counts b{color:var(--ink);font-weight:600}
+.b .chip{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:13px;background:var(--amber);color:#1A1200;font:700 12px/1 var(--sf);letter-spacing:.04em;text-transform:uppercase}
+.b .said{display:flex;gap:10px;align-items:center;margin-top:16px;padding:12px 14px;border-radius:16px;background:rgba(21,24,31,.75);backdrop-filter:blur(10px)}
+.b .said .disc{width:28px;height:28px;border-radius:50%;background:#2A2E39;color:var(--ink);display:grid;place-items:center;font:700 12px/1 var(--sf)}
+.b .said p{margin:0;font:400 15px/20px var(--sf);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.b .said p b{font-weight:600;color:var(--amber)}
+.b .said .t{margin-left:auto;font:400 13px/16px var(--sf);color:var(--ink3);flex:none}
+.b .sched{margin-top:26px}
+.b .sched .h{font:600 12px/16px var(--sf);letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);padding-bottom:10px;border-bottom:1px solid var(--rule)}
+.b .srow{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid var(--rule);align-items:flex-start}
+.b .srow .time{width:48px;flex:none;font:600 15px/22px var(--sf);color:var(--ink3);letter-spacing:-.2px}
+.b .srow .time.live{color:var(--amber)}
+.b .srow .txt{flex:1;min-width:0}
+.b .srow h2{font:700 24px/1 var(--disp);text-transform:uppercase;letter-spacing:.005em;margin:0 0 6px}
+.b .srow .meta{font:400 13px/16px var(--sf);color:var(--ink3)}
+.b .srow .meta b{color:var(--amber);font-weight:600}
+.b .srow .thumb{width:56px;height:56px;border-radius:12px;flex:none;background-size:cover;background-position:center;filter:saturate(1.1)}
+.b .fab{position:absolute;right:20px;bottom:44px;height:52px;padding:0 20px 0 16px;border-radius:26px;background:var(--amber);color:#1A1200;display:flex;align-items:center;gap:8px;font:600 15px/1 var(--sf);letter-spacing:-.2px;box-shadow:0 10px 24px -8px rgba(255,176,32,.5)}
+
+/* ===================================================================
+   C. The Grapevine is the sticker-covered lid of the laptop the five
+   of you pass around. Aqua field, stickers with thick white borders and
+   a tilt, Archivo expanded. The loudest version.
+   =================================================================== */
+.c{--g:#2BC4B6;--raised:#FFFFFF;--ink:#101820;--ink2:#36424A;--ink3:#4F5B63;--rule:rgba(16,24,32,.1);
+   --pop:#FFD23F;--red:#E8402A;--blue:#2457D5;--green:#1EA34A;--orange:#F28A1A;--purple:#7B3FC4;
+   --disp:"Archivo",var(--sf);--glass:rgba(255,255,255,.4)}
+.c .scroll{padding:0 20px 120px}
+.c .top{height:var(--safe-top)}
+.c .bar{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.c .wordmark{font:900 24px/1 var(--disp);font-stretch:125%;letter-spacing:-.02em;text-transform:uppercase}
+.c .you{width:44px;height:44px;border-radius:50%;background:#fff;display:grid;place-items:center;font:900 15px/1 var(--disp);font-stretch:125%;box-shadow:0 3px 0 rgba(16,24,32,.25);transform:rotate(-6deg)}
+.c .people{display:flex;gap:6px;margin:18px 0 6px;align-items:center}
+.c .people .d{width:30px;height:30px;border-radius:50%;background:#fff;display:grid;place-items:center;font:900 12px/1 var(--disp);font-stretch:125%;box-shadow:0 2px 0 rgba(16,24,32,.2)}
+.c .people .d.on{background:var(--pop)}
+.c .people .lbl{margin-left:6px;font:600 13px/16px var(--sf);color:var(--ink)}
+.c .sticker{background:#fff;border-radius:22px;padding:8px;box-shadow:0 6px 0 rgba(16,24,32,.22),0 14px 30px -16px rgba(0,0,0,.35);position:relative}
+.c .lead{transform:rotate(-1.2deg);margin-top:14px}
+.c .lead .photo{height:188px;border-radius:15px;background:url(../web/public/seed/rocket.jpg) center 40%/cover;position:relative;overflow:hidden}
+.c .lead .cat{position:absolute;left:10px;top:10px;height:26px;padding:0 10px;border-radius:13px;background:var(--blue);color:#fff;font:900 12px/26px var(--disp);font-stretch:125%;text-transform:uppercase;letter-spacing:.02em}
+.c .new{position:absolute;right:-10px;top:-14px;width:72px;height:72px;transform:rotate(12deg);display:grid;place-items:center;font:900 13px/1.05 var(--disp);font-stretch:125%;text-transform:uppercase;text-align:center;color:var(--ink)}
+.c .new svg{position:absolute;inset:0;width:100%;height:100%}
+.c .new span{position:relative}
+.c .lead .body{padding:12px 10px 8px}
+.c .lead h1{font:900 26px/1 var(--disp);font-stretch:125%;letter-spacing:-.025em;text-transform:uppercase;margin:0 0 10px;text-wrap:balance}
+.c .counts{display:flex;align-items:center;gap:8px;font:600 14px/18px var(--sf);color:var(--ink2)}
+.c .counts .dots{display:flex;gap:3px}
+.c .counts .dots i{width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 2.5px #fff,0 0 0 1.5px rgba(16,24,32,.15)}
+.c .said{display:flex;gap:8px;align-items:center;margin-top:10px;padding:8px 10px;border-radius:12px;background:#F2F4F3}
+.c .said .d{width:24px;height:24px;border-radius:50%;background:var(--orange);color:#fff;display:grid;place-items:center;font:900 10px/1 var(--disp);font-stretch:125%}
+.c .said p{margin:0;font:500 14px/18px var(--sf);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c .said p b{font-weight:700;color:var(--orange)}
+.c .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 14px;margin-top:22px}
+.c .small{padding:8px;transform:rotate(1.4deg)}
+.c .small:nth-child(2){transform:rotate(-1.8deg)}
+.c .small:nth-child(3){transform:rotate(1deg)}
+.c .small .photo{height:88px;border-radius:14px;background-size:cover;background-position:center;position:relative}
+.c .small .cat{position:absolute;left:8px;top:8px;height:22px;padding:0 8px;border-radius:11px;color:#fff;font:900 10px/22px var(--disp);font-stretch:125%;text-transform:uppercase}
+.c .small h2{font:900 15px/1.05 var(--disp);font-stretch:125%;letter-spacing:-.02em;text-transform:uppercase;margin:10px 2px 6px}
+.c .small .m{font:600 12px/16px var(--sf);color:var(--ink3);margin:0 2px 4px}
+.c .small .m b{color:var(--green)}
+.c .fab{position:absolute;right:20px;bottom:44px;height:54px;padding:0 20px 0 16px;border-radius:27px;background:var(--ink);color:#fff;display:flex;align-items:center;gap:8px;font:800 15px/1 var(--sf);letter-spacing:-.2px;box-shadow:0 5px 0 rgba(16,24,32,.35)}
+</style></head>
+<body>
+
+<!-- ============================ A. a vine ============================ -->
+<section class="screen a" data-name="explore-a-vine" data-time="21:14" data-kind="core" data-palette="identity">
+  <div class="scroll" data-scrolls>
+    <div class="top"></div>
+    <div class="bar">
+      <div class="wordmark glass" data-float>The Grapevine</div>
+      <div class="you glass" data-float><span class="disc tim">T</span></div>
+    </div>
+    <div class="dateline">
+      <div class="d">Thursday 23 October &nbsp;·&nbsp; <b>4 new since 19:10</b></div>
+      <div class="stack"><span class="disc luka">L</span><span class="disc nika">N</span><span class="disc jure">J</span><span class="disc maja">M</span></div>
+    </div>
+
+    <div class="lead">
+      <div class="photo"><span class="badge"><i></i>2 new</span></div>
+      <div class="body">
+        <div class="kick"><span>Space</span><span class="sep"></span><span>Luka sent a GIF, 20:29</span></div>
+        <h1>Reusable booster lands at sea on its second try</h1>
+        <div class="bunchrow">
+          <svg class="bunch" width="46" height="52" viewBox="0 0 46 52" aria-hidden="true">
+            <path d="M23 2v8" stroke="#1E7A39" stroke-width="3" stroke-linecap="round" fill="none"/>
+            <path d="M23 6c4-5 10-4 12-1-4 3-9 3-12 1z" fill="#1E7A39"/>
+            <circle cx="14" cy="21" r="9" style="fill:var(--luka)"/>
+            <circle cx="32" cy="21" r="9" style="fill:var(--nika)"/>
+            <circle cx="23" cy="36" r="9" style="fill:var(--tim)"/>
+            <circle cx="32" cy="21" r="9" fill="none" stroke="#F3F5EE" stroke-width="2.5"/>
+            <circle cx="23" cy="36" r="9" fill="none" stroke="#F3F5EE" stroke-width="2.5"/>
+            <circle cx="30" cy="44" r="7.5" style="fill:var(--nika)" stroke="#F3F5EE" stroke-width="2.5"/>
+            <circle cx="30" cy="44" r="10" fill="none" stroke="#1E7A39" stroke-width="2.5"/>
+          </svg>
+          <div class="counts"><b>4</b> sources, one new from Nika<br><b>5</b> messages</div>
+        </div>
+        <div class="said"><span class="disc nika">N</span><p data-ugc><b>Nika</b> This is the actual news.</p><span class="t">19:12</span></div>
+      </div>
+    </div>
+
+    <div class="rows">
+      <div class="row">
+        <svg class="bunch" width="34" height="38" viewBox="0 0 34 38" aria-hidden="true"><path d="M17 2v6" stroke="#1E7A39" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="17" cy="17" r="8" style="fill:var(--maja)"/><circle cx="17" cy="17" r="10.5" fill="none" stroke="#1E7A39" stroke-width="2.5"/></svg>
+        <div class="txt"><h2>Night buses to the coast stop for winter</h2><div class="meta"><span class="new">1 new source</span><span>·</span><span>Travel · Maja, 19:14</span></div></div>
+        <div class="thumb" style="background-image:url(../web/public/seed/bus.jpg)"></div>
+      </div>
+      <div class="row">
+        <svg class="bunch" width="34" height="38" viewBox="0 0 34 38" aria-hidden="true"><path d="M17 2v6" stroke="#1E7A39" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="10" cy="16" r="7" style="fill:var(--maja)"/><circle cx="24" cy="16" r="7" style="fill:var(--jure)" stroke="#F3F5EE" stroke-width="2"/></svg>
+        <div class="txt"><h2>Studio Kettle pushes Wayfarer to spring 2027</h2><div class="meta"><span>Games · 2 sources · 1 message · 18:14</span></div></div>
+        <div class="thumb" style="background-image:url(../web/public/seed/games.jpg)"></div>
+      </div>
+      <div class="row">
+        <svg class="bunch" width="34" height="38" viewBox="0 0 34 38" aria-hidden="true"><path d="M17 2v6" stroke="#1E7A39" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="17" cy="16" r="8" style="fill:var(--nika)"/></svg>
+        <div class="txt"><h2>Third-tier side knock out the champions on penalties</h2><div class="meta"><span>Sport · 1 source · 1 message · 17:14</span></div></div>
+      </div>
+      <div class="row">
+        <svg class="bunch" width="34" height="38" viewBox="0 0 34 38" aria-hidden="true"><path d="M17 2v6" stroke="#1E7A39" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="10" cy="16" r="7" style="fill:var(--jure)"/><circle cx="24" cy="16" r="7" style="fill:var(--luka)" stroke="#F3F5EE" stroke-width="2"/></svg>
+        <div class="txt"><h2>Old town goes car-free on Sundays from March</h2><div class="meta"><span>City · 2 sources · 1 message · 15:14</span></div></div>
+        <div class="thumb" style="background-image:url(../web/public/seed/city.jpg)"></div>
+      </div>
+    </div>
+  </div>
+  <div class="fab" data-float><svg class="ico" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.3 1.3"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.3-1.3"/></svg>Share a link</div>
+</section>
+
+<!-- ============================ B. the late show ============================ -->
+<section class="screen b" data-name="explore-b-lateshow" data-time="21:14" data-kind="core" data-chrome="light">
+  <div class="hero"></div>
+  <div class="scroll" data-scrolls>
+    <div class="top"></div>
+    <div class="bar">
+      <div class="onair glass" data-float><i></i>On air<span class="name" style="margin-left:6px;text-transform:none;letter-spacing:-.2px">The Grapevine</span></div>
+      <div class="you glass" data-float>T</div>
+    </div>
+    <div class="leadtxt">
+      <div class="kick"><span>Space</span><span class="dim">Luka sent a GIF, 20:29</span></div>
+      <h1>Reusable booster lands at sea on its second try</h1>
+      <div class="counts"><span class="chip">2 new</span><span><b>4</b> sources · <b>5</b> messages</span></div>
+      <div class="said"><span class="disc">N</span><p data-ugc><b>Nika</b> This is the actual news.</p><span class="t">19:12</span></div>
+    </div>
+    <div class="sched">
+      <div class="h">Tonight's running order</div>
+      <div class="srow"><div class="time live tnum">19:14</div><div class="txt"><h2>Night buses to the coast stop for winter</h2><div class="meta"><b>New</b> · Travel · Maja filed Coastline Daily</div></div><div class="thumb" style="background-image:url(../web/public/seed/bus.jpg)"></div></div>
+      <div class="srow"><div class="time tnum">18:14</div><div class="txt"><h2>Studio Kettle pushes Wayfarer to spring 2027</h2><div class="meta">Games · 2 sources · 1 message</div></div><div class="thumb" style="background-image:url(../web/public/seed/games.jpg)"></div></div>
+      <div class="srow"><div class="time tnum">17:14</div><div class="txt"><h2>Third-tier side knock out the champions on penalties</h2><div class="meta">Sport · 1 source · 1 message</div></div></div>
+      <div class="srow"><div class="time tnum">15:14</div><div class="txt"><h2>Old town goes car-free on Sundays from March</h2><div class="meta">City · 2 sources · 1 message</div></div><div class="thumb" style="background-image:url(../web/public/seed/city.jpg)"></div></div>
+    </div>
+  </div>
+  <div class="fab" data-float><svg class="ico" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.3 1.3"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.3-1.3"/></svg>Share a link</div>
+</section>
+
+<!-- ============================ C. the sticker lid ============================ -->
+<section class="screen c" data-name="explore-c-stickers" data-time="21:14" data-kind="core" data-palette="identity">
+  <div class="scroll" data-scrolls>
+    <div class="top"></div>
+    <div class="bar">
+      <div class="wordmark">The Grapevine</div>
+      <div class="you">T</div>
+    </div>
+    <div class="people"><span class="d">L</span><span class="d">N</span><span class="d">J</span><span class="d">M</span><span class="lbl">Thursday 23 October · 4 new</span></div>
+
+    <div class="sticker lead">
+      <div class="photo"><span class="cat">Space</span></div>
+      <div class="new"><svg viewBox="0 0 72 72" aria-hidden="true"><path d="M36 2l6 9 10-4-1 11 11 2-7 8 7 8-11 2 1 11-10-4-6 9-6-9-10 4 1-11-11-2 7-8-7-8 11-2-1-11 10 4z" style="fill:var(--pop)" stroke="#fff" stroke-width="3" stroke-linejoin="round"/></svg><span>2<br>new</span></div>
+      <div class="body">
+        <h1>Reusable booster lands at sea on its second try</h1>
+        <div class="counts"><span class="dots"><i style="background:var(--orange)"></i><i style="background:var(--red)"></i><i style="background:var(--purple)"></i><i style="background:var(--red)"></i></span><span>4 sources · 5 messages · 20:29</span></div>
+        <div class="said"><span class="d">N</span><p data-ugc><b>Nika</b> This is the actual news.</p></div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="sticker small"><div class="photo" style="background-image:url(../web/public/seed/bus.jpg)"><span class="cat" style="background:var(--green)">Travel</span></div><h2>Night buses to the coast stop for winter</h2><p class="m"><b>1 new</b> · Maja, 19:14</p></div>
+      <div class="sticker small"><div class="photo" style="background-image:url(../web/public/seed/games.jpg)"><span class="cat" style="background:var(--purple)">Games</span></div><h2>Studio Kettle pushes Wayfarer to spring 2027</h2><p class="m">2 sources · 1 message</p></div>
+      <div class="sticker small"><div class="photo" style="background:var(--red)"><span class="cat" style="background:#fff;color:var(--red)">Sport</span></div><h2>Third-tier side knock out the champions</h2><p class="m">1 source · 1 message</p></div>
+      <div class="sticker small"><div class="photo" style="background-image:url(../web/public/seed/city.jpg)"><span class="cat" style="background:var(--orange)">City</span></div><h2>Old town goes car-free on Sundays</h2><p class="m">2 sources · 1 message</p></div>
+    </div>
+  </div>
+  <div class="fab" data-float><svg class="ico" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.3 1.3"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.3-1.3"/></svg>Share a link</div>
+</section>
+
+<script src="file:///Users/timrekelj/.claude/skills/app-designer-pro/assets/device.js"></script>
+</body></html>

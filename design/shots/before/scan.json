@@ -1,0 +1,140 @@
+{
+  "surfaces": [
+    {
+      "name": "before-front",
+      "type": "screen",
+      "fails": [
+        "More than two type families in content: UnifrakturMaguntia, IBM Plex Mono, Newsreader",
+        "Text below 11pt (the floor on both platforms): 10px \"Vol. I · No. 12\"; 10px \"5 stories\"; 10px \"· 3 new\"; 10px \"Front page\"",
+        "Contrast below WCAG on solid ground: 4.30:1 11px \"Pictured via Orbit Weekly, shared by Nik\"",
+        "Text touching text (under 3pt apart): \"5 stories\" / \"· 3 new\""
+      ],
+      "warns": [
+        "Text inside the system's safe areas: \"Vela Orbital's Nimbus bo\" (home indicator)",
+        "Paragraphs too long for this core: \"Vela Orbital's Nimbus booster \" (6 lines)."
+      ],
+      "facts": {
+        "os": "ios",
+        "kind": "core",
+        "fonts": {
+          "UnifrakturMaguntia": 1,
+          "IBM Plex Mono": 12,
+          "Newsreader": 3,
+          "-apple-system": 1
+        },
+        "sizes": [
+          46,
+          38,
+          18,
+          16,
+          11,
+          10
+        ],
+        "weights": [
+          "400",
+          "500",
+          "600"
+        ],
+        "leftEdges": 3,
+        "words": 79,
+        "headline": "46px, 2 words, 1 line(s)",
+        "accentHues": [
+          0
+        ],
+        "cards": 0
+      }
+    },
+    {
+      "name": "before-story",
+      "type": "screen",
+      "fails": [
+        "More than two type families in content: UnifrakturMaguntia, IBM Plex Mono, Newsreader",
+        "Text below 11pt (the floor on both platforms): 10px \"Space\"; 10px \"Clippings\"",
+        "Something sits on top of text: \"Something off? Report the \" under a div.composer; \"Report the summary\" under a div.composer; \"wrong category\" under a div.composer. Move one; mark a floating bar data-float, or the view under a sheet data-behind.",
+        "Contrast below WCAG on solid ground: 4.30:1 11px \"Updated 45 min ago\"; 4.30:1 11px \"Pictured via Orbit Weekly\"; 4.30:1 12px \"Something off? Report the summary · wron\""
+      ],
+      "warns": [
+        "Text inside the system's safe areas: \"@launchwatch\" (home indicator); \"Orbit Weekly\" (home indicator); \"The Meridian\" (home indicator)",
+        "Title Case: \"Pictured via Orbit Weekly\". Sentence case reads as a person (mark data-proper on real names).",
+        "Paragraphs too long for this detail: \"Vela Orbital's Nimbus booster \" (6 lines)."
+      ],
+      "facts": {
+        "os": "ios",
+        "kind": "detail",
+        "fonts": {
+          "UnifrakturMaguntia": 1,
+          "IBM Plex Mono": 15,
+          "Newsreader": 3,
+          "-apple-system": 1
+        },
+        "sizes": [
+          40,
+          24,
+          19,
+          17,
+          15,
+          12,
+          11,
+          10
+        ],
+        "weights": [
+          "400",
+          "500",
+          "600"
+        ],
+        "leftEdges": 5,
+        "words": 80,
+        "headline": "40px, 9 words, 3 line(s)",
+        "accentHues": [],
+        "cards": 0
+      }
+    },
+    {
+      "name": "before-front-android",
+      "type": "screen",
+      "fails": [
+        "More than two type families in content: UnifrakturMaguntia, IBM Plex Mono, Newsreader",
+        "Text below 11pt (the floor on both platforms): 10px \"Vol. I · No. 12\"; 10px \"5 stories\"; 10px \"· 3 new\"; 10px \"Front page\"",
+        "Something sits on top of text: \"4 sources: Ferrite, The Me\" under a div.gest; \"5\" under a div.gest. Move one; mark a floating bar data-float, or the view under a sheet data-behind.",
+        "Contrast below WCAG on solid ground: 4.30:1 11px \"Pictured via Orbit Weekly, shared by Nik\"",
+        "Text touching text (under 3pt apart): \"5 stories\" / \"· 3 new\""
+      ],
+      "warns": [
+        "Text inside the system's safe areas: \"4 sources: Ferrite, The \" (gesture handle); \"5\" (gesture handle)",
+        "Paragraphs too long for this core: \"Vela Orbital's Nimbus booster \" (6 lines)."
+      ],
+      "facts": {
+        "os": "android",
+        "kind": "core",
+        "fonts": {
+          "UnifrakturMaguntia": 1,
+          "IBM Plex Mono": 14,
+          "Newsreader": 3,
+          "-apple-system": 1
+        },
+        "sizes": [
+          46,
+          38,
+          18,
+          16,
+          12,
+          11,
+          10
+        ],
+        "weights": [
+          "400",
+          "500",
+          "600"
+        ],
+        "leftEdges": 3,
+        "words": 89,
+        "headline": "46px, 2 words, 1 line(s)",
+        "accentHues": [
+          0
+        ],
+        "cards": 0
+      }
+    }
+  ],
+  "exports": []
+}

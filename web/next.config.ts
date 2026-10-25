@@ -15,8 +15,6 @@ const security = [
 ];
 
 const nextConfig: NextConfig = {
-  // A native addon (renders avatar PNGs for the apps); load it from node_modules, don't bundle it.
-  serverExternalPackages: ["@resvg/resvg-js"],
   poweredByHeader: false,
   async headers() {
     return [
