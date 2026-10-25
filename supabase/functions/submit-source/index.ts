@@ -1,23 +1,17 @@
 import { body, errorResponse, HttpError, json, optionalText, uuid } from '../_shared/cors.ts';
-import { caller, rateLimit, requireMember, supabase } from '../_shared/supabase.ts';
+import { caller, check, rateLimit, requireMember, supabase } from '../_shared/supabase.ts';
 import { fetchSource, normalizeUrl } from '../_shared/fetch-source.ts';
 import { cosineSimilarity, decide, sourceText, storyText, vector } from '../_shared/clustering.ts';
 import { embed } from '../_shared/mistral.ts';
-import { generate } from '../_shared/editorial.ts';
+import { EDITORIAL_SOURCE, generate } from '../_shared/editorial.ts';
 import { capture, featureEnabled, usageScope, withTelemetry } from '../_shared/telemetry.ts';
 
 // Each submission costs a fetch and several model calls; this is generous for a friend group.
 const SUBMISSIONS_PER_WINDOW = 30;
 const WINDOW_MINUTES = 10;
-const EDITORIAL_SOURCE = 'source_title,excerpt,publisher,extraction_status';
+const SUBMISSIONS_PER_DAY = 200;
 
 type Candidate = { id: string; title: string; summary: string; embedding: string | number[] | null };
-
-async function check<T>(query: PromiseLike<{ data: T; error: unknown }>) {
-  const { data, error } = await query;
-  if (error) throw error;
-  return data;
-}
 
 Deno.serve(withTelemetry('submit-source', async req => {
   if (req.method === 'OPTIONS') return json({});
@@ -40,15 +34,14 @@ Deno.serve(withTelemetry('submit-source', async req => {
       capture('source_submitted', { result: 'duplicate' });
       return json({ status: 'duplicate', story_id: existing.story_id, source_id: existing.id });
     }
-    await rateLimit('sources', 'submitted_by', user.id, SUBMISSIONS_PER_WINDOW, WINDOW_MINUTES);
+    await rateLimit('submit-source', user.id, SUBMISSIONS_PER_WINDOW, WINDOW_MINUTES, SUBMISSIONS_PER_DAY);
     const fetched = await fetchSource(url);
     // sources.story_id is required: preserve the card before any AI call, then discard this story if joined.
     // The placeholder is flagged, so it is announced to the paper only once it is published below.
-    const { data: placeholder, error: storyError } = await supabase.from('stories').insert({
+    const placeholder = (await check(supabase.from('stories').insert({
       group_id: groupId, created_by: user.id, title: fetched.title || fetched.domain,
       summary: 'Summary failed', flagged: true,
-    }).select('id,title').single();
-    if (storyError) throw storyError;
+    }).select('id,title').single()))!;
     placeholderId = placeholder.id;
     usageScope({ storyId: placeholder.id });
     const { data: source, error: sourceError } = await supabase.from('sources').insert({
@@ -72,10 +65,10 @@ Deno.serve(withTelemetry('submit-source', async req => {
     const text = sourceText(source).trim();
     const [incoming, stories, clustering] = await Promise.all([
       text ? embed(text) : null,
-      check(supabase.from('stories').select('id,title,summary,embedding')
+      text ? check(supabase.from('stories').select('id,title,summary,embedding')
         .eq('group_id', groupId).neq('id', placeholder.id)
-        .order('last_activity_at', { ascending: false }).limit(20)) as Promise<Candidate[]>,
-      featureEnabled('ai-clustering-enabled'),
+        .order('last_activity_at', { ascending: false }).limit(20)) as Promise<Candidate[]> : [],
+      text ? featureEnabled('ai-clustering-enabled') : false,
     ]);
     const candidates: { story: Candidate; similarity: number }[] = [];
     if (incoming) {
@@ -103,21 +96,23 @@ Deno.serve(withTelemetry('submit-source', async req => {
     const joined = chosen.id !== placeholder.id;
     usageScope({ storyId: chosen.id });
     if (joined) {
+      // Move the source before deleting the placeholder: the delete cascades to its sources.
       await check(supabase.from('sources').update({ story_id: chosen.id }).eq('id', source.id));
       savedSource = { id: source.id, story_id: chosen.id };
-      await check(supabase.from('stories').delete().eq('id', placeholder.id));
-      placeholderId = undefined;
     }
-    const sources = await check(supabase.from('sources').select(EDITORIAL_SOURCE).eq('story_id', chosen.id)) ?? [];
+    const [sources] = await Promise.all([
+      check(supabase.from('sources').select(EDITORIAL_SOURCE).eq('story_id', chosen.id)),
+      joined ? check(supabase.from('stories').delete().eq('id', placeholder.id)) : null,
+    ]);
     let title: string;
     let summary: string;
     let category: string | null = null;
     let embedding: number[] | null = null;
     if (text) {
       [title, summary, category] = await Promise.all([
-        joined ? chosen.title : generate('title', sources),
-        generate('summary', sources, conflict),
-        generate('category', sources),
+        joined ? chosen.title : generate('title', sources ?? []),
+        generate('summary', sources ?? [], conflict),
+        generate('category', sources ?? []),
       ]);
       embedding = await embed(storyText({ title, summary }));
     } else {

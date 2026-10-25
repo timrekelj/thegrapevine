@@ -13,7 +13,7 @@ xcuserdata/
 # os
 .DS_Store
 
-# python (model-server)
+# python
 .venv/
 __pycache__/
 *.pyc
@@ -24,3 +24,15 @@ supabase/.temp/
 
 # editors
 .idea/
+
+# the removed self-hosted model server (local virtualenv and caches only)
+model-server/
+
+# design iteration renders; the final round (r6), explorations and before/after are kept
+design/shots/r1/
+design/shots/r2/
+design/shots/r3/
+design/shots/r4/
+design/shots/r5/
+design/shots/r*-small/
+design/shots/*/review/

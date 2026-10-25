@@ -1,9 +1,10 @@
 package si.timrekelj.thegrapevine.ui
 
 import android.content.Intent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,45 +25,44 @@ import si.timrekelj.thegrapevine.Config
 @Composable
 fun FriendsScreen(app: AppState) {
     val context = LocalContext.current
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 20.dp, vertical = 14.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 32.dp)) {
         item {
-            Column(Modifier.padding(bottom = 8.dp)) {
-                Text("The Readers", style = nameplate(44), modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                DoubleRule()
-                Row(Modifier.fillMaxWidth().padding(vertical = 7.dp)) {
-                    Text("${app.members.size} AT THE TABLE", style = LabelStyle.copy(fontSize = 10.sp), modifier = Modifier.weight(1f))
-                    Text((app.group?.name ?: "Your paper").uppercase(), style = LabelStyle.copy(fontSize = 10.sp, color = Press.ink2), maxLines = 1)
-                }
-                Hairline(color = Press.ink)
+            Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("People", style = display(30))
+                Text("${app.members.size} in ${app.group?.name ?: "your paper"}", style = MetaStyle.copy(fontSize = 15.sp, color = Press.ink3), maxLines = 1)
             }
         }
         items(app.members, key = { it.user_id }) { member ->
             Row(
-                Modifier.fillMaxWidth().padding(vertical = 14.dp),
+                Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(vertical = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Avatar(member.user_id, 42.dp)
-                Text(member.profiles.display_name, style = display(21), modifier = Modifier.weight(1f))
-                if (member.role == "owner") Text("EDITOR", style = LabelStyle.copy(fontSize = 10.sp), modifier = Modifier.border(1.dp, Press.ink).padding(horizontal = 8.dp, vertical = 4.dp))
+                MemberDisc(member.user_id, member.profiles.display_name, 40.dp)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(member.profiles.display_name, style = NameStyle.copy(fontSize = 17.sp))
+                    if (member.role == "owner") Text("Started the paper", style = MetaStyle.copy(color = Press.ink3))
+                }
             }
             Hairline()
         }
         app.group?.let { group ->
             item {
                 Column(
-                    Modifier.padding(top = 32.dp).fillMaxWidth().border(1.dp, Press.ink).padding(5.dp).border(1.dp, Press.ink).padding(20.dp),
+                    Modifier.padding(top = 28.dp).fillMaxWidth().card(androidx.compose.foundation.shape.RoundedCornerShape(24.dp)).padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Text("NOTICE", style = LabelStyle)
-                    Text("Make room for a friend", style = display(26), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-                    Text("Good papers start with good company. Share an invitation to yours.", style = BodyStyle.copy(color = Press.ink2, textAlign = androidx.compose.ui.text.style.TextAlign.Center))
-                    Hairline()
-                    Text("INVITE CODE", style = LabelStyle.copy(color = Press.ink2))
-                    SelectionContainer {
-                        Text(group.invite_code, style = MetaStyle.copy(fontSize = 18.sp, color = Press.ink, letterSpacing = 2.sp))
+                    SectionHead("Invite someone")
+                    Row(
+                        Modifier.fillMaxWidth().background(Press.raised2, FieldCorner).padding(horizontal = 14.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Invite code", style = MetaStyle.copy(color = Press.ink3), modifier = Modifier.weight(1f))
+                        SelectionContainer {
+                            Text(group.invite_code, style = NameStyle.copy(fontSize = 17.sp, fontFeatureSettings = "tnum"))
+                        }
                     }
+                    Text("Anyone with the code can join and read everything in the paper.", style = MetaStyle.copy(fontSize = 14.sp, color = Press.ink2))
                     InkButton("Share invitation") {
                         val link = "${Config.webURL}/invite?code=${group.invite_code}"
                         val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, link)

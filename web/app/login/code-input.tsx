@@ -6,7 +6,7 @@ import { BusyLabel } from '@/components/print/InkDots'
 import styles from './login.module.css'
 
 // Must match `otp_length` in supabase/config.toml and the hosted project.
-export const CODE_LENGTH = 6
+const CODE_LENGTH = 6
 
 /** One real input (so paste, autofill and screen readers just work), drawn as six cells. Submits its form when full. */
 export function CodeInput({ invalid, describedBy }: { invalid: boolean; describedBy?: string }) {

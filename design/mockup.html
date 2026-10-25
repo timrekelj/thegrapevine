@@ -1,0 +1,896 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>The Grapevine: the set</title>
+<link rel="stylesheet" href="file:///Users/timrekelj/.claude/skills/app-designer-pro/assets/device.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&display=block" rel="stylesheet">
+<style>
+/* =====================================================================
+   The Grapevine is a vine. Tokens from DIRECTION.md.
+   ===================================================================== */
+:root{
+  --ground:#F0F4EB; --raised:#FFFFFF; --raised2:#F6F8F3; --ink:#15221B; --ink2:#3F4C45; --ink3:#5E6B63; --rule:rgba(21,34,27,.08);
+  --vine:#1E7A39; --vine-soft:#E4F3E7; --on-vine:#FFFFFF; --catch:#15221B; --on-catch:#EEF3EA; --on-catch2:#B5C1B8; --neg:#B42318;
+  --glass:rgba(255,255,255,.66); --glass-dark:rgba(23,34,25,.55);
+  --luka:#E3A512; --luka2:#F6CB55; --luka0:#C48E08; --nika:#E2552B; --nika2:#F58A66; --nika0:#C4421C; --jure:#2F7BEA; --jure2:#78ABF7; --jure0:#1F5FC9; --maja:#8E4FD8; --maja2:#BB94EA; --maja0:#7538BF; --tim:#D23D7E; --tim2:#EC7FAB; --tim0:#B52A68;
+  --disp:"Bricolage Grotesque",var(--sf);
+  --ui:var(--sf);
+  --shadow-obj:0 1px 1px rgba(21,34,27,.04),0 12px 30px -12px rgba(21,34,27,.16),inset 0 0 0 1px rgba(21,34,27,.04);
+  --shadow-float:0 10px 24px -8px rgba(21,34,27,.45);
+}
+.screen[data-theme="dark"]{
+  --ground:#0E1711; --raised:#172219; --raised2:#1F2C22; --ink:#EEF3EA; --ink2:#B5C1B8; --ink3:#8C9A90; --rule:rgba(238,243,234,.10);
+  --vine:#4CC46F; --vine-soft:#1D3A26; --on-vine:#0E1711; --catch:#1D3A26; --on-catch:#EEF3EA; --on-catch2:#B5C1B8; --neg:#FF7A6E;
+  --shadow-obj:0 1px 1px rgba(0,0,0,.25),0 12px 30px -12px rgba(0,0,0,.55),inset 0 0 0 1px rgba(238,243,234,.06);
+  --shadow-float:0 10px 24px -8px rgba(0,0,0,.65);
+  background:var(--ground); color:var(--ink);
+}
+.screen{background:var(--ground);color:var(--ink);font-family:var(--ui)}
+.screen[data-os="android"]{--ui:var(--gsf);font-family:var(--gsf)}
+.tnum{font-variant-numeric:tabular-nums}
+.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block;flex:none}
+.ico.s{width:18px;height:18px}
+.ico.xs{width:13px;height:13px;stroke-width:2.2}
+
+/* ---- type steps ---- */
+.disp{font:800 34px/1.04 var(--disp);font-variation-settings:"opsz" 96;letter-spacing:-.02em;text-wrap:balance}
+.head{font:800 30px/1.03 var(--disp);font-variation-settings:"opsz" 96;letter-spacing:-.02em;text-wrap:balance}
+.rowt{font:700 19px/1.15 var(--disp);font-variation-settings:"opsz" 24;letter-spacing:-.015em;text-wrap:balance}
+.body{font:400 17px/22px var(--ui);letter-spacing:-.4px}
+.sec{font:400 15px/20px var(--ui);letter-spacing:-.2px}
+.meta{font:400 13px/16px var(--ui);letter-spacing:-.1px;color:var(--ink3)}
+.cap{font:500 11px/13px var(--ui);letter-spacing:.02em}
+.screen[data-os="android"] .body{font:400 16px/24px var(--gsf);letter-spacing:0}
+.screen[data-os="android"] .sec{font:400 14px/20px var(--gsf);letter-spacing:0}
+.screen[data-os="android"] .meta{font:400 12px/16px var(--gsf);letter-spacing:.1px}
+
+/* ---- people: a disc per member, lit from the top-left ---- */
+.disc{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font:700 13px/1 var(--ui);color:#15221B;flex:none;background:radial-gradient(circle at 34% 28%,var(--c2) 0,var(--c1) 58%,var(--c0) 100%)}
+.disc.luka{--c0:var(--luka0);--c1:var(--luka);--c2:var(--luka2)}.disc.nika{--c0:var(--nika0);--c1:var(--nika);--c2:var(--nika2)}.disc.jure{--c0:var(--jure0);--c1:var(--jure);--c2:var(--jure2)}.disc.maja{--c0:var(--maja0);--c1:var(--maja);--c2:var(--maja2)}.disc.tim{--c0:var(--tim0);--c1:var(--tim);--c2:var(--tim2)}
+.disc.sm{width:26px;height:26px;font-size:11px}.disc.lg{width:40px;height:40px;font-size:15px}.disc.xl{width:56px;height:56px;font-size:19px}
+.stack{display:flex}.stack .disc{border:2px solid var(--ground);width:30px;height:30px;margin-left:-9px}.stack .disc:first-child{margin-left:0}
+.n-luka,.n-nika,.n-jure,.n-maja,.n-tim{color:var(--ink)}
+
+/* ---- the bunch: one grape per source, in the filer's hue, lit ---- */
+.bunch{display:block;flex:none;overflow:visible}
+.bunch .stem{stroke:var(--vine);stroke-width:2.5;stroke-linecap:round;fill:none}
+.bunch .leaf{fill:var(--vine)}
+.bunch .g{stroke:var(--ground);stroke-width:2}
+.bunch .g.luka{fill:url(#g-luka)}.bunch .g.nika{fill:url(#g-nika)}.bunch .g.jure{fill:url(#g-jure)}.bunch .g.maja{fill:url(#g-maja)}.bunch .g.tim{fill:url(#g-tim)}
+.bunch .ring{fill:none;stroke:var(--vine);stroke-width:2.5}
+.on-card .bunch .g{stroke:var(--raised)}
+.grape{width:32px;height:32px;border-radius:50%;flex:none;background:radial-gradient(circle at 34% 28%,var(--c2) 0,var(--c1) 58%,var(--c0) 100%)}
+.grape.luka{--c0:var(--luka0);--c1:var(--luka);--c2:var(--luka2)}.grape.nika{--c0:var(--nika0);--c1:var(--nika);--c2:var(--nika2)}.grape.jure{--c0:var(--jure0);--c1:var(--jure);--c2:var(--jure2)}.grape.maja{--c0:var(--maja0);--c1:var(--maja);--c2:var(--maja2)}.grape.tim{--c0:var(--tim0);--c1:var(--tim);--c2:var(--tim2)}
+.grape.ringed{outline:2.5px solid var(--vine);outline-offset:2px}
+
+/* ---- chrome, iOS ---- */
+.edge{position:absolute;left:0;right:0;top:0;height:calc(var(--safe-top) + 64px);background:linear-gradient(180deg,var(--ground) 58%,rgba(240,244,235,0));pointer-events:none;z-index:5}
+.screen[data-theme="dark"] .edge{background:linear-gradient(180deg,var(--ground) 58%,rgba(14,23,17,0))}
+.edge-b{position:absolute;left:0;right:0;bottom:0;height:28px;background:linear-gradient(0deg,var(--ground) 55%,rgba(240,244,235,0));pointer-events:none;z-index:5}
+.screen[data-theme="dark"] .edge-b{background:linear-gradient(0deg,var(--ground) 55%,rgba(14,23,17,0))}
+.screen[data-os="android"] .edge-b{height:24px}
+.toolbar{position:absolute;left:16px;right:16px;top:calc(var(--safe-top) + 2px);height:48px;display:flex;align-items:center;justify-content:space-between;z-index:6}
+.toolbar .wordmark{font:800 22px/1 var(--disp);font-variation-settings:"opsz" 24;letter-spacing:-.015em;padding-left:4px}
+.toolbar .ititle{flex:1;min-width:0;text-align:center;font:600 17px/22px var(--ui);letter-spacing:-.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 12px}
+.appbar .ititle{flex:1;min-width:0;font:700 19px/24px var(--disp);font-variation-settings:"opsz" 24;letter-spacing:-.015em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
+.gbtn{width:44px;height:44px;border-radius:22px;display:grid;place-items:center;color:var(--ink)}
+.gbtn.wide{width:auto;padding:0 6px;display:flex;gap:2px}
+.gbtn.wide .gbtn{box-shadow:none;background:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+.scroll{position:absolute;inset:0;overflow:hidden;padding:calc(var(--safe-top) + 58px) 20px 120px}
+.screen[data-tall] .scroll{position:static;height:auto;overflow:visible;padding-bottom:calc(var(--safe-bottom) + 24px)}
+.fab{position:absolute;right:20px;bottom:44px;height:52px;padding:0 20px 0 16px;border-radius:26px;background:var(--ink);color:var(--ground);display:flex;align-items:center;gap:8px;font:600 15px/1 var(--ui);letter-spacing:-.2px;box-shadow:var(--shadow-float);z-index:7}
+
+/* ---- chrome, Android ---- */
+.appbar{position:absolute;left:0;right:0;top:var(--safe-top);height:64px;display:flex;align-items:center;padding:0 4px 0 20px;z-index:6;background:linear-gradient(180deg,var(--ground) 70%,rgba(240,244,235,0))}
+.screen[data-theme="dark"] .appbar{background:linear-gradient(180deg,var(--ground) 70%,rgba(14,23,17,0))}
+.appbar .wordmark{font:800 22px/1 var(--disp);font-variation-settings:"opsz" 24;letter-spacing:-.015em;flex:1}
+.appbar .act{width:48px;height:48px;display:grid;place-items:center;color:var(--ink)}
+.screen[data-os="android"] .edge{display:none}
+.screen[data-os="android"] .scroll{padding-top:calc(var(--safe-top) + 72px)}
+.efab{position:absolute;right:16px;bottom:40px;height:56px;padding:0 20px 0 16px;border-radius:16px;background:var(--ink);color:var(--ground);display:flex;align-items:center;gap:12px;font:600 14px/1 var(--gsf);box-shadow:0 6px 10px -4px rgba(21,34,27,.35);z-index:7}
+.screen[data-theme="dark"] .efab{box-shadow:0 6px 10px -4px rgba(0,0,0,.6)}
+.ms{color:inherit}
+
+/* ---- the front page ---- */
+@container (max-height: 760px){ .screen .lead .photo{height:150px} .screen .said{display:none} }
+.dateline{display:flex;justify-content:space-between;align-items:center;margin:0 0 14px;min-height:32px}
+.dateline .d{display:flex;flex-direction:column;gap:2px;font:600 15px/20px var(--ui);letter-spacing:-.2px;color:var(--ink2)}
+.dateline .d .date{display:inline-flex;align-items:center;gap:3px;color:var(--ink)}
+.dateline .d .date .ico{color:var(--ink3)}
+.dateline .d b{color:var(--vine);font-weight:600}
+.lead{background:var(--raised);border-radius:28px;overflow:hidden;box-shadow:var(--shadow-obj)}
+.lead .photo{height:216px;background:url(../web/public/seed/rocket.jpg) center 42%/cover;position:relative}
+.badge{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px 0 9px;border-radius:14px;background:var(--vine);color:var(--on-vine);font:600 13px/1 var(--ui);letter-spacing:-.1px}
+.badge i{width:8px;height:8px;border-radius:50%;background:currentColor}
+.lead .photo .badge{position:absolute;left:16px;top:16px}
+.lead .inner{padding:16px 20px 18px}
+.kick{display:flex;gap:8px;align-items:center;font:600 13px/16px var(--ui);letter-spacing:-.1px;color:var(--ink3)}
+.kick .sep{width:3px;height:3px;border-radius:50%;background:var(--ink3);flex:none}
+.lead h1{margin:8px 0 14px}
+.bunchrow{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.counts{font:400 15px/20px var(--ui);letter-spacing:-.2px;color:var(--ink2)}
+.counts b{font-weight:600;color:var(--ink)}
+.said{display:flex;gap:10px;align-items:center;padding-top:14px;border-top:1px solid var(--rule)}
+.said p{margin:0;font:400 15px/20px var(--ui);letter-spacing:-.2px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.said p b{font-weight:600}
+.said .t{font:400 13px/16px var(--ui);color:var(--ink3);flex:none}
+.rows{margin-top:8px}
+.row{display:flex;gap:14px;align-items:center;padding:16px 0;border-bottom:1px solid var(--rule)}
+.row:last-child{border-bottom:0}
+.row .txt{flex:1;min-width:0}
+.row h2{margin:0 0 6px}
+.row .m{display:flex;align-items:center;gap:6px;font:400 13px/16px var(--ui);color:var(--ink3);letter-spacing:-.1px}
+.row .m .new{color:var(--vine);font-weight:600}
+.row .thumb{width:64px;height:64px;border-radius:14px;flex:none;background-size:cover;background-position:center}
+.screen[data-os="android"] .row{padding:14px 0}
+.more{display:flex;align-items:center;justify-content:space-between;padding:18px 0;font:600 15px/20px var(--ui);color:var(--ink2);border-top:1px solid var(--rule)}
+
+/* ---- the story ---- */
+@container (max-width: 400px){ .screen .catch .lbl{white-space:normal;flex-wrap:wrap;row-gap:2px} .screen .catch .lbl>span.dim{flex-basis:100%;white-space:normal;overflow:visible} .screen .row .bunch{width:32px;height:35px} .screen .row .thumb{width:56px;height:56px} .screen .row{gap:12px} .screen .row .m{flex-wrap:wrap;row-gap:2px} .screen .row .m .new{white-space:nowrap;flex:0 0 100%} .screen .row .m .new+span{display:none} }
+.story .scroll{padding-top:calc(var(--safe-top) + 60px);padding-bottom:140px}
+.story .kick{margin-bottom:8px}
+.catch{background:var(--catch);color:var(--on-catch);border-radius:24px;padding:18px 20px 16px;position:relative;margin:18px 0 0}
+.catch .lbl{display:flex;align-items:center;gap:8px;font:600 13px/16px var(--ui);color:var(--on-catch);letter-spacing:-.1px;margin-bottom:10px;padding-right:36px;white-space:nowrap;overflow:hidden}
+.catch .lbl>span{flex:none}.catch .lbl>span.dim{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--on-catch2);font-weight:500}
+.catch .lbl .sep{width:3px;height:3px;border-radius:50%;background:var(--on-catch2)}
+.catch p{margin:0;font:400 17px/24px var(--ui);letter-spacing:-.3px}
+.catch .foot{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid rgba(238,243,234,.14);font:500 13px/16px var(--ui);color:var(--on-catch2)}
+.catch .foot .links{display:flex;gap:14px}
+.catch .foot u{text-decoration-thickness:1px;text-underline-offset:3px;color:var(--on-catch)}
+.catch .fold{position:absolute;right:12px;top:12px;width:32px;height:32px;border-radius:16px;display:grid;place-items:center;color:var(--on-catch2)}
+.sources{margin:18px 0 6px}
+.sources .lbl{font:600 13px/16px var(--ui);color:var(--ink3);margin-bottom:10px}
+.srcs{display:flex;gap:16px;margin:0 -20px;padding:4px 20px;overflow:hidden}
+.src{flex:none;min-width:40px;display:flex;flex-direction:column;align-items:center;gap:7px;text-align:center}
+.src .lbl2{display:flex;align-items:center;justify-content:center;gap:3px;font:600 11px/14px var(--ui);letter-spacing:0;color:var(--ink2);white-space:nowrap}
+.src .lbl2 span{display:block;white-space:nowrap}
+.src .lbl2.new{color:var(--vine)}
+.src .lbl2 .ico{color:var(--ink3)}
+.convo{margin-top:8px}
+.day{text-align:center;font:600 13px/16px var(--ui);color:var(--ink3);letter-spacing:.02em;padding:18px 0 6px}
+.msg{display:flex;gap:12px;padding:8px 0}
+.msg .col{flex:1;min-width:0}
+.msg .who{display:flex;align-items:baseline;gap:8px;font:600 15px/20px var(--ui);letter-spacing:-.2px}
+.msg .who .t{font:400 13px/16px var(--ui);color:var(--ink3)}
+.msg .who .did{font-weight:400;color:var(--ink2)}
+.msg .body{margin:2px 0 0;color:var(--ink)}
+.msg.cont{padding-top:0}.msg.cont .col{margin-left:44px}
+.quote{display:flex;gap:10px;margin:6px 0 4px;padding:8px 12px;border-radius:10px;background:var(--raised2);font:400 15px/20px var(--ui);letter-spacing:-.2px;color:var(--ink2)}
+.quote i{width:2px;border-radius:1px;flex:none;background:var(--jure)}
+.quote b{font-weight:600;color:var(--ink)}
+.reacts{display:flex;gap:6px;margin-top:8px}
+.react{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 10px;border-radius:14px;background:var(--raised2);font:600 13px/1 var(--ui);color:var(--ink)}
+.clip{display:flex;gap:12px;align-items:center;margin-top:8px;padding:10px 12px 10px 10px;border-radius:14px;background:var(--raised);box-shadow:var(--shadow-obj)}
+.clip .pic{width:56px;height:56px;border-radius:9px;flex:none;background-size:cover;background-position:center}
+.clip .txt{flex:1;min-width:0}
+.clip .pub{display:flex;align-items:center;gap:4px;font:600 13px/16px var(--ui);color:var(--ink3);margin-bottom:2px}
+.clip .ttl{font:600 15px/19px var(--ui);letter-spacing:-.2px;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.clip .ico{width:18px;height:18px;color:var(--ink3)}
+.gif{position:relative;margin-top:6px;width:240px;height:160px;border-radius:14px;overflow:hidden;background:url(../web/public/seed/crowd.jpg) center/cover}
+.gif span{position:absolute;left:10px;bottom:10px;height:22px;padding:0 7px;border-radius:6px;background:rgba(21,34,27,.78);color:#fff;font:700 11px/22px var(--ui);letter-spacing:.06em}
+.newsince{display:flex;align-items:center;gap:10px;padding:14px 0 6px}
+.newsince i{flex:1;height:1px;background:var(--vine);opacity:.5}
+.newsince span{height:26px;padding:0 10px;border-radius:13px;background:var(--vine-soft);color:var(--vine);font:600 13px/26px var(--ui);letter-spacing:-.1px}
+.composer{position:absolute;left:16px;right:16px;bottom:44px;height:56px;border-radius:28px;display:flex;align-items:center;padding:0 6px 0 4px;gap:4px;z-index:7}
+.composer .gbtn{width:44px;height:44px;box-shadow:none;background:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+.composer .field{flex:1;font:400 17px/22px var(--ui);letter-spacing:-.4px;color:var(--ink3);padding-left:4px}
+.composer .send{width:40px;height:40px;border-radius:20px;background:var(--ink);color:var(--ground);display:grid;place-items:center}
+.screen[data-os="android"] .composer{left:0;right:0;bottom:0;height:auto;border-radius:0;padding:10px 12px calc(var(--safe-bottom) + 8px) 8px;background:var(--ground);gap:6px}
+.screen[data-os="android"] .composer .act{width:48px;height:48px;display:grid;place-items:center;color:var(--ink2)}
+.screen[data-os="android"] .composer .field{height:48px;min-height:48px;margin-bottom:0;border-bottom:0;border-radius:24px;background:var(--raised2);display:flex;flex-direction:row;align-items:center;justify-content:flex-start;padding:0 16px;font:400 16px/24px var(--gsf);letter-spacing:0;text-align:left}
+.screen[data-os="android"] .composer .send{width:48px;height:48px;border-radius:24px}
+
+/* ---- sheets ---- */
+.sheet.mid{top:412px}
+@container (max-height: 760px){ .screen .sheet.mid{top:250px} }
+.behind{position:absolute;inset:0;filter:brightness(.72)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--raised);border-radius:38px 38px 0 0;padding:8px 20px 0;box-shadow:var(--shadow-float);z-index:8}
+.sheet .grab{width:36px;height:5px;border-radius:3px;background:rgba(21,34,27,.2);margin:0 auto 14px}
+.screen[data-theme="dark"] .sheet .grab{background:rgba(238,243,234,.25)}
+.sheet .hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.sheet .hd .x{width:32px;height:32px;border-radius:16px;background:var(--raised2);display:grid;place-items:center;color:var(--ink2)}
+.field{background:var(--raised2);border-radius:9px;padding:12px 16px;margin-bottom:12px}
+.field .l{font:500 13px/16px var(--ui);color:var(--ink3);margin-bottom:4px}
+.field .v{font:400 17px/22px var(--ui);letter-spacing:-.4px;color:var(--ink);overflow-wrap:anywhere}
+.field .v b{font-weight:600}
+.note{font:400 13px/18px var(--ui);color:var(--ink3);letter-spacing:-.1px;margin:4px 2px 18px}
+.btn{height:52px;border-radius:26px;display:flex;align-items:center;justify-content:center;gap:8px;font:600 17px/1 var(--ui);letter-spacing:-.3px}
+.btn.primary{background:var(--ink);color:var(--ground)}
+.btn.quiet{color:var(--ink2);height:44px}
+.sheet .foot{padding:0 0 calc(var(--safe-bottom) + 12px)}
+.center{display:flex;flex-direction:column;align-items:center;text-align:center;padding:28px 0 8px}
+/* Android: a bottom sheet that wraps its content, Material filled text fields */
+.screen[data-os="android"] .sheet{top:auto;border-radius:28px 28px 0 0;padding:10px 24px 0}
+.screen[data-os="android"] .sheet .grab{width:32px;height:4px}
+.screen[data-os="android"] .field{border-radius:4px 4px 0 0;border-bottom:1px solid var(--ink3);padding:8px 16px 8px;min-height:56px;display:flex;flex-direction:column;justify-content:center}
+.screen[data-os="android"] .field .l{font:400 12px/16px var(--gsf);letter-spacing:.4px;color:var(--ink2);margin-bottom:2px}
+.screen[data-os="android"] .field .v{font:400 16px/24px var(--gsf);letter-spacing:0}
+.screen[data-os="android"] .btn{height:48px;border-radius:24px;font:600 14px/1 var(--gsf);letter-spacing:.1px}
+
+/* ---- the signature: reading, then the grape rolls into its bunch ---- */
+.lone{position:relative;width:88px;height:96px}
+.lone .grape{position:absolute;left:16px;top:28px;width:56px;height:56px}
+.lone svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.lone .arc{fill:none;stroke:var(--vine);stroke-width:4;stroke-linecap:round;stroke-dasharray:214;stroke-dashoffset:214;animation:arc 2200ms linear infinite}
+@keyframes arc{to{stroke-dashoffset:0}}
+.breathe{animation:breathe 1100ms ease-in-out infinite alternate}
+@keyframes breathe{from{transform:scale(1)}to{transform:scale(1.06)}}
+.roll{animation:roll 700ms var(--spring-ios-snappy) both}
+@keyframes roll{from{transform:translate(-44px,-70px) rotate(-300deg);opacity:.9}to{transform:translate(0,0) rotate(0);opacity:1}}
+.bloom{animation:bloom 500ms var(--spring-ios-snappy) 450ms both;transform-origin:center}
+@keyframes bloom{from{transform:scale(.55);opacity:0}to{transform:scale(1);opacity:1}}
+.land{animation:land 420ms var(--spring-ios-smooth) 500ms both}
+@keyframes land{from{transform:translateY(10px);opacity:0}to{transform:none;opacity:1}}
+
+/* ---- the empty paper ---- */
+.emptybox{position:absolute;inset:calc(var(--safe-top) + 58px) 24px calc(var(--safe-bottom) + 24px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:22px}
+.emptybox .art{flex:none}
+
+/* ---- people and you (iOS lists) ---- */
+.group{background:var(--raised);border-radius:22px;box-shadow:var(--shadow-obj);margin-bottom:20px;overflow:hidden}
+.group .r{display:flex;align-items:center;gap:12px;min-height:54px;padding:8px 16px 8px 16px;border-top:1px solid var(--rule)}
+.group .r:first-child{border-top:0}
+.group .r .t{flex:1;min-width:0;font:400 17px/22px var(--ui);letter-spacing:-.4px}
+.group .r .t small{display:block;font:400 13px/16px var(--ui);color:var(--ink3);letter-spacing:-.1px;margin-top:1px}
+.group .r .v{font:400 15px/20px var(--ui);color:var(--ink3);letter-spacing:-.2px}
+.group .r .chev{color:var(--ink3)}
+.group .r.danger .t{color:var(--neg)}
+.week{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.week .dots{display:flex}
+.week .dots i{width:10px;height:10px;border-radius:50%;margin-left:-3px;border:1.5px solid var(--raised);background:radial-gradient(circle at 34% 28%,var(--c2) 0,var(--c1) 58%,var(--c0) 100%)}
+.week .dots i:first-child{margin-left:0}
+.week .dots.luka i{--c0:var(--luka0);--c1:var(--luka);--c2:var(--luka2)}.week .dots.nika i{--c0:var(--nika0);--c1:var(--nika);--c2:var(--nika2)}.week .dots.jure i{--c0:var(--jure0);--c1:var(--jure);--c2:var(--jure2)}.week .dots.maja i{--c0:var(--maja0);--c1:var(--maja);--c2:var(--maja2)}.week .dots.tim i{--c0:var(--tim0);--c1:var(--tim);--c2:var(--tim2)}
+.week .n{font:400 13px/16px var(--ui);color:var(--ink3);letter-spacing:-.1px}
+.gtitle{font:600 15px/20px var(--ui);color:var(--ink2);letter-spacing:-.2px;margin:8px 4px 8px}
+.switch{width:51px;height:31px;border-radius:16px;background:var(--ink);position:relative;flex:none}
+.switch::after{content:"";position:absolute;top:2px;right:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.25)}
+.switch.off{background:rgba(21,34,27,.16)}.switch.off::after{right:auto;left:2px}
+.screen[data-theme="dark"] .switch::after{background:#0E1711}
+.code{display:flex;align-items:center;justify-content:space-between;background:var(--raised2);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+.code b{font:700 19px/1 var(--disp);font-variation-settings:"opsz" 24;letter-spacing:.06em}
+
+/* ---- living screens: one timeline, 8s ---- */
+.live{--loop:8000ms}
+.swap{position:relative;display:inline-block;vertical-align:top;height:var(--rh,20px);line-height:var(--rh,20px)}
+.swap>span{display:block;white-space:nowrap;line-height:var(--rh,20px)}
+.swap>.a{position:absolute;left:0;top:0}
+.swap>.b{position:relative}
+.saidwrap{position:relative;height:40px;padding-top:14px;border-top:1px solid var(--rule)}
+.saidwrap .said{position:absolute;left:0;right:0;top:14px;padding-top:0;border-top:0}
+.live .said.old{animation:said-old var(--loop) ease-out infinite}
+.live .said.new{animation:said-new var(--loop) var(--spring-ios-snappy) infinite}
+.live .s1>.a{animation:s1a var(--loop) var(--spring-ios-snappy) infinite}.live .s1>.b{animation:s1b var(--loop) var(--spring-ios-snappy) infinite}
+.live .s3>.a{animation:s3a var(--loop) var(--spring-ios-smooth) infinite}.live .s3>.b{animation:s3b var(--loop) var(--spring-ios-smooth) infinite}
+.live .grape2{animation:grape2 var(--loop) var(--spring-ios-snappy) infinite;transform-box:fill-box;transform-origin:center}
+.live .s2{--wa:82px;--wb:91px;animation:s2w var(--loop) var(--spring-ios-snappy) infinite}
+.live[data-os="android"] .s2{--wa:83px;--wb:91px}.live .s2>.a{animation:s2a var(--loop) var(--spring-ios-snappy) infinite}.live .s2>.b{position:absolute;left:0;top:0;animation:s2b var(--loop) var(--spring-ios-snappy) infinite}
+@keyframes s2w{0%,38%{width:var(--wa)}46%,91%{width:var(--wb)}100%{width:var(--wa)}}
+.live .pillrow{height:0;overflow:hidden;display:flex;justify-content:center;animation:pillrow var(--loop) var(--spring-ios-smooth) infinite}
+.live .pill{height:36px;padding:0 14px 0 12px;border-radius:18px;background:var(--ink);color:var(--ground);display:flex;align-items:center;gap:8px;font:600 14px/1 var(--ui);letter-spacing:-.2px;box-shadow:var(--shadow-float);opacity:0;animation:pill var(--loop) var(--spring-ios-snappy) infinite}
+.live .pill b{color:#7BD89A;font-weight:600}
+.live[data-os="android"] .said.new,.live[data-os="android"] .swap>span,.live[data-os="android"] .pill,.live[data-os="android"] .pillrow,.live[data-os="android"] .s2{animation-timing-function:var(--spring-m3-default)}
+.live[data-os="android"] .grape2{animation-timing-function:var(--spring-m3-fast)}
+@keyframes said-old{0%,7.5%{opacity:1;visibility:visible}12%,91%{opacity:0;visibility:hidden}100%{opacity:1;visibility:visible}}
+@keyframes said-new{0%,7.5%{opacity:0;visibility:hidden;transform:translateY(14px)}16.25%,91%{opacity:1;visibility:visible;transform:none}100%{opacity:0;visibility:hidden;transform:translateY(14px)}}
+@keyframes s1a{0%,20%{opacity:1;visibility:visible;transform:none}24%,91%{opacity:0;visibility:hidden;transform:translateY(-8px)}100%{opacity:1;visibility:visible;transform:none}}
+@keyframes s1b{0%,20%{opacity:0;visibility:hidden;transform:translateY(8px)}26%,91%{opacity:1;visibility:visible;transform:none}100%{opacity:0;visibility:hidden;transform:translateY(8px)}}
+@keyframes s3a{0%,20%{opacity:1;visibility:visible;transform:none}24%,91%{opacity:0;visibility:hidden;transform:translateY(-8px)}100%{opacity:1;visibility:visible;transform:none}}
+@keyframes s3b{0%,20%{opacity:0;visibility:hidden;transform:translateY(8px)}26%,91%{opacity:1;visibility:visible;transform:none}100%{opacity:0;visibility:hidden;transform:translateY(8px)}}
+@keyframes grape2{0%,37.5%{transform:translate(0,-28px) rotate(-220deg);opacity:0}45%,91%{transform:none;opacity:1}100%{transform:translate(0,-28px) rotate(-220deg);opacity:0}}
+@keyframes s2a{0%,38%{opacity:1;visibility:visible;transform:none}42%,91%{opacity:0;visibility:hidden;transform:translateY(-8px)}100%{opacity:1;visibility:visible;transform:none}}
+@keyframes s2b{0%,38%{opacity:0;visibility:hidden;transform:translateY(8px)}46%,91%{opacity:1;visibility:visible;transform:none}100%{opacity:0;visibility:hidden;transform:translateY(8px)}}
+@keyframes pillrow{0%,67.5%{height:0}75%,91%{height:48px}100%{height:0}}
+@keyframes pill{0%,67.5%{transform:translateY(-28px);opacity:0}75%,91%{transform:none;opacity:1}100%{transform:translateY(-28px);opacity:0}}
+
+/* ---- the hero stage ---- */
+.stage[data-name="hero"]{background:#F0F4EB;color:#15221B;font-family:var(--sf)}
+.stage .stage-type{position:absolute;left:40px;right:40px;top:44px;z-index:2}
+.stage .stage-name{font:800 18px/1 "Bricolage Grotesque",var(--sf);letter-spacing:-.01em;color:#15221B;margin-bottom:12px}
+.stage .stage-line{font:800 40px/1.02 "Bricolage Grotesque",var(--sf);font-variation-settings:"opsz" 96;letter-spacing:-.025em;max-width:430px;text-wrap:balance}
+.stage .bigbunch{position:absolute;right:-64px;top:-10px;width:230px;height:256px;z-index:1}
+.stage .phones{position:absolute;left:0;right:0;top:230px;bottom:0;z-index:3}
+.stage .phones .device{position:absolute}
+.stage .phones .ios{left:34px;bottom:-170px;z-index:2}
+.stage .phones .px{right:26px;bottom:-110px;z-index:1}
+
+/* ---- app icon ---- */
+.app-icon{background:#F0F4EB}
+.app-icon svg{position:absolute;inset:0;width:100%;height:100%}
+.app-icon .stem{stroke:#1E7A39}.app-icon .leaf{fill:#1E7A39}.app-icon .g{fill:#15221B;stroke:#F0F4EB}.app-icon .ring{fill:none;stroke:#1E7A39}
+.app-icon[data-mode="dark"]{background:#0E1711}
+.app-icon[data-mode="dark"] .g{fill:#EEF3EA;stroke:#0E1711}.app-icon[data-mode="dark"] .stem{stroke:#4CC46F}.app-icon[data-mode="dark"] .leaf{fill:#4CC46F}.app-icon[data-mode="dark"] .ring{stroke:#4CC46F}
+.app-icon[data-mode="tinted"]{background:#1C1C1E}
+.app-icon[data-mode="tinted"] .g,.app-icon[data-mode="tinted"] .leaf{fill:#D5D5DA}.app-icon[data-mode="tinted"] .g{stroke:#1C1C1E}.app-icon[data-mode="tinted"] .stem,.app-icon[data-mode="tinted"] .ring{stroke:#D5D5DA}
+.adaptive-icon .layer-bg{background:#F0F4EB}
+.adaptive-icon svg{position:absolute;inset:0;width:100%;height:100%}
+.adaptive-icon .layer-fg .stem{stroke:#1E7A39}.adaptive-icon .layer-fg .leaf{fill:#1E7A39}.adaptive-icon .layer-fg .g{fill:#15221B;stroke:#F0F4EB}.adaptive-icon .layer-fg .ring{fill:none;stroke:#1E7A39}
+.adaptive-icon .layer-mono .stem,.adaptive-icon .layer-mono .ring{stroke:currentColor;fill:none}.adaptive-icon .layer-mono .leaf,.adaptive-icon .layer-mono .g{fill:currentColor}.adaptive-icon .layer-mono .g{stroke:none}
+</style></head>
+<body>
+
+<!-- ================= the grapes' light, defined once ================= -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <radialGradient id="g-luka" cx="34%" cy="28%" r="72%"><stop offset="0" stop-color="#F6CB55"/><stop offset=".55" stop-color="#E3A512"/><stop offset="1" stop-color="#C48E08"/></radialGradient>
+    <radialGradient id="g-nika" cx="34%" cy="28%" r="72%"><stop offset="0" stop-color="#F58A66"/><stop offset=".55" stop-color="#E2552B"/><stop offset="1" stop-color="#C4421C"/></radialGradient>
+    <radialGradient id="g-jure" cx="34%" cy="28%" r="72%"><stop offset="0" stop-color="#78ABF7"/><stop offset=".55" stop-color="#2F7BEA"/><stop offset="1" stop-color="#1F5FC9"/></radialGradient>
+    <radialGradient id="g-maja" cx="34%" cy="28%" r="72%"><stop offset="0" stop-color="#BB94EA"/><stop offset=".55" stop-color="#8E4FD8"/><stop offset="1" stop-color="#7538BF"/></radialGradient>
+    <radialGradient id="g-tim" cx="34%" cy="28%" r="72%"><stop offset="0" stop-color="#EC7FAB"/><stop offset=".55" stop-color="#D23D7E"/><stop offset="1" stop-color="#B52A68"/></radialGradient>
+  </defs>
+</svg>
+
+<!-- ============================ PAPER, iPhone ============================ -->
+<section class="screen" data-name="paper" data-time="21:14" data-kind="core" data-pair="core" data-palette="identity">
+  <div class="scroll" data-scrolls>
+    <div class="dateline">
+      <div class="d"><span class="date" data-hit-expanded>Thursday 23 October<svg class="ico xs" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></span><b>4 new since 19:10</b></div>
+      <div class="stack" data-hit-expanded><span class="disc sm luka">L</span><span class="disc sm nika">N</span><span class="disc sm jure">J</span><span class="disc sm maja">M</span></div>
+    </div>
+
+    <div class="lead on-card">
+      <div class="photo"><span class="badge"><i></i>3 new</span></div>
+      <div class="inner">
+        <div class="kick"><span>Space</span><span class="sep"></span><span>Nika, 20:29</span></div>
+        <h1 class="disp">Reusable booster<br>lands at sea<br>on its second try</h1>
+        <div class="bunchrow">
+          <svg class="bunch" width="48" height="52" viewBox="0 0 44 48" aria-hidden="true">
+            <path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/>
+            <circle class="g luka" cx="13" cy="19" r="8"/><circle class="g nika" cx="31" cy="19" r="8"/>
+            <circle class="g tim" cx="22" cy="24" r="8"/>
+            <circle class="g nika" cx="24" cy="37" r="7.5"/><circle class="ring" cx="24" cy="37" r="10"/>
+          </svg>
+          <div class="counts"><b>4</b> sources, one new from Nika<br><b>5</b> messages</div>
+        </div>
+        <div class="said"><span class="disc sm nika">N</span><p data-ugc><b>Nika</b>&nbsp; This is the actual news.</p><span class="t">20:29</span></div>
+      </div>
+    </div>
+
+    <div class="rows">
+      <div class="row">
+        <svg class="bunch" width="40" height="44" viewBox="0 0 44 48" aria-hidden="true"><path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/><circle class="g maja" cx="22" cy="23" r="8"/><circle class="ring" cx="22" cy="23" r="10.5"/></svg>
+        <div class="txt"><h2 class="rowt">Night buses to the coast stop for winter</h2><div class="m"><span class="new">1 new source</span><span>·</span><span>Travel · Maja, 19:14</span></div></div>
+        <div class="thumb" style="background-image:url(../web/public/seed/bus.jpg)"></div>
+      </div>
+      <div class="row">
+        <svg class="bunch" width="40" height="44" viewBox="0 0 44 48" aria-hidden="true"><path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/><circle class="g maja" cx="14" cy="21" r="8"/><circle class="g jure" cx="30" cy="21" r="8"/></svg>
+        <div class="txt"><h2 class="rowt">Studio Kettle pushes Wayfarer to spring 2027</h2><div class="m"><span>Games · 2 sources · 1 message · 18:14</span></div></div>
+        <div class="thumb" style="background-image:url(../web/public/seed/games.jpg)"></div>
+      </div>
+      <div class="row">
+        <svg class="bunch" width="40" height="44" viewBox="0 0 44 48" aria-hidden="true"><path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/><circle class="g nika" cx="22" cy="23" r="8"/></svg>
+        <div class="txt"><h2 class="rowt">Third-tier side knock out the champions on penalties</h2><div class="m"><span>Sport · 1 source · 1 message · 17:14</span></div></div>
+      </div>
+      <div class="row">
+        <svg class="bunch" width="40" height="44" viewBox="0 0 44 48" aria-hidden="true"><path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/><circle class="g jure" cx="14" cy="21" r="8"/><circle class="g luka" cx="30" cy="21" r="8"/></svg>
+        <div class="txt"><h2 class="rowt">Old town goes car-free on Sundays from March</h2><div class="m"><span>City · 2 sources · 1 message · 15:14</span></div></div>
+        <div class="thumb" style="background-image:url(../web/public/seed/city.jpg)"></div>
+      </div>
+    </div>
+    <div class="more"><span>Earlier editions</span><svg class="ico s" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></div>
+  </div>
+  <div class="edge" data-float></div><div class="edge-b" data-float></div>
+  <div class="toolbar" data-float>
+    <div class="wordmark">The Grapevine</div>
+    <div class="gbtn glass"><span class="disc tim" style="width:30px;height:30px;font-size:11px">T</span></div>
+  </div>
+  <div class="fab" data-float><svg class="ico" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.3 1.3"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.3-1.3"/></svg>Share a link</div>
+</section>
+
+<!-- ============================ PAPER, Pixel ============================ -->
+<section class="screen" data-os="android" data-name="paper-android" data-time="21:14" data-kind="core" data-pair="core" data-palette="identity">
+  <div class="scroll" data-scrolls>
+    <div class="dateline">
+      <div class="d"><span class="date" data-hit-expanded>Thursday 23 October<span class="ms" style="font-size:16px;color:var(--ink3)">chevron_right</span></span><b>4 new since 19:10</b></div>
+      <div class="stack" data-hit-expanded><span class="disc sm luka">L</span><span class="disc sm nika">N</span><span class="disc sm jure">J</span><span class="disc sm maja">M</span></div>
+    </div>
+    <div class="lead on-card">
+      <div class="photo"><span class="badge"><i></i>3 new</span></div>
+      <div class="inner">
+        <div class="kick"><span>Space</span><span class="sep"></span><span>Nika, 20:29</span></div>
+        <h1 class="disp">Reusable booster<br>lands at sea<br>on its second try</h1>
+        <div class="bunchrow">
+          <svg class="bunch" width="48" height="52" viewBox="0 0 44 48" aria-hidden="true"><path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/><circle class="g luka" cx="13" cy="19" r="8"/><circle class="g nika" cx="31" cy="19" r="8"/><circle class="g tim" cx="22" cy="24" r="8"/><circle class="g nika" cx="24" cy="37" r="7.5"/><circle class="ring" cx="24" cy="37" r="10"/></svg>
+          <div class="counts"><b>4</b> sources, one new from Nika<br><b>5</b> messages</div>
+        </div>
+        <div class="said"><span class="disc sm nika">N</span><p data-ugc><b>Nika</b>&nbsp; This is the actual news.</p><span class="t">20:29</span></div>
+      </div>
+    </div>
+    <div class="rows">
+      <div class="row">
+        <svg class="bunch" width="40" height="44" viewBox="0 0 44 48" aria-hidden="true"><path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/><circle class="g maja" cx="22" cy="23" r="8"/><circle class="ring" cx="22" cy="23" r="10.5"/></svg>
+        <div class="txt"><h2 class="rowt">Night buses to the coast stop for winter</h2><div class="m"><span class="new">1 new source</span><span>·</span><span>Travel · Maja, 19:14</span></div></div>
+        <div class="thumb" style="background-image:url(../web/public/seed/bus.jpg)"></div>
+      </div>
+      <div class="row">
+        <svg class="bunch" width="40" height="44" viewBox="0 0 44 48" aria-hidden="true"><path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/><circle class="g maja" cx="14" cy="21" r="8"/><circle class="g jure" cx="30" cy="21" r="8"/></svg>
+        <div class="txt"><h2 class="rowt">Studio Kettle pushes Wayfarer to spring 2027</h2><div class="m"><span>Games · 2 sources · 1 message · 18:14</span></div></div>
+        <div class="thumb" style="background-image:url(../web/public/seed/games.jpg)"></div>
+      </div>
+      <div class="row">
+        <svg class="bunch" width="40" height="44" viewBox="0 0 44 48" aria-hidden="true"><path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/><circle class="g nika" cx="22" cy="23" r="8"/></svg>
+        <div class="txt"><h2 class="rowt">Third-tier side knock out the champions on penalties</h2><div class="m"><span>Sport · 1 source · 1 message · 17:14</span></div></div>
+      </div>
+      <div class="row">
+        <svg class="bunch" width="40" height="44" viewBox="0 0 44 48" aria-hidden="true"><path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/><circle class="g jure" cx="14" cy="21" r="8"/><circle class="g luka" cx="30" cy="21" r="8"/></svg>
+        <div class="txt"><h2 class="rowt">Old town goes car-free on Sundays from March</h2><div class="m"><span>City · 2 sources · 1 message · 15:14</span></div></div>
+        <div class="thumb" style="background-image:url(../web/public/seed/city.jpg)"></div>
+      </div>
+    </div>
+    <div class="more"><span>Earlier editions</span><span class="ms" style="font-size:20px">arrow_forward</span></div>
+  </div>
+  <div class="edge-b" data-float></div>
+  <div class="appbar" data-float>
+    <div class="wordmark">The Grapevine</div>
+    <div class="act"><span class="disc tim" style="width:32px;height:32px">T</span></div>
+  </div>
+  <div class="efab" data-float><span class="ms">link</span>Share a link</div>
+</section>
+
+
+<!-- ============================ PAPER, the end of the list ============================ -->
+<section class="screen" data-name="paper-end" data-time="21:14" data-kind="state" data-palette="identity">
+  <div class="scroll" data-scrolls style="padding-top:calc(var(--safe-top) + 46px)">
+    <div class="rows" style="margin-top:0">
+      <div class="row" style="padding-top:0">
+        <svg class="bunch" width="40" height="44" viewBox="0 0 44 48" aria-hidden="true"><path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/><circle class="g nika" cx="22" cy="23" r="8"/></svg>
+        <div class="txt"><h2 class="rowt">Third-tier side knock out the champions on penalties</h2><div class="m"><span>Sport · 1 source · 1 message · 17:14</span></div></div>
+      </div>
+      <div class="row">
+        <svg class="bunch" width="40" height="44" viewBox="0 0 44 48" aria-hidden="true"><path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/><circle class="g jure" cx="14" cy="21" r="8"/><circle class="g luka" cx="30" cy="21" r="8"/></svg>
+        <div class="txt"><h2 class="rowt">Old town goes car-free on Sundays from March</h2><div class="m"><span>City · 2 sources · 1 message · 15:14</span></div></div>
+        <div class="thumb" style="background-image:url(../web/public/seed/city.jpg)"></div>
+      </div>
+    </div>
+    <div class="more"><span>Earlier editions</span><svg class="ico s" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></div>
+    <div class="meta" style="margin-top:6px">Wednesday 22 October · 3 stories. Tuesday 21 October · 6 stories.</div>
+    <div class="meta" style="margin-top:40px;text-align:center">5 stories this edition, 4 of them new to you.</div>
+  </div>
+  <div class="edge" data-float></div><div class="edge-b" data-float></div>
+  <div class="toolbar" data-float>
+    <div class="wordmark">The Grapevine</div>
+    <div class="gbtn glass"><span class="disc tim" style="width:30px;height:30px;font-size:11px">T</span></div>
+  </div>
+  <div class="fab" data-float><svg class="ico" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.3 1.3"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.3-1.3"/></svg>Share a link</div>
+</section>
+
+<!-- ============================ STORY, iPhone ============================ -->
+<section class="screen story" data-name="story" data-time="21:14" data-kind="detail" data-pair="story" data-palette="identity">
+  <div class="scroll" data-scrolls>
+    <div class="kick"><span>Space</span><span class="sep"></span><span>Nika, 20:29</span></div>
+    <h1 class="disp" style="margin:0">Reusable booster lands at sea on its second try</h1>
+
+    <div class="catch">
+      <div class="lbl"><span>The catch-up</span><span class="sep"></span><span class="dim">rewritten after Ferrite, 19:12</span></div>
+      <div class="fold" data-hit-expanded><svg class="ico s" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></div>
+      <p>Vela Orbital's Nimbus booster landed on a barge in the North Sea on Sunday night, two months after its first attempt tipped over. Ferrite reports the next flight will carry a paying customer.</p>
+      <div class="foot"><span style="white-space:nowrap">3 of 4 sources</span><span class="links"><u>What changed</u><u>Report</u></span></div>
+    </div>
+
+    <div class="sources">
+      <div class="lbl">Sources · 4</div>
+      <div class="srcs" data-scrolls data-proper>
+        <div class="src"><span class="grape luka"></span><div class="lbl2"><span>@launchwatch</span></div></div>
+        <div class="src"><span class="grape nika"></span><div class="lbl2"><span>Orbit Weekly</span></div></div>
+        <div class="src"><span class="grape tim"></span><div class="lbl2"><svg class="ico xs" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span>The Meridian</span></div></div>
+        <div class="src"><span class="grape nika ringed"></span><div class="lbl2 new"><span>Ferrite · new</span></div></div>
+      </div>
+    </div>
+
+    <div class="convo">
+      <div class="day">Tuesday 21 October</div>
+      <div class="msg"><span class="disc luka">L</span><div class="col">
+        <div class="who"><span class="n-luka">Luka</span><span class="did">filed @launchwatch</span><span class="t">20:11</span></div>
+        <p class="body" data-ugc>They actually stuck it this time.</p>
+        <div class="clip"><div class="txt"><div class="pub">@launchwatch on X</div><div class="ttl" data-ugc>Nimbus is down on the barge. Upright, legs out. Second attempt and they stuck it.</div></div><svg class="ico" viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg></div>
+      </div></div>
+      <div class="msg cont"><div class="col"><div class="who"><span class="t">20:14</span></div><p class="body" data-ugc>Replay from 1:42:10 if you missed it.</p></div></div>
+      <div class="day">Today</div>
+      <div class="msg"><span class="disc jure">J</span><div class="col">
+        <div class="who"><span class="n-jure">Jure</span><span class="t">14:02</span></div>
+        <p class="body" data-ugc>Second try is still a landing. Ask anyone how many tries the first ones took.</p>
+        <div class="reacts" data-ugc><span class="react"><span data-art>👍</span>2</span></div>
+      </div></div>
+    </div>
+  </div>
+  <div class="edge" data-float></div><div class="edge-b" data-float></div>
+  <div class="toolbar" data-float>
+    <div class="gbtn glass"><svg class="ico" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></div>
+    <div class="gbtn glass wide"><div class="gbtn"><svg class="ico" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4M5 12v8h14v-8"/></svg></div><div class="gbtn"><svg class="ico" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></svg></div></div>
+  </div>
+  <div class="composer glass" data-float>
+    <div class="gbtn"><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+    <div class="field">Tell the others</div>
+    <div class="send"><svg class="ico" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></div>
+  </div>
+</section>
+
+<!-- ============================ STORY, scrolled to the chat ============================ -->
+<section class="screen story" data-name="story-chat" data-time="21:14" data-kind="state" data-palette="identity" data-proper>
+  <div class="scroll" data-scrolls style="padding-top:calc(var(--safe-top) + 40px)">
+    <div class="convo" style="margin-top:0">
+      <div class="msg"><span class="disc jure">J</span><div class="col">
+        <div class="who"><span class="n-jure">Jure</span><span class="t">14:02</span></div>
+        <p class="body" data-ugc>Second try is still a landing. Ask anyone how many tries the first ones took.</p>
+        <div class="reacts" data-ugc><span class="react"><span data-art>👍</span>2</span></div>
+      </div></div>
+      <div class="msg"><span class="disc maja">M</span><div class="col">
+        <div class="who"><span class="n-maja">Maja</span><span class="t">14:05</span></div>
+        <div class="quote" data-ugc><i></i><span><b>Jure</b> Second try is still a landing. Ask anyone how…</span></div>
+        <p class="body" data-ugc>The first one tipped over in front of a camera crew. It counts as a try.</p>
+      </div></div>
+      <div class="newsince"><i></i><span>3 new since 19:10</span><i></i></div>
+      <div class="msg"><span class="disc nika">N</span><div class="col">
+        <div class="who"><span class="n-nika">Nika</span><span class="did">filed Ferrite</span><span class="t">19:12</span></div>
+        <p class="body" data-ugc>Ferrite has the customer's name.</p>
+        <div class="clip"><div class="pic" style="background-image:url(../web/public/seed/servers.jpg)"></div><div class="txt"><div class="pub">Ferrite</div><div class="ttl" data-ugc>Vela's next Nimbus flight will carry a paying customer</div></div><svg class="ico" viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg></div>
+      </div></div>
+      <div class="msg"><span class="disc luka">L</span><div class="col">
+        <div class="who"><span class="n-luka">Luka</span><span class="t">19:40</span></div>
+        <div class="gif" role="img" aria-label="Crowd cheering in stage smoke"><span>GIF</span></div>
+      </div></div>
+      <div class="msg"><span class="disc nika">N</span><div class="col">
+        <div class="who"><span class="n-nika">Nika</span><span class="t">20:29</span></div>
+        <p class="body" data-ugc>This is the actual news.</p>
+      </div></div>
+    </div>
+  </div>
+  <div class="edge" data-float></div><div class="edge-b" data-float></div>
+  <div class="toolbar" data-float>
+    <div class="gbtn glass"><svg class="ico" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></div>
+    <div class="ititle">Reusable booster lands…</div>
+    <div class="gbtn glass wide"><div class="gbtn"><svg class="ico" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4M5 12v8h14v-8"/></svg></div><div class="gbtn"><svg class="ico" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></svg></div></div>
+  </div>
+  <div class="composer glass" data-float>
+    <div class="gbtn"><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></div>
+    <div class="field">Tell the others</div>
+    <div class="send"><svg class="ico" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></div>
+  </div>
+</section>
+
+<!-- ============================ STORY, Pixel ============================ -->
+<section class="screen story" data-os="android" data-name="story-android" data-time="21:14" data-kind="detail" data-pair="story" data-palette="identity">
+  <div class="scroll" data-scrolls>
+    <div class="kick"><span>Space</span><span class="sep"></span><span>Nika, 20:29</span></div>
+    <h1 class="disp" style="margin:0">Reusable booster lands at sea on its second try</h1>
+    <div class="catch">
+      <div class="lbl"><span>The catch-up</span><span class="sep"></span><span class="dim">rewritten after Ferrite, 19:12</span></div>
+      <div class="fold" data-hit-expanded><span class="ms" style="font-size:22px">expand_less</span></div>
+      <p>Vela Orbital's Nimbus booster landed on a barge in the North Sea on Sunday night, two months after its first attempt tipped over. Ferrite reports the next flight will carry a paying customer.</p>
+      <div class="foot"><span style="white-space:nowrap">3 of 4 sources</span><span class="links"><u>What changed</u><u>Report</u></span></div>
+    </div>
+    <div class="sources">
+      <div class="lbl">Sources · 4</div>
+      <div class="srcs" data-scrolls data-proper>
+        <div class="src"><span class="grape luka"></span><div class="lbl2"><span>@launchwatch</span></div></div>
+        <div class="src"><span class="grape nika"></span><div class="lbl2"><span>Orbit Weekly</span></div></div>
+        <div class="src"><span class="grape tim"></span><div class="lbl2"><span class="ms" style="font-size:14px;color:var(--ink3)">lock</span><span>The Meridian</span></div></div>
+        <div class="src"><span class="grape nika ringed"></span><div class="lbl2 new"><span>Ferrite · new</span></div></div>
+      </div>
+    </div>
+    <div class="convo">
+      <div class="day">Tuesday 21 October</div>
+      <div class="msg"><span class="disc luka">L</span><div class="col">
+        <div class="who"><span class="n-luka">Luka</span><span class="did">filed @launchwatch</span><span class="t">20:11</span></div>
+        <p class="body" data-ugc>They actually stuck it this time.</p>
+        <div class="clip"><div class="txt"><div class="pub">@launchwatch on X</div><div class="ttl" data-ugc>Nimbus is down on the barge. Upright, legs out. Second attempt and they stuck it.</div></div><span class="ms" style="font-size:20px;color:var(--ink3)">open_in_new</span></div>
+      </div></div>
+      <div class="msg cont"><div class="col"><div class="who"><span class="t">20:14</span></div><p class="body" data-ugc>Replay from 1:42:10 if you missed it.</p></div></div>
+      <div class="day">Today</div>
+      <div class="msg"><span class="disc jure">J</span><div class="col">
+        <div class="who"><span class="n-jure">Jure</span><span class="t">14:02</span></div>
+        <p class="body" data-ugc>Second try is still a landing. Ask anyone how many tries the first ones took.</p>
+        <div class="reacts" data-ugc><span class="react"><span data-art>👍</span>2</span></div>
+      </div></div>
+    </div>
+  </div>
+  <div class="edge-b" data-float></div>
+  <div class="appbar" data-float style="padding-left:4px">
+    <div class="act"><span class="ms">arrow_back</span></div>
+    <div style="flex:1"></div>
+    <div class="act"><span class="ms">share</span></div>
+    <div class="act"><span class="ms">more_vert</span></div>
+  </div>
+  <div class="composer" data-float>
+    <div class="act"><span class="ms">add</span></div>
+    <div class="field">Tell the others</div>
+    <div class="send"><span class="ms" style="font-size:22px">arrow_upward</span></div>
+  </div>
+</section>
+
+<!-- ============================ SHARE, iPhone (medium detent) ============================ -->
+<section class="screen" data-name="share" data-time="21:14" data-kind="create" data-pair="share" data-palette="identity">
+  <div class="behind" data-behind><section class="screen" data-clone="paper" data-chrome="none" style="position:absolute;inset:0;border-radius:0"></section></div>
+  <div class="sheet mid">
+    <div class="grab"></div>
+    <div class="hd"><div class="head">Share a link</div><div class="x" data-hit-expanded><svg class="ico s" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></div></div>
+    <div class="field"><div class="l">Link</div><div class="v" data-ugc><b>x.com</b>/vela_orbital/status/9120</div></div>
+    <div class="field" style="min-height:84px"><div class="l">Add a line (optional)</div><div class="v" data-ugc>Vela's own clip of the landing.</div></div>
+    <div class="note">Everyone in The Grapevine sees this with your name.</div>
+    <div class="btn primary">File it</div>
+  </div>
+</section>
+
+<!-- ============================ SHARE, Pixel (bottom sheet) ============================ -->
+<section class="screen" data-os="android" data-name="share-android" data-time="21:14" data-kind="create" data-pair="share" data-palette="identity">
+  <div class="behind" data-behind><section class="screen" data-os="android" data-clone="paper-android" data-chrome="none" style="position:absolute;inset:0;border-radius:0"></section></div>
+  <div class="sheet">
+    <div class="grab"></div>
+    <div class="hd"><div class="head">Share a link</div></div>
+    <div class="field"><div class="l">Link</div><div class="v" data-ugc><b>x.com</b>/vela_orbital/status/9120</div></div>
+    <div class="field" style="min-height:84px"><div class="l">Add a line (optional)</div><div class="v" data-ugc>Vela's own clip of the landing.</div></div>
+    <div class="note">Everyone in The Grapevine sees this with your name.</div>
+    <div style="display:flex;gap:10px;padding-bottom:calc(var(--safe-bottom) + 12px)"><div class="btn quiet" style="flex:1;height:48px">Cancel</div><div class="btn primary" style="flex:1.4">File it</div></div>
+  </div>
+</section>
+
+<!-- ============================ SIGNATURE 1: reading ============================ -->
+<section class="screen" data-name="signature-1" data-time="21:14" data-kind="state" data-freeze="1000" data-palette="identity">
+  <div class="behind" data-behind><section class="screen" data-clone="paper" data-chrome="none" style="position:absolute;inset:0;border-radius:0"></section></div>
+  <div class="sheet mid">
+    <div class="grab"></div>
+    <div class="hd"><div class="head">Share a link</div></div>
+    <div class="center" style="padding-top:18px">
+      <div class="lone">
+        <svg viewBox="0 0 88 96" aria-hidden="true"><path d="M44 28C44 22 46 17 52 13" stroke="#1E7A39" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M44 25c-10-8-18-4-20 2 8 4 15 3 20-2z" fill="#1E7A39"/><circle class="arc" cx="44" cy="56" r="34" transform="rotate(-90 44 56)"/></svg>
+        <span class="grape tim breathe"></span>
+      </div>
+      <div class="meta" style="margin-top:6px">x.com</div>
+      <div class="rowt" style="margin-top:18px">Reading the page</div>
+      <div class="sec" style="color:var(--ink2);margin-top:6px">Finding the story it belongs to.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ SIGNATURE 2: rolled in ============================ -->
+<section class="screen" data-name="signature-2" data-time="21:14" data-kind="state" data-freeze="1100" data-palette="identity">
+  <div class="behind" data-behind><section class="screen" data-clone="paper" data-chrome="none" style="position:absolute;inset:0;border-radius:0"></section></div>
+  <div class="sheet mid">
+    <div class="grab"></div>
+    <div class="center on-card" style="padding-top:4px">
+      <svg class="bunch" width="126" height="140" viewBox="0 0 44 50" aria-hidden="true">
+        <path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/>
+        <circle class="g luka" cx="13" cy="19" r="8"/><circle class="g nika" cx="31" cy="19" r="8"/>
+        <circle class="g tim" cx="22" cy="24" r="8"/>
+        <circle class="g nika" cx="15" cy="35" r="7.5"/>
+        <g class="roll"><circle class="g tim" cx="29" cy="36" r="8.5"/></g>
+        <circle class="ring bloom" cx="29" cy="36" r="11" style="transform-origin:29px 36px"/>
+      </svg>
+      <div class="land" style="margin-top:4px">
+        <div class="disp" style="color:var(--vine)">+1 source</div>
+        <div class="sec" style="color:var(--ink2);margin-top:8px">Now 5 sources</div>
+        <div class="rowt" style="margin-top:6px;padding:0 12px">Reusable booster lands at sea on its second try</div>
+      </div>
+    </div>
+    <div class="foot land" style="margin-top:22px"><div class="btn primary">Open the story</div><div class="btn quiet">Done</div></div>
+  </div>
+</section>
+
+<!-- ============================ PAPER, dark, both ============================ -->
+<section class="screen" data-name="paper-dark" data-clone="paper" data-theme="dark" data-kind="state" data-pair="dark" data-palette="identity"></section>
+<section class="screen" data-os="android" data-name="paper-dark-android" data-clone="paper-android" data-theme="dark" data-kind="state" data-pair="dark" data-palette="identity"></section>
+
+<!-- ============================ EMPTY, first run ============================ -->
+<section class="screen" data-name="empty" data-time="21:14" data-kind="empty" data-palette="identity">
+  <div class="emptybox">
+    <svg class="art" width="150" height="150" viewBox="0 0 150 150" aria-hidden="true">
+      <path d="M75 148V60" stroke="#1E7A39" stroke-width="5" stroke-linecap="round" fill="none"/>
+      <path d="M75 96c-24-4-40-20-44-46 26 3 42 20 44 46z" fill="#1E7A39"/>
+      <path d="M75 74c3-26 20-42 46-45-5 26-21 42-46 45z" fill="#1E7A39"/>
+      <path d="M75 60c-2-14 6-26 18-30" stroke="#1E7A39" stroke-width="4" stroke-linecap="round" fill="none"/>
+      <path d="M93 30c6 1 10 7 8 13-6-1-10-7-8-13z" fill="#1E7A39"/>
+    </svg>
+    <div class="disp">Share the first link to start the paper.</div>
+    <div class="btn primary" style="width:220px;margin-top:4px"><svg class="ico" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.3 1.3"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.3-1.3"/></svg>Share a link</div>
+  </div>
+  <div class="edge" data-float></div>
+  <div class="toolbar" data-float>
+    <div class="wordmark">The Grapevine</div>
+    <div class="gbtn glass"><span class="disc tim" style="width:30px;height:30px;font-size:11px">T</span></div>
+  </div>
+</section>
+
+<!-- ============================ PEOPLE (sheet) ============================ -->
+<section class="screen" data-name="people" data-time="21:14" data-kind="list" data-palette="identity">
+  <div class="behind" data-behind><section class="screen" data-clone="paper" data-chrome="none" style="position:absolute;inset:0;border-radius:0"></section></div>
+  <div class="sheet" style="top:150px;background:var(--ground)">
+    <div class="grab"></div>
+    <div class="hd"><div><div class="head">People</div><div class="meta" style="margin-top:4px">5 in The Grapevine</div></div><div class="x" data-hit-expanded><svg class="ico s" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></div></div>
+    <div class="group">
+      <div class="r"><span class="disc lg tim">T</span><div class="t">Tim <small>You · started the paper</small></div><div class="week"><span class="dots tim"><i></i><i></i><i></i><i></i></span><span class="n">filed 4 this week</span></div></div>
+      <div class="r"><span class="disc lg nika">N</span><div class="t">Nika</div><div class="week"><span class="dots nika"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="n">filed 9 this week</span></div></div>
+      <div class="r"><span class="disc lg luka">L</span><div class="t">Luka</div><div class="week"><span class="dots luka"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="n">filed 7 this week</span></div></div>
+      <div class="r"><span class="disc lg maja">M</span><div class="t">Maja</div><div class="week"><span class="dots maja"><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="n">filed 6 this week</span></div></div>
+      <div class="r"><span class="disc lg jure">J</span><div class="t">Jure</div><div class="week"><span class="dots jure"><i></i><i></i><i></i><i></i></span><span class="n">filed 4 this week</span></div></div>
+    </div>
+    <div class="gtitle">Invite someone</div>
+    <div class="code"><span class="meta">Invite code</span><b>GROZD-7314</b><svg class="ico s" viewBox="0 0 24 24" style="color:var(--ink3)"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg></div>
+    <div class="note" style="margin-top:0">Anyone with the code can join and read everything in the paper.</div>
+    <div class="foot"><div class="btn primary"><svg class="ico" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4M5 12v8h14v-8"/></svg>Share invitation</div></div>
+  </div>
+</section>
+
+<!-- ============================ YOU (settings) ============================ -->
+<section class="screen" data-name="you" data-time="21:14" data-kind="settings" data-palette="identity" data-tall>
+  <div class="scroll" data-scrolls style="padding-top:calc(var(--safe-top) + 56px)">
+    <div class="head" style="margin:0 0 18px">You</div>
+    <div class="group">
+      <div class="r" style="min-height:72px"><span class="disc xl tim">T</span><div class="t">Tim Rekelj <small>tim@rekelj.si</small></div><svg class="ico s chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></div>
+    </div>
+    <div class="gtitle">Notifications for The Grapevine</div>
+    <div class="group">
+      <div class="r"><div class="t">New stories</div><div class="switch"></div></div>
+      <div class="r"><div class="t">Replies to you</div><div class="switch"></div></div>
+      <div class="r"><div class="t">Mentions</div><div class="switch"></div></div>
+      <div class="r"><div class="t">Mute the paper</div><div class="switch off"></div></div>
+      <div class="r"><div class="t">Device notification settings<small>Push also needs permission on this phone.</small></div><svg class="ico s chev" viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg></div>
+    </div>
+    <div class="gtitle">Support</div>
+    <div class="group">
+      <div class="r"><div class="t">Report a problem or idea</div><svg class="ico s chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></div>
+      <div class="r"><div class="t">Help with your account</div><svg class="ico s chev" viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg></div>
+      <div class="r"><div class="t">Privacy</div><svg class="ico s chev" viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg></div>
+      <div class="r"><div class="t">Terms</div><svg class="ico s chev" viewBox="0 0 24 24"><path d="M7 17L17 7M9 7h8v8"/></svg></div>
+    </div>
+    <div class="group">
+      <div class="r"><div class="t">Sign out</div></div>
+      <div class="r danger"><div class="t">Delete account</div></div>
+    </div>
+    <div class="meta" style="text-align:center;margin-top:4px">The Grapevine 1.4 (112)</div>
+  </div>
+  <div class="edge" data-float></div><div class="edge-b" data-float></div>
+  <div class="toolbar" data-float>
+    <div class="gbtn glass"><svg class="ico" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></div>
+    <div style="width:44px"></div>
+  </div>
+</section>
+
+<!-- ============================ LIVING PAPER, iPhone ============================ -->
+<section class="screen live" data-name="paper-live" data-time="21:14" data-kind="state" data-motion="8000" data-freeze="2200" data-beats="0,1300,2200,3700,6000,7900" data-palette="identity">
+  <div class="scroll" data-scrolls>
+    <div class="dateline">
+      <div class="d"><span class="date" data-hit-expanded>Thursday 23 October<svg class="ico xs" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></span><b><span class="swap s1"><span class="a">4 new since 19:10</span><span class="b">5 new since 19:10</span></span></b></div>
+      <div class="stack" data-hit-expanded><span class="disc sm luka">L</span><span class="disc sm nika">N</span><span class="disc sm jure">J</span><span class="disc sm maja">M</span></div>
+    </div>
+    <div class="pillrow"><div class="pill"><b>2 stories moved</b>Show</div></div>
+    <div class="lead on-card">
+      <div class="photo"><span class="badge"><i></i><span class="swap s1" style="--rh:13px"><span class="a">3 new</span><span class="b">4 new</span></span></span></div>
+      <div class="inner">
+        <div class="kick"><span>Space</span><span class="sep"></span><span class="swap s3" style="--rh:16px"><span class="a">Nika, 20:29</span><span class="b">Jure, 21:14</span></span></div>
+        <h1 class="disp">Reusable booster<br>lands at sea<br>on its second try</h1>
+        <div class="bunchrow">
+          <svg class="bunch" width="48" height="52" viewBox="0 0 44 48" aria-hidden="true"><path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/><circle class="g luka" cx="13" cy="19" r="8"/><circle class="g nika" cx="31" cy="19" r="8"/><circle class="g tim" cx="22" cy="24" r="8"/><circle class="g nika" cx="24" cy="37" r="7.5"/><circle class="ring" cx="24" cy="37" r="10"/></svg>
+          <div class="counts"><b>4</b> sources, one new from Nika<br><span class="swap s1"><span class="a"><b>5</b> messages</span><span class="b"><b>6</b> messages</span></span></div>
+        </div>
+        <div class="saidwrap">
+          <div class="said old"><span class="disc sm nika">N</span><p data-ugc><b>Nika</b>&nbsp; This is the actual news.</p><span class="t">20:29</span></div>
+          <div class="said new"><span class="disc sm jure">J</span><p data-ugc><b>Jure</b>&nbsp; Legs out. Job done.</p><span class="t">21:14</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="rows">
+      <div class="row">
+        <svg class="bunch" width="40" height="44" viewBox="0 0 44 48" aria-hidden="true"><path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/><circle class="g maja" cx="14" cy="21" r="8"/><circle class="ring" cx="14" cy="21" r="10.5"/><g class="grape2"><circle class="g luka" cx="30" cy="21" r="8"/><circle class="ring" cx="30" cy="21" r="10.5"/></g></svg>
+        <div class="txt"><h2 class="rowt">Night buses to the coast stop for winter</h2><div class="m"><span class="new"><span class="swap s2" style="--rh:16px"><span class="a">1 new source</span><span class="b">2 new sources</span></span></span><span>·</span><span>Travel · Maja, 19:14</span></div></div>
+        <div class="thumb" style="background-image:url(../web/public/seed/bus.jpg)"></div>
+      </div>
+      <div class="row">
+        <svg class="bunch" width="40" height="44" viewBox="0 0 44 48" aria-hidden="true"><path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/><circle class="g maja" cx="14" cy="21" r="8"/><circle class="g jure" cx="30" cy="21" r="8"/></svg>
+        <div class="txt"><h2 class="rowt">Studio Kettle pushes Wayfarer to spring 2027</h2><div class="m"><span>Games · 2 sources · 1 message · 18:14</span></div></div>
+        <div class="thumb" style="background-image:url(../web/public/seed/games.jpg)"></div>
+      </div>
+      <div class="row">
+        <svg class="bunch" width="40" height="44" viewBox="0 0 44 48" aria-hidden="true"><path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/><circle class="g nika" cx="22" cy="23" r="8"/></svg>
+        <div class="txt"><h2 class="rowt">Third-tier side knock out the champions on penalties</h2><div class="m"><span>Sport · 1 source · 1 message · 17:14</span></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="edge" data-float></div><div class="edge-b" data-float></div>
+  <div class="toolbar" data-float>
+    <div class="wordmark">The Grapevine</div>
+    <div class="gbtn glass"><span class="disc tim" style="width:30px;height:30px;font-size:11px">T</span></div>
+  </div>
+  <div class="fab" data-float><svg class="ico" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.3 1.3"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.3-1.3"/></svg>Share a link</div>
+</section>
+
+<!-- ============================ LIVING PAPER, Pixel ============================ -->
+<section class="screen live" data-os="android" data-name="paper-live-android" data-time="21:14" data-kind="state" data-motion="8000" data-freeze="2200" data-beats="0,1300,2200,3700,6000,7900" data-palette="identity">
+  <div class="scroll" data-scrolls>
+    <div class="dateline">
+      <div class="d"><span class="date" data-hit-expanded>Thursday 23 October<span class="ms" style="font-size:16px;color:var(--ink3)">chevron_right</span></span><b><span class="swap s1"><span class="a">4 new since 19:10</span><span class="b">5 new since 19:10</span></span></b></div>
+      <div class="stack" data-hit-expanded><span class="disc sm luka">L</span><span class="disc sm nika">N</span><span class="disc sm jure">J</span><span class="disc sm maja">M</span></div>
+    </div>
+    <div class="pillrow"><div class="pill"><b>2 stories moved</b>Show</div></div>
+    <div class="lead on-card">
+      <div class="photo"><span class="badge"><i></i><span class="swap s1" style="--rh:13px"><span class="a">3 new</span><span class="b">4 new</span></span></span></div>
+      <div class="inner">
+        <div class="kick"><span>Space</span><span class="sep"></span><span class="swap s3" style="--rh:16px"><span class="a">Nika, 20:29</span><span class="b">Jure, 21:14</span></span></div>
+        <h1 class="disp">Reusable booster<br>lands at sea<br>on its second try</h1>
+        <div class="bunchrow">
+          <svg class="bunch" width="48" height="52" viewBox="0 0 44 48" aria-hidden="true"><path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/><circle class="g luka" cx="13" cy="19" r="8"/><circle class="g nika" cx="31" cy="19" r="8"/><circle class="g tim" cx="22" cy="24" r="8"/><circle class="g nika" cx="24" cy="37" r="7.5"/><circle class="ring" cx="24" cy="37" r="10"/></svg>
+          <div class="counts"><b>4</b> sources, one new from Nika<br><span class="swap s1"><span class="a"><b>5</b> messages</span><span class="b"><b>6</b> messages</span></span></div>
+        </div>
+        <div class="saidwrap">
+          <div class="said old"><span class="disc sm nika">N</span><p data-ugc><b>Nika</b>&nbsp; This is the actual news.</p><span class="t">20:29</span></div>
+          <div class="said new"><span class="disc sm jure">J</span><p data-ugc><b>Jure</b>&nbsp; Legs out. Job done.</p><span class="t">21:14</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="rows">
+      <div class="row">
+        <svg class="bunch" width="40" height="44" viewBox="0 0 44 48" aria-hidden="true"><path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/><circle class="g maja" cx="14" cy="21" r="8"/><circle class="ring" cx="14" cy="21" r="10.5"/><g class="grape2"><circle class="g luka" cx="30" cy="21" r="8"/><circle class="ring" cx="30" cy="21" r="10.5"/></g></svg>
+        <div class="txt"><h2 class="rowt">Night buses to the coast stop for winter</h2><div class="m"><span class="new"><span class="swap s2" style="--rh:16px"><span class="a">1 new source</span><span class="b">2 new sources</span></span></span><span>·</span><span>Travel · Maja, 19:14</span></div></div>
+        <div class="thumb" style="background-image:url(../web/public/seed/bus.jpg)"></div>
+      </div>
+      <div class="row">
+        <svg class="bunch" width="40" height="44" viewBox="0 0 44 48" aria-hidden="true"><path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/><circle class="g maja" cx="14" cy="21" r="8"/><circle class="g jure" cx="30" cy="21" r="8"/></svg>
+        <div class="txt"><h2 class="rowt">Studio Kettle pushes Wayfarer to spring 2027</h2><div class="m"><span>Games · 2 sources · 1 message · 18:14</span></div></div>
+        <div class="thumb" style="background-image:url(../web/public/seed/games.jpg)"></div>
+      </div>
+      <div class="row">
+        <svg class="bunch" width="40" height="44" viewBox="0 0 44 48" aria-hidden="true"><path class="stem" d="M22 11C22 7 23 4 27 2"/><path class="leaf" d="M22 9c-8-6-14-3-15 2 6 3 11 2 15-2z"/><circle class="g nika" cx="22" cy="23" r="8"/></svg>
+        <div class="txt"><h2 class="rowt">Third-tier side knock out the champions on penalties</h2><div class="m"><span>Sport · 1 source · 1 message · 17:14</span></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="edge-b" data-float></div>
+  <div class="appbar" data-float>
+    <div class="wordmark">The Grapevine</div>
+    <div class="act"><span class="disc tim" style="width:32px;height:32px">T</span></div>
+  </div>
+  <div class="efab" data-float><span class="ms">link</span>Share a link</div>
+</section>
+
+<!-- ============================ HERO STAGE ============================ -->
+<section class="stage" data-name="hero" data-size="4:5" data-motion="8000" data-beats="0,1300,2200,3700,6000,7900" data-palette="identity">
+  <svg class="bigbunch" viewBox="0 0 260 290" aria-hidden="true">
+    <path d="M132 58C132 44 136 32 150 24" stroke="#1E7A39" stroke-width="12" stroke-linecap="round" fill="none"/>
+    <path d="M132 52c-34-26-62-14-70 6 28 14 52 10 70-6z" fill="#1E7A39"/>
+    <circle cx="86" cy="104" r="46" fill="url(#g-luka)" stroke="#F0F4EB" stroke-width="8"/>
+    <circle cx="178" cy="104" r="46" fill="url(#g-nika)" stroke="#F0F4EB" stroke-width="8"/>
+    <circle cx="132" cy="150" r="46" fill="url(#g-tim)" stroke="#F0F4EB" stroke-width="8"/>
+    <circle cx="92" cy="202" r="42" fill="url(#g-maja)" stroke="#F0F4EB" stroke-width="8"/>
+    <circle cx="176" cy="206" r="42" fill="url(#g-jure)" stroke="#F0F4EB" stroke-width="8"/>
+    <circle cx="134" cy="252" r="38" fill="url(#g-nika)" stroke="#F0F4EB" stroke-width="8"/>
+  </svg>
+  <div class="stage-type">
+    <div class="stage-name">The Grapevine</div>
+    <div class="stage-line">Links from friends, grown into stories.</div>
+  </div>
+  <div class="phones">
+    <div class="device ios" style="--device-scale:.66"><section class="screen" data-clone="paper-live"></section></div>
+    <div class="device px" data-os="android" style="--device-scale:.6"><section class="screen" data-os="android" data-clone="paper-live-android"></section></div>
+  </div>
+</section>
+
+<!-- ============================ ICONS ============================ -->
+<section class="app-icon" data-name="icon">
+  <svg viewBox="0 0 344 344" aria-hidden="true">
+    <path class="stem" d="M172 104C172 80 180 60 204 46" stroke-width="18" stroke-linecap="round" fill="none"/>
+    <path class="leaf" d="M172 96c-46-36-86-20-98 8 38 20 72 14 98-8z"/>
+    <circle class="g" cx="110" cy="152" r="52" stroke-width="12"/><circle class="g" cx="234" cy="152" r="52" stroke-width="12"/>
+    <circle class="g" cx="172" cy="206" r="52" stroke-width="12"/>
+    <circle class="g" cx="120" cy="258" r="46" stroke-width="12"/>
+    <circle class="g" cx="226" cy="264" r="42" stroke-width="12"/><circle class="ring" cx="226" cy="264" r="58" stroke-width="14"/>
+  </svg>
+</section>
+<section class="adaptive-icon" data-name="icon-android">
+  <div class="layer-bg"></div>
+  <div class="layer-fg"><svg viewBox="0 0 432 432" aria-hidden="true">
+    <path class="stem" d="M216 160C216 142 222 128 240 118" stroke-width="14" stroke-linecap="round" fill="none"/>
+    <path class="leaf" d="M216 154c-34-28-64-16-74 6 28 16 54 12 74-6z"/>
+    <circle class="g" cx="168" cy="198" r="40" stroke-width="9"/><circle class="g" cx="264" cy="198" r="40" stroke-width="9"/>
+    <circle class="g" cx="216" cy="240" r="40" stroke-width="9"/>
+    <circle class="g" cx="176" cy="282" r="36" stroke-width="9"/>
+    <circle class="g" cx="258" cy="286" r="32" stroke-width="9"/><circle class="ring" cx="258" cy="286" r="44" stroke-width="10"/>
+  </svg></div>
+  <div class="layer-mono"><svg viewBox="0 0 432 432" aria-hidden="true">
+    <path class="stem" d="M216 160C216 142 222 128 240 118" stroke-width="14" stroke-linecap="round"/>
+    <path class="leaf" d="M216 154c-34-28-64-16-74 6 28 16 54 12 74-6z"/>
+    <circle class="g" cx="168" cy="198" r="32"/><circle class="g" cx="264" cy="198" r="32"/>
+    <circle class="g" cx="216" cy="240" r="32"/>
+    <circle class="g" cx="172" cy="290" r="29"/>
+    <circle class="g" cx="262" cy="292" r="24"/><circle class="ring" cx="262" cy="292" r="36" stroke-width="8"/>
+  </svg></div>
+</section>
+
+<script src="file:///Users/timrekelj/.claude/skills/app-designer-pro/assets/device.js"></script>
+</body></html>

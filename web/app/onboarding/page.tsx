@@ -6,6 +6,7 @@ import { isUuid } from '@/lib/validate'
 import { dayline } from '@/lib/format'
 import { connection } from 'next/server'
 import form from '../login/login.module.css'
+import Brand from '@/components/print/Brand'
 import styles from './onboarding.module.css'
 import { OnboardingForm } from './onboarding-form'
 
@@ -18,8 +19,8 @@ export default async function OnboardingPage({ searchParams }: PageProps<'/onboa
   await connection() // fully dynamic: session + database
   const params = await searchParams
   const destination = safeRedirect(params.redirect)
-  const { supabase, user } = await requireUser(`/onboarding?${new URLSearchParams({ redirect: destination })}`)
-  const { data: profile, error: profileError } = await supabase.from('profiles').select('display_name').eq('id', user.id).single()
+  const { supabase, userId } = await requireUser(`/onboarding?${new URLSearchParams({ redirect: destination })}`)
+  const { data: profile, error: profileError } = await supabase.from('profiles').select('display_name').eq('id', userId).single()
   // Keep the paper's ID across retries so a failed membership insert never creates a second paper.
   const groupId = isUuid(params.id) ? params.id : randomUUID()
   // Someone who arrived from an invite link joins first; the code rides along in the destination.
@@ -29,20 +30,20 @@ export default async function OnboardingPage({ searchParams }: PageProps<'/onboa
 
   async function startPaper(formData: FormData) {
     'use server'
-    const { supabase, user } = await requireUser('/onboarding')
+    const { supabase, userId } = await requireUser('/onboarding')
     const name = String(formData.get('name') ?? '').trim()
     const paper = String(formData.get('paper') ?? '').trim()
-    const error = await saveDisplayName(supabase, user.id, name) ?? await createPaper(supabase, user.id, groupId, paper)
+    const error = await saveDisplayName(supabase, userId, name) ?? await createPaper(supabase, userId, groupId, paper)
     if (error) retry(destination, groupId, { name, paper }, error)
     redirect('/')
   }
 
   async function joinPaper(formData: FormData) {
     'use server'
-    const { supabase, user } = await requireUser('/onboarding')
+    const { supabase, userId } = await requireUser('/onboarding')
     const name = String(formData.get('name') ?? '').trim()
     const code = String(formData.get('code') ?? '').trim()
-    const error = await saveDisplayName(supabase, user.id, name) ?? (code ? null : 'Enter the invite code from your friend.')
+    const error = await saveDisplayName(supabase, userId, name) ?? (code ? null : 'Enter the invite code from your friend.')
     if (error) retry(destination, groupId, { name, code }, error)
     redirect(`/invite?${new URLSearchParams({ code })}`)
   }
@@ -51,11 +52,11 @@ export default async function OnboardingPage({ searchParams }: PageProps<'/onboa
   return (
     <main className={form.page}>
       <header className={styles.intro}>
-        <p className="label" style={{ margin: 0 }}>Make yourself at home</p>
+        <Brand />
         <h1 className="display">Your people.<br />Your paper.</h1>
       </header>
       <div className={form.body}>
-        <OnboardingForm id={groupId} userId={user.id} today={today}
+        <OnboardingForm id={groupId} userId={userId} today={today}
           initialName={value('name') || profile?.display_name || ''} initialPaper={value('paper')} initialCode={value('code') || inviteCode}
           inviteFirst={!!inviteCode} error={value('error') || (profileError ? 'Your profile could not be loaded. Please try again.' : '')}
           startPaper={startPaper} joinPaper={joinPaper} />

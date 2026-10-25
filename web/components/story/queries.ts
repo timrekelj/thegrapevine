@@ -1,13 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { PaperMember } from '@/lib/types'
 
-export type Person = PaperMember
+type Person = PaperMember
 export type Story = { id: string; group_id: string; title: string; summary: string; category: string | null; flagged: boolean; last_activity_at: string; created_at: string }
 export type Source = { id: string; created_at: string; url: string; publisher: string; domain: string; author: string | null; source_title: string; image_url: string | null; submitted_by: string | null; submitter_comment: string | null; extraction_status: string }
 export type Media = { id: string; kind: 'image' | 'video' | 'gif'; url: string; alt_text: string | null; position: number; display_url?: string; signed_until?: number }
-export type Reaction = { id: string; user_id: string; emoji: string }
+type Reaction = { id: string; user_id: string; emoji: string }
 export type Message = { id: string; author_id: string; body: string | null; reply_to: string | null; created_at: string; message_media: Media[]; reactions: Reaction[] }
-export type History = { id: string; title: string; summary: string; created_at: string }
+type History = { id: string; title: string; summary: string; created_at: string }
 export type StoryDetails = { sources: Source[]; messages: Message[]; history: History[]; people: Person[] }
 
 // Named columns, never `*`: stories and sources also carry 1024-dimension embeddings and extracted
@@ -18,27 +18,31 @@ const MESSAGE = 'id,author_id,body,reply_to,created_at,message_media(id,kind,url
 const SIGNED_FOR = 3600
 const isPublic = (url: string) => /^https?:\/\//.test(url) || url.startsWith('/')
 
-export async function loadStory(client: SupabaseClient, id: string) {
-  const { data, error } = await client.from('stories').select(STORY).eq('id', id).maybeSingle()
-  if (error) throw new Error('Could not load this story. Please try again.')
-  return data as Story | null
-}
-
-/** Everything around a story. Pass the previous messages to keep their still-valid signed URLs, so a refresh doesn't re-download every attachment. */
-export async function loadStoryDetails(client: SupabaseClient, story: Story, previous: Message[] = []): Promise<StoryDetails> {
-  const results = await Promise.all([
-    client.from('sources').select(SOURCE).eq('story_id', story.id).order('created_at', { ascending: false }),
-    client.from('messages').select(MESSAGE).eq('story_id', story.id).order('created_at'),
-    client.from('story_history').select('id,title,summary,created_at').eq('story_id', story.id).order('created_at', { ascending: false }),
-    client.from('group_members').select('profiles(id, display_name, monogram)').eq('group_id', story.group_id),
+/**
+ * A story and everything around it, in one round of parallel requests; null when it isn't readable.
+ * Pass the previous messages to keep their still-valid signed URLs, so a refresh doesn't re-download every attachment.
+ */
+export async function loadStory(client: SupabaseClient, id: string, previous: Message[] = []): Promise<{ story: Story; details: StoryDetails } | null> {
+  const [story, sources, messages, history] = await Promise.all([
+    // The paper's members ride along with the story, so nothing waits for its group id.
+    client.from('stories').select(`${STORY},groups(group_members(profiles(id,display_name,monogram)))`).eq('id', id)
+      .order('joined_at', { referencedTable: 'groups.group_members' }).order('user_id', { referencedTable: 'groups.group_members' }).maybeSingle(),
+    client.from('sources').select(SOURCE).eq('story_id', id).order('created_at', { ascending: false }),
+    client.from('messages').select(MESSAGE).eq('story_id', id).order('created_at'),
+    client.from('story_history').select('id,title,summary,created_at').eq('story_id', id).order('created_at', { ascending: false }),
   ])
-  for (const result of results) if (result.error) throw new Error(result.error.message)
-  const messages = results[1].data as Message[]
-  const media = messages.flatMap(message => message.message_media.sort((a, b) => a.position - b.position))
+  if (story.error) throw new Error('Could not load this story. Please try again.')
+  if (!story.data) return null
+  for (const result of [sources, messages, history]) if (result.error) throw new Error(result.error.message)
+  const { groups, ...row } = story.data as unknown as Story & { groups: { group_members: { profiles: Person | null }[] } | null }
+  const media = (messages.data as Message[]).flatMap(message => message.message_media.sort((a, b) => a.position - b.position))
   await signMedia(client, media, previous.flatMap(message => message.message_media))
   return {
-    sources: results[0].data as Source[], messages, history: results[2].data as History[],
-    people: results[3].data!.flatMap(row => row.profiles ? [row.profiles] : []) as unknown as Person[],
+    story: row,
+    details: {
+      sources: sources.data as Source[], messages: messages.data as Message[], history: history.data as History[],
+      people: groups?.group_members.flatMap(member => member.profiles ? [member.profiles] : []) ?? [],
+    },
   }
 }
 
@@ -58,7 +62,9 @@ export async function signMedia(client: SupabaseClient, media: Media[], previous
   const signed = new Map(data.map(entry => [entry.path, entry.signedUrl]))
   for (const item of unsigned) {
     const url = signed.get(item.url)
-    if (!url) throw new Error('Could not load a private attachment. Please try again.')
+    // A file that is gone (an abandoned or removed upload) prints as an unavailable attachment
+    // instead of failing the whole story.
+    if (!url) continue
     // Renew five minutes early so a page left open never shows an expired link.
     Object.assign(item, { display_url: url, signed_until: now + (SIGNED_FOR - 300) * 1000 })
   }

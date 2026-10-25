@@ -20,56 +20,66 @@ final class StoryStore {
     private var trackedStoryId: UUID?
     private var pendingReactions: Set<String> = []
 
-    func load(storyId: UUID) async {
-        guard !isLoading else { return }
+    /// Loads the story, its sources and its conversation; returns whether anything on the page changed.
+    @discardableResult
+    func load(storyId: UUID) async -> Bool {
+        guard !isLoading else { return false }
         isLoading = true
+        defer { isLoading = false }
         if error != nil { error = nil }
         do {
-            // Every list is replaced only when it changed: the story reloads every ten seconds while
-            // open, and an unchanged assignment would still redraw the whole conversation.
-            let story = try await API.getOne(Story.self, path: "rest/v1/stories", query: [
+            // The story reloads every ten seconds while open: its three lists are fetched together, and
+            // each is replaced only when it changed, since an unchanged assignment would still redraw
+            // the whole conversation.
+            async let storyRow = API.getOne(Story.self, path: "rest/v1/stories", query: [
                 URLQueryItem(name: "select", value: Story.columns),
                 URLQueryItem(name: "id", value: "eq.\(storyId)"),
             ])
-            guard let story else { throw APIError.network("This story is no longer available.") }
-            if self.story != story { self.story = story }
-            if trackedStoryId != storyId {
-                Telemetry.capture("story_opened")
-                trackedStoryId = storyId
-            }
-            let sources = try await API.getMany(Source.self, path: "rest/v1/sources", query: [
+            async let sourceRows = API.getMany(Source.self, path: "rest/v1/sources", query: [
                 URLQueryItem(name: "select", value: Source.columns),
                 URLQueryItem(name: "story_id", value: "eq.\(storyId)"),
                 URLQueryItem(name: "order", value: "created_at.desc"),
             ])
-            if self.sources != sources { self.sources = sources }
-            let messages = try await API.getMany(Message.self, path: "rest/v1/messages", query: [
+            async let messageRows = API.getMany(Message.self, path: "rest/v1/messages", query: [
                 URLQueryItem(name: "select", value: "*,reactions(*),message_media(*)"),
                 URLQueryItem(name: "story_id", value: "eq.\(storyId)"),
                 URLQueryItem(name: "order", value: "created_at.asc"),
             ])
-            if self.messages != messages { self.messages = messages }
-            let history = try await API.getMany(StoryHistoryEntry.self, path: "rest/v1/story_history", query: [
-                URLQueryItem(name: "story_id", value: "eq.\(storyId)"),
-                URLQueryItem(name: "order", value: "created_at.desc"),
-            ])
-            if self.history != history { self.history = history }
-            let authorIds = Set(messages.map(\.author_id) + sources.compactMap(\.submitted_by))
-            if !authorIds.isEmpty {
-                let idList = authorIds.map { $0.uuidString }.joined(separator: ",")
+            guard let story = try await storyRow else { throw APIError.network("This story is no longer available.") }
+            let (sources, messages) = try await (sourceRows, messageRows)
+            if trackedStoryId != storyId {
+                Telemetry.capture("story_opened")
+                trackedStoryId = storyId
+            }
+            let storyChanged = self.story != story
+            let changed = storyChanged || self.sources != sources || self.messages != messages
+            // A new version of the story is what adds to its history.
+            if storyChanged {
+                let history = try await API.getMany(StoryHistoryEntry.self, path: "rest/v1/story_history", query: [
+                    URLQueryItem(name: "story_id", value: "eq.\(storyId)"),
+                    URLQueryItem(name: "order", value: "created_at.desc"),
+                ])
+                if self.history != history { self.history = history }
+            }
+            // Names are fetched only for people not already on the page.
+            let missing = Set(messages.map(\.author_id) + sources.compactMap(\.submitted_by)).subtracting(profiles.keys)
+            if !missing.isEmpty {
                 let found: [Profile] = try await API.getMany(Profile.self, path: "rest/v1/profiles", query: [
                     URLQueryItem(name: "select", value: "id,display_name,monogram"),
-                    URLQueryItem(name: "id", value: "in.(\(idList))"),
+                    URLQueryItem(name: "id", value: "in.(\(missing.map(\.uuidString).joined(separator: ",")))"),
                 ])
-                let profiles = Dictionary(found.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
-                if self.profiles != profiles { self.profiles = profiles }
+                if !found.isEmpty { profiles.merge(found.map { ($0.id, $0) }, uniquingKeysWith: { _, new in new }) }
             }
+            if storyChanged { self.story = story }
+            if self.sources != sources { self.sources = sources }
+            if self.messages != messages { self.messages = messages }
+            return changed
         } catch where error.isCancellation {
             // Leaving the story cancels its load; that isn't something to report.
         } catch {
             self.error = error.localizedDescription
         }
-        isLoading = false
+        return false
     }
 
     struct ReadBody: Encodable { let story: UUID }

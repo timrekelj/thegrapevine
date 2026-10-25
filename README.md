@@ -8,11 +8,11 @@ A private newspaper curated by friends. The full product direction and decisions
 - **Web:** Next.js (`web/`)
 - **iOS:** SwiftUI with native Liquid Glass navigation and tabs (`ios/`, local pilot)
 - **Android:** Kotlin + Jetpack Compose (`android/`, sideload APK via GitHub Releases)
-- **AI:** Mistral API (titles, summaries, categories, embeddings); OpenAI Decisions API `gpt-6-luna` (same-event/conflict decisions). A self-hosted alternative (Strands Decider 2B, `model-server/`) exists but is not wired in.
+- **AI:** Mistral API (titles, summaries, categories, embeddings); OpenAI Decisions API `gpt-6-luna` (same-event/conflict decisions).
 
 ## Local development
 
-Prerequisites: macOS 14+ on Apple silicon (or supported Linux), Supabase CLI 2.121.0+ (`brew install supabase/tap/supabase`), Node 20+. Local Supabase uses the experimental native runtime; Docker is not required.
+Prerequisites: macOS 14+ on Apple silicon (or supported Linux), Supabase CLI 2.121.0+ (`brew install supabase/tap/supabase`), Node 24+ (LTS). Local Supabase uses the experimental native runtime; Docker is not required.
 
     cp .env.example .env    # add MISTRAL_API_KEY, OPENAI_API_KEY, and optional GIPHY_API_KEY
     supabase start --runtime native  # local Supabase: Postgres, Auth, Storage, Studio
@@ -31,6 +31,16 @@ The experimental stack keeps separate data per Git branch. Use `supabase status`
 ## Demo data
 
 `supabase db reset` also loads `supabase/seed.sql`: the fictional paper "The Grapevine" from the design mockups — five members (tim@, luka@, nika@, jure@, maja@example.com), five stories with sources, messages and reactions. Sign in as any of them with a code from `supabase/scripts/sign-in-code.sh`. The group's invite code is `grapevinedemo`. Demo images live in `web/public/seed/`; run the web dev server to serve them.
+
+## Reports (bugs and ideas)
+
+Members can report a bug, suggest an improvement or ask for a feature from the web (`/report`, linked from the front page, the account page and error messages) and from Profile → About & support in both apps. On a phone, shaking the device opens the form with a screenshot of the current screen attached, and error messages offer "Report" with the error filled in.
+
+`submit-feedback` saves each report in the private `feedback` table, has Mistral draft a title and a structured summary (the member's own words are always kept, quoted), and files a GitHub issue labelled `report` plus `bug`, `enhancement` or `feature`. The repository is public, so the form says reports are public; screenshots are stored in the public `feedback` bucket under random names so GitHub can show them, and the issue never names the reporter. If GitHub is unreachable the report stays in `feedback` with no `issue_number`.
+
+Set the secrets before deploying the function (a fine-grained token with Issues: read and write on this repository only):
+
+    supabase secrets set GITHUB_TOKEN=github_pat_... GITHUB_REPO=timrekelj/thegrapevine
 
 ## Admin dashboard
 
@@ -52,6 +62,8 @@ Deleting a user keeps their sources and stories in the paper without attribution
 
     "$(brew --prefix libpq)/bin/psql" postgresql://postgres:postgres@127.0.0.1:55322/postgres -v ON_ERROR_STOP=1 -f supabase/tests/user_deletion.sql
 
+API grants, media attachment rules and the per-member AI rate limits (`consume_rate_limit`) have their own regression, `supabase/tests/hardening.sql`, run the same way. Apply migrations before deploying Edge Functions: they call `consume_rate_limit`.
+
 ## iOS simulator
 
 Requires Xcode with the iOS 26+ SDK and XcodeGen (`brew install xcodegen`). Start Supabase, the Edge Functions, and the web server (`cd web` then `npm run dev`).
@@ -67,7 +79,7 @@ Tests:
 
     xcodebuild -project Grapevine.xcodeproj -scheme Grapevine -destination 'platform=iOS Simulator,name=iPhone 17' test
 
-The pilot includes the paper, sources/history/correction reports, chronological conversation, quoted replies, reactions, private image/video uploads, group creation/joining, invite sharing, and Keychain session refresh. Both mobile apps include a Profile tab for display-name editing, per-paper notification preferences (new stories, replies, mentions, and mute), device notification settings, support, and sign-out. Preferences sync through Supabase. Images are limited to 10 per selection; each attachment is capped at 20 MB. Visible stories refresh every 10 seconds and support pull-to-refresh.
+The pilot includes the paper, sources/history/correction reports, chronological conversation, quoted replies, reactions, private image/video uploads, group creation/joining, invite sharing, and Keychain session refresh. Both mobile apps include account settings opened from the paper’s header for display-name editing, per-paper notification preferences (new stories, replies, mentions, and mute), device notification settings, support, and sign-out. Preferences sync through Supabase. Images are limited to 10 per selection; each attachment is capped at 20 MB. Visible stories refresh every 10 seconds and support pull-to-refresh.
 
 The membership-permission regression can be run against seeded local data with `psql` (`brew install libpq`):
 
@@ -79,9 +91,9 @@ Still required before release: GIPHY search credentials, push notifications, dis
 
 ## Android app
 
-A native Kotlin + Jetpack Compose port of the iOS app (`android/`): the same screens, the same Supabase REST calls, and the same one-ink plates. Sessions are stored encrypted (Android Keystore), and `https://thegrapevine.si/invite?code=…` links open the app.
+A native Kotlin + Jetpack Compose port of the iOS app (`android/`): the same screens, the same Supabase REST calls, and the same vine identity, member colours and clean photography. Sessions are stored encrypted (Android Keystore), and `https://thegrapevine.si/invite?code=…` links open the app.
 
-Requires JDK 21 and the Android SDK with platform 37 (Android Studio installs both). Start Supabase as above, then forward the local ports to the emulator or a USB device — API 37 blocks apps from LAN addresses like `10.0.2.2`, so debug builds use `localhost`:
+Requires JDK 25 (LTS) and the Android SDK with platform 37 (Android Studio installs both). Start Supabase as above, then forward the local ports to the emulator or a USB device — API 37 blocks apps from LAN addresses like `10.0.2.2`, so debug builds use `localhost`:
 
     adb reverse tcp:55321 tcp:55321    # Supabase
     adb reverse tcp:3000 tcp:3000      # demo images (`cd web && npm run dev`)
@@ -111,7 +123,7 @@ When a Google Play account is available, switch the workflow from `assembleRelea
 
 The hosted web app (Vercel) needs `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` and `NEXT_PUBLIC_SITE_URL=https://thegrapevine.si`.
 
-Every app supports emailed one-time codes alongside Google, Apple, and X. In the hosted project (Authentication → Emails) both the **Magic Link** and **Confirm signup** templates must show the code: paste `supabase/templates/sign_in_code.html` into each.
+Every app supports emailed one-time codes alongside Google, Apple, and X. In the hosted project (Authentication → Emails) both the **Magic Link** and **Confirm signup** templates must show the code: paste `supabase/templates/sign_in_code.html` into each. Paste it again whenever the template changes; the hosted project keeps its own copy.
 
 App links: `https://thegrapevine.si/invite?code=…` and `/story/<id>` open the iOS and Android apps when installed, and the website otherwise. The sites' verification files are in `web/public/.well-known/`: `assetlinks.json` holds the Android release keystore's SHA-256 fingerprint, and `apple-app-site-association` holds Apple team `6JCT56CM9H`. Update them if either changes, or links fall back to the browser.
 

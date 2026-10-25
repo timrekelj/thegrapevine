@@ -35,7 +35,7 @@ The initial pilot is a private group of approximately five friends sharing about
 
 ## Front page requirements
 
-Present stories as news, with the event as the visual focus. Use serif headlines, editorial hierarchy, thin rules, generous whitespace, and a responsive newspaper grid. Source and contributor attribution should remain easy to find without becoming the headline.
+Present stories as news, with the event as the visual focus: a lead card with the source's photograph, then a list of stories, two columns on desktop. Source and contributor attribution should remain easy to find without becoming the headline: each story carries a bunch of grapes, one per source in the colour of the friend who filed it.
 
 Show category, short summary, source count, discussion count, and recent activity where useful. Distinguish new sources from new discussion. Unread is shown as markers ("N new"), not as a ranking input.
 
@@ -43,7 +43,7 @@ Show category, short summary, source count, discussion count, and recent activit
 
 - The lead slot is the story with the most recent activity — a new story, a new source, a new message, or a summary update — even if it has no discussion.
 - From the second story on, stories are ordered by a blend of recent discussion (messages in the last 48 hours), recent new sources (last 48 hours), and recency with decay. A story with renewed discussion rises again.
-- The page never reshuffles during a reading session. When the ranking changes, a line appears between two pink rules ("Later edition · N stories moved"); tapping it, or pulling to refresh, reprints the page.
+- The page never reshuffles during a reading session. When the ranking changes, a "N stories moved · Show" pill appears under the header; tapping it, or pulling to refresh, updates the page.
 - Exact weights and decay are a starting point to tune during the pilot.
 
 ## Story timeline requirements
@@ -82,7 +82,7 @@ Decide retention, deletion, member removal, AI processing disclosures, and what 
 ## Model choices
 
 - Language model: Mistral — titles, evolving summaries, categories, and conflict notes.
-- Decision model: OpenAI Decisions API (`gpt-6-luna`, `POST /v1/decisions`) — typed predicate questions with probabilities, no generated text, $0.10/M input tokens, output free. Confirmed 12 October 2026, replacing the earlier self-hosted pick (Strands Decider 2B); note this means source text now goes to OpenAI for clustering decisions, in addition to Mistral for summaries. The self-hosted service remains in `model-server/` as a privacy-preserving alternative but is not wired in.
+- Decision model: OpenAI Decisions API (`gpt-6-luna`, `POST /v1/decisions`) — typed predicate questions with probabilities, no generated text, $0.10/M input tokens, output free. Confirmed 12 October 2026, replacing the earlier self-hosted pick (Strands Decider 2B); note this means source text now goes to OpenAI for clustering decisions, in addition to Mistral for summaries. The self-hosted service (`model-server/`) was removed; it is recoverable from git history.
 - Clustering pipeline: embed each incoming source (Mistral Embed), compare against the embeddings of recent stories, and for candidates above a similarity threshold (0.72) ask the decision model two predicate questions in one call: "Are these two items about the same specific event?" and "Do the sources disagree on a material fact?" Conflicting sources join the story and trigger a summary rewrite or a disagreement note via Mistral. If the decision model is unreachable, fall back to a conservative cosine threshold (0.88).
 - Label loop: every member report ("wrong merge", "wrong summary") is stored as a labeled example. After roughly 100 labels, fine-tune a small encoder (DistilBERT/ModernBERT class, 67M–150M parameters) on them; published measurements (5 October 2026) show such a model beats every zero-shot decision model on a custom task like this — on accuracy, latency, and cost.
 
@@ -92,7 +92,7 @@ Research note (12 October 2026): Jev (TypeSafe AI, launched 15 September 2026) c
 
 - Backend is Supabase only: Postgres, Auth (email one-time codes), Realtime, Storage, Edge Functions. All orchestration (submission, duplicate rejection, clustering, summaries, notification fan-out) runs in Edge Functions and database triggers; there is no separate app server.
 - All content tables have row level security; access is limited to group members.
-- The decision model is OpenAI's hosted Decisions API (`gpt-6-luna`), called from Edge Functions during clustering. A self-hosted alternative (Strands Decider 2B, `model-server/`) exists in the repo but is not wired in.
+- The decision model is OpenAI's hosted Decisions API (`gpt-6-luna`), called from Edge Functions during clustering. A self-hosted alternative (Strands Decider 2B) was prototyped and removed; it is in git history.
 - Web: Next.js. iOS: SwiftUI with the Liquid Glass navigation bar. Android: Jetpack Compose.
 - Local development: `supabase start`, `supabase db reset` (applies `supabase/migrations/`).
 
@@ -120,15 +120,20 @@ Later possibilities: public groups, richer discovery, and publication-style edit
 - Mobile sharesheet feasibility.
 - Empty-group and other first-run states are not yet designed.
 
-## Exploratory visual direction
+## Visual direction
 
-Three directions were explored on 12 October: a riso zine the five of you run off between lunches (chosen), the regulars' table at a coffeehouse, and a confluence of link streams merging into one river. The chosen direction was mocked up and passed three critique rounds.
+Current direction (23 October 2026): **the vine**. Each story is a bunch of grapes: one grape per source, in the colour of the friend who filed it, with a vine-green ring on what is new to you. The full direction, tokens, copy rules and mockups are in `design/` (`DIRECTION.md`, `CRITIQUE.md`, `mockup.html`, renders in `design/shots/`).
 
-The look: a printed zine, not a feed. A warm paper ground, one blue riso ink for all text, rules and images, and a single pink accent reserved for "new to you" (new sources, new messages). Headlines are set in Gloock, a display serif; everything you read or touch is SF Pro. Every source image is printed through a halftone screen in the one ink, so five different publishers read as one publication; a source with no image gets a flat printed plate with the publisher's name; GIFs are the one exception, printed on the pink drum because they are reactions, not reporting. Members are monograms, never photos. Printed matter keeps square corners; rules are thin; whitespace is generous. A dark "night run" variant inverts the paper to blue-black with light ink.
+- Leaf-white ground (`#F0F4EB`, night `#0E1711`), green-black ink (`#15221B`). Vine green (`#1E7A39`) has one job: new to you.
+- Each member owns one hue, in the order they joined the paper: raspberry, marigold, terra, sky, grape, then teal and cocoa. The hue appears on their avatar disc and the grapes they filed, never on chrome.
+- Bricolage Grotesque for display on every platform; the system face (SF Pro, Google Sans Flex, the web's system stack) for everything you read and touch.
+- The sources' own photographs, shown clean. The AI catch-up sits on a dark card so it never reads as a friend's message.
+- No tab bar: the paper is the app. People and your account open from the paper's header; "Share a link" floats in the thumb zone (an extended FAB on Android).
+- The signature moment: a shared link appears as a lone grape while the page is read, then rolls into its story's bunch as "+1 source" lands.
 
-Mocked-up screens: mobile front page (masthead "The Grapevine", lead story, editorial rows, tabs), story top (hero plate, evolving summary with provenance, source clippings, correction line), story conversation (day rules, compact avatar and author rows, inline source clippings, chronological quoted replies, emoji reactions, GIF with alt text, composer), share sheet, the "Filed" signature moment (a shared link prints dot by dot while the status reads "Reading …", then slides into its story as a pink "+1 source" stamp lands), dark front page, web front page (12-column grid, lead across seven columns, "At the table" conversation band), and an app icon. The mockup's split-correction sheet is superseded: splitting was removed from the direction.
+The front page does not reshuffle while you read; when ranking changes, a "N stories moved · Show" pill appears under the header and tapping it updates the page.
 
-The front page does not reshuffle while you read; when ranking changes, a line appears between two pink rules ("Later edition · N stories moved") and tapping it reprints the page.
+Earlier directions, superseded: a riso zine in one blue ink with a pink accent and halftone photographs (12 October), then a black-and-white broadsheet with a blackletter nameplate, press red and halftone photographs (15 October).
 
 On iOS the navigation uses native Liquid Glass navigation, tabs, and sheets. Android will use its native navigation. Design priority — mobile home, mobile story, web home — is complete as mockups; web, the native iOS local pilot, and the native Android app are now implemented.
 

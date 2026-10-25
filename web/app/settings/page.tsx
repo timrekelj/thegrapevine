@@ -2,13 +2,13 @@ import type { Metadata } from 'next'
 import Link from '@/components/print/PressLink'
 import { redirect } from 'next/navigation'
 import { connection } from 'next/server'
-import { requireUser } from '@/lib/auth'
+import { requireAccount, requireUser } from '@/lib/auth'
 import { emailChangeNotice, sameEmail } from '@/lib/account'
-import { dayline } from '@/lib/format'
 import { isEmail } from '@/lib/validate'
 import { captureServer } from '@/lib/telemetry-server'
 import Avatar from '@/components/print/Avatar'
 import SubmitButton from '@/components/print/SubmitButton'
+import Brand from '@/components/print/Brand'
 import styles from './settings.module.css'
 
 export const metadata: Metadata = { title: 'Your account · The Grapevine' }
@@ -24,18 +24,16 @@ export default async function SettingsPage({ searchParams }: PageProps<'/setting
   const params = await searchParams
   const confirming = params.confirm === 'delete'
   const destination = confirming ? '/settings?confirm=delete' : '/settings'
-  const { supabase, user } = await requireUser(destination)
+  const { supabase, user } = await requireAccount(destination)
   const { data: profile } = await supabase.from('profiles').select('display_name').eq('id', user.id).maybeSingle()
   const displayName = profile?.display_name || 'Member'
   const error = text(params.error)
   const notice = emailChangeNotice(text(params.notice), user.email, user.new_email)
   const describedBy = error ? 'account-error' : undefined
-  const now = new Date()
-  const today = dayline(now)
 
   async function changeEmail(formData: FormData) {
     'use server'
-    const { supabase, user } = await requireUser('/settings')
+    const { supabase, user } = await requireAccount('/settings')
     const email = String(formData.get('email') ?? '').trim()
     if (!isEmail(email)) redirect(back({ error: 'Enter a valid email address.' }))
     if (sameEmail(user.email, email)) redirect(back({ error: 'That is already the email on this account.' }))
@@ -48,15 +46,15 @@ export default async function SettingsPage({ searchParams }: PageProps<'/setting
 
   async function signOut() {
     'use server'
-    const { supabase, user } = await requireUser('/settings')
-    await captureServer(user.id, 'signed_out')
+    const { supabase, userId } = await requireUser('/settings')
+    await captureServer(userId, 'signed_out')
     await supabase.auth.signOut({ scope: 'local' })
     redirect('/login')
   }
 
   async function deleteAccount(formData: FormData) {
     'use server'
-    const { supabase, user } = await requireUser('/settings?confirm=delete')
+    const { supabase, user } = await requireAccount('/settings?confirm=delete')
     const typed = String(formData.get('confirm') ?? '')
     if (!sameEmail(user.email, typed)) {
       redirect(back({ confirm: 'delete', error: 'Type the email address on this account to confirm.' }))
@@ -80,10 +78,9 @@ export default async function SettingsPage({ searchParams }: PageProps<'/setting
 
   return (
     <main className={`fresh-ink ${styles.page}`}>
-      <header className={styles.nameplate}>
-        <Link href="/" className="nameplate">The Grapevine</Link>
-        <div className="double-rule" />
-        <p className={styles.dateline}><time dateTime={now.toISOString()}>{today}</time><span>Your account</span></p>
+      <header className={styles.top}>
+        <Brand />
+        <Link href="/" className="meta">Back to the paper</Link>
       </header>
       <div className={styles.body}>
         <div className={styles.who}>
@@ -106,6 +103,12 @@ export default async function SettingsPage({ searchParams }: PageProps<'/setting
               className={styles.field} aria-invalid={!!error && !confirming} aria-describedby={!confirming ? describedBy : undefined} />
             <SubmitButton className={styles.primary} pending="Sending…">Send confirmation</SubmitButton>
           </form>
+        </section>
+
+        <section className={styles.section} aria-labelledby="report-heading">
+          <h2 id="report-heading" className="label">Problems &amp; ideas</h2>
+          <p className="summary">Report a bug, suggest an improvement or ask for a feature. Screenshots welcome.</p>
+          <Link className={styles.quietLink} href="/report?kind=bug&from=%2Fsettings">Report a problem or idea</Link>
         </section>
 
         <section className={styles.section} aria-labelledby="session-heading">

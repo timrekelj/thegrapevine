@@ -30,7 +30,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             GrapevineTheme {
                 CompositionLocalProvider(LocalApi provides grapevine.api) {
-                    RootScreen(appState)
+                    if (BuildConfig.DEBUG && intent.getBooleanExtra("designPreview", false)) si.timrekelj.thegrapevine.ui.DesignPreviewScreen()
+                    else RootScreen(appState)
                 }
             }
         }

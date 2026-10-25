@@ -22,10 +22,11 @@ begin
     begin execute fn; exception when insufficient_privilege then denied := true; end;
     if not denied then raise exception 'Non-admin was allowed to run: %', fn; end if;
   end loop;
-  select count(*) into n from public.ai_usage;
-  if n <> 0 then raise exception 'Non-admin can read ai_usage'; end if;
-  select count(*) into n from public.admins;
-  if n <> 0 then raise exception 'Non-admin can read the admin list'; end if;
+  foreach fn in array array['select count(*) from public.ai_usage', 'select count(*) from public.admins'] loop
+    denied := false;
+    begin execute fn; exception when insufficient_privilege then denied := true; end;
+    if not denied then raise exception 'Non-admin can read: %', fn; end if;
+  end loop;
 
   -- the admin: every function answers
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
@@ -39,8 +40,9 @@ begin
     where not exists (select 1 from public.group_members m where m.group_id = g.id and m.user_id = auth.uid())
       and g.created_by <> auth.uid();
   if n <> 0 then raise exception 'Admin can read groups they are not in through table access'; end if;
-  select count(*) into n from public.ai_usage;
-  if n <> 0 then raise exception 'ai_usage is readable through table access'; end if;
+  denied := false;
+  begin perform count(*) from public.ai_usage; exception when insufficient_privilege then denied := true; end;
+  if not denied then raise exception 'ai_usage is readable through table access'; end if;
 
   -- signed out: no access at all
   execute 'set local role anon';

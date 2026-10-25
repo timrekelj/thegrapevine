@@ -3,8 +3,8 @@
 .shell a:not(:global(.btn)) { color: inherit; text-underline-offset: 3px; }
 
 .top { display: flex; align-items: baseline; gap: 24px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid var(--ink); }
-.brand { font: 400 28px/1 var(--nameplate); text-decoration: none; }
-.brand small { font: 600 11px/1 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin-left: 8px; }
+.brand { font: 800 22px/1 var(--display); letter-spacing: -.02em; text-decoration: none; }
+.brand small { font: 600 13px/1 var(--sans); color: var(--ink-3); margin-left: 8px; }
 .nav { display: flex; gap: 4px; flex-wrap: wrap; }
 .nav a { padding: 6px 10px; border-radius: 8px; text-decoration: none; font-weight: 500; color: var(--ink-2); }
 .nav a:hover, .nav a:focus-visible { background: var(--tint); color: var(--ink); outline: none; }
@@ -13,10 +13,10 @@
 
 .page { display: grid; gap: 32px; padding-top: 28px; }
 .heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.heading h1 { margin: 0; font: 600 34px/1.1 var(--serif); letter-spacing: -0.02em; }
+.heading h1 { margin: 0; font: 800 34px/1.1 var(--display); letter-spacing: -.02em; }
 .heading p { margin: 4px 0 0; color: var(--ink-3); }
 .section { display: grid; gap: 12px; }
-.section h2 { margin: 0; font: 600 12px/1 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); padding-bottom: 8px; border-bottom: 1px solid var(--rule); }
+.section h2 { margin: 0; font: 700 19px/1.2 var(--display); letter-spacing: -.01em; color: var(--ink); padding-bottom: 8px; border-bottom: 1px solid var(--rule); }
 .split { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 32px; }
 
 /* stat tiles */
@@ -24,7 +24,7 @@
 .tile { background: var(--raised); padding: 14px 16px; display: grid; gap: 6px; text-decoration: none; }
 a.tile:hover, a.tile:focus-visible { background: var(--paper); outline: none; }
 .tile span { font: 500 12px/1 var(--sans); color: var(--ink-3); }
-.tile b { font: 400 28px/1 var(--serif); font-variant-numeric: tabular-nums; }
+.tile b { font: 800 28px/1 var(--display); font-variant-numeric: tabular-nums; }
 
 /* filters */
 .filters { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
@@ -36,7 +36,7 @@ a.tile:hover, a.tile:focus-visible { background: var(--paper); outline: none; }
 /* tables */
 .tableWrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 12px; background: var(--raised); }
 .table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-.table th { text-align: left; font: 600 11px/1 var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); padding: 10px 12px; border-bottom: 1px solid var(--rule); white-space: nowrap; background: var(--raised); position: sticky; top: 0; }
+.table th { text-align: left; font: 600 13px/1 var(--sans); color: var(--ink-3); padding: 10px 12px; border-bottom: 1px solid var(--rule); white-space: nowrap; background: var(--raised); position: sticky; top: 0; }
 .table td { padding: 9px 12px; border-bottom: 1px solid var(--tint); vertical-align: top; }
 .table tr:last-child > td { border-bottom: 0; }
 .table tbody tr:hover > td { background: var(--tint); }
@@ -62,7 +62,7 @@ a.tile:hover, a.tile:focus-visible { background: var(--paper); outline: none; }
 .versions { display: grid; gap: 0; border: 1px solid var(--rule); border-radius: 12px; background: var(--raised); }
 .version { padding: 16px; border-bottom: 1px solid var(--rule); display: grid; gap: 6px; }
 .version:last-child { border-bottom: 0; }
-.version h3 { margin: 0; font: 400 20px/1.2 var(--serif); }
+.version h3 { margin: 0; font: 700 19px/1.2 var(--display); }
 .version p { margin: 0; color: var(--ink-2); max-width: 72ch; }
 
 /* daily spend chart: one series, plate ink, value on hover and focus, table below for everything */
@@ -78,7 +78,7 @@ a.tile:hover, a.tile:focus-visible { background: var(--paper); outline: none; }
 .bar:first-child .tip { left: 0; transform: none; }
 .bar:last-child .tip { left: auto; right: 0; transform: none; }
 .axis { display: flex; justify-content: space-between; color: var(--ink-3); font-size: 12px; }
-.peak { position: absolute; top: 0; left: 0; right: 0; border-top: 1px dashed var(--rule); font-size: 11px; color: var(--ink-3); padding-top: 2px; pointer-events: none; }
+.peak { position: absolute; top: 0; left: 0; right: 0; border-top: 1px solid var(--rule); font-size: 11px; color: var(--ink-3); padding-top: 2px; pointer-events: none; }
 .details summary { cursor: pointer; color: var(--ink-2); font-weight: 500; }
 
 @media (max-width: 640px) {

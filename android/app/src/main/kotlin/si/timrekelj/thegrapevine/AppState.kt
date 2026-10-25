@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import si.timrekelj.thegrapevine.ui.MemberHues
 
 /** Mirrors `AppState.swift`: who is signed in, and which paper they belong to. */
 class AppState(
@@ -34,6 +35,10 @@ class AppState(
     /** A story link, opened once the paper is showing. */
     var pendingStoryId by mutableStateOf<String?>(null)
 
+    /** The problem or idea being reported; the root shows its sheet while this is set. */
+    var feedback by mutableStateOf<FeedbackDraft?>(null)
+        private set
+
     private val sessionListener: (Session) -> Unit = { refreshed ->
         store.save(refreshed)
         session = refreshed
@@ -56,7 +61,7 @@ class AppState(
             }
             if (Jwt.isExpired(stored.accessToken)) {
                 val refreshed = try {
-                    api.refreshSession(stored.refreshToken)
+                    api.restore(stored)
                 } catch (e: ApiError.Unauthorized) {
                     signOut()
                     checked = true
@@ -68,7 +73,7 @@ class AppState(
                     return@launch
                 }
                 adopt(refreshed)
-                store.save(refreshed)
+                withContext(Dispatchers.IO) { store.save(refreshed) }
             } else {
                 adopt(stored)
             }
@@ -80,8 +85,9 @@ class AppState(
     /** An invitation or story link; both wait until the app can show them. */
     fun handleDeepLink(uri: String) {
         if (OAuth.isCallback(uri)) {
-            val verifier = store.takeOAuthVerifier() ?: return
             viewModelScope.launch {
+                // Kept in the encrypted store, so it survives the browser trip even if the process doesn't.
+                val verifier = withContext(Dispatchers.IO) { store.takeOAuthVerifier() } ?: return@launch
                 try {
                     finishSignIn(api.exchangeCode(OAuth.code(uri), verifier))
                 } catch (e: Exception) {
@@ -109,16 +115,16 @@ class AppState(
         viewModelScope.async { finishSignIn(api.verifyOtp(email, code)) }.await()
     }
 
-    fun startOAuth(provider: AuthProvider): String {
+    suspend fun startOAuth(provider: AuthProvider): String {
         error = null
         val verifier = OAuth.verifier()
-        store.saveOAuthVerifier(verifier)
+        withContext(Dispatchers.IO) { store.saveOAuthVerifier(verifier) }
         return OAuth.authorizeURL(Config.supabaseURL, provider, verifier)
     }
 
     private suspend fun finishSignIn(verified: Session) {
         error = null
-        store.save(verified)
+        withContext(Dispatchers.IO) { store.save(verified) }
         checked = false
         try {
             adopt(verified)
@@ -135,6 +141,7 @@ class AppState(
         profile = null
         group = null
         members = emptyList()
+        feedback = null
         api.session = null
     }
 
@@ -151,7 +158,7 @@ class AppState(
         val applied = updated.email?.takeIf { it.equals(trimmed, ignoreCase = true) }
         if (applied != null) {
             val next = current.copy(email = applied)
-            store.save(next)
+            withContext(Dispatchers.IO) { store.save(next) }
             session = next
             api.session = next
         }
@@ -186,14 +193,16 @@ class AppState(
             }
 
             group = api.getOne<Group>("rest/v1/groups", listOf("id" to "eq.${membership.group_id}"))
-            members = api.getMany(
+            val loadedMembers = api.getMany<Member>(
                 "rest/v1/group_members",
                 listOf(
                     "select" to "user_id,role,profiles(id,display_name,monogram)",
                     "group_id" to "eq.${membership.group_id}",
-                    "order" to "joined_at.asc",
+                    "order" to "joined_at.asc,user_id.asc",
                 ),
             )
+            MemberHues.record(loadedMembers.map { it.user_id })
+            members = loadedMembers
             error = null
         } catch (e: Exception) {
             error = e.message
@@ -251,6 +260,37 @@ class AppState(
         Telemetry.capture("paper_joined")
         group = api.getOne<Group>("rest/v1/groups", listOf("id" to "eq.$joined"))
         loadProfileAndGroup()
+    }
+
+    /** Opens the report sheet, unless one is already open; [screenshot] is attached, removably. */
+    fun report(kind: FeedbackKind, screen: String?, error: String? = null, screenshot: FeedbackImage? = null) {
+        if (feedback != null || session == null) return
+        feedback = FeedbackDraft(kind, screen, error).apply { screenshot?.let { images += it } }
+    }
+
+    fun closeReport() {
+        if (feedback?.busy == true) return
+        feedback = null
+    }
+
+    /** Sends the open report. On failure the draft stays as written, with the reason. */
+    fun sendReport() {
+        val draft = feedback ?: return
+        val userId = session?.userId ?: return
+        if (!draft.canSend) return
+        draft.busy = true
+        draft.failure = null
+        viewModelScope.launch {
+            try {
+                draft.result = Feedback.send(api, userId, draft)
+                Telemetry.capture("feedback_sent")
+            } catch (e: Exception) {
+                draft.failure = e.message ?: "Could not send your report. Please try again."
+                if (e is ApiError.Unauthorized) signOut()
+            } finally {
+                draft.busy = false
+            }
+        }
     }
 
     override fun onCleared() {

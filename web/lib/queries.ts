@@ -1,19 +1,19 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { PaperMember, PaperStory, RankedStory } from './types';
 
-export const MESSAGE_WEIGHT = 3;
-export const SOURCE_WEIGHT = 2;
-export const RECENCY_WEIGHT = 4;
-export const RECENCY_HALF_LIFE_HOURS = 24;
-export const ACTIVITY_WINDOW_HOURS = 48;
+const MESSAGE_WEIGHT = 3;
+const SOURCE_WEIGHT = 2;
+const RECENCY_WEIGHT = 4;
+const RECENCY_HALF_LIFE_HOURS = 24;
+const ACTIVITY_WINDOW_HOURS = 48;
 
 // The front page is this week's edition: stories active in the last EDITION_DAYS, never fewer than
 // EDITION_MIN (a quiet paper still has a front page) nor more than EDITION_MAX. Older stories move
 // to the archive, ARCHIVE_PAGE at a time.
-export const EDITION_DAYS = 7;
+const EDITION_DAYS = 7;
 export const EDITION_MIN = 10;
 export const EDITION_MAX = 40;
-export const ARCHIVE_PAGE = 20;
+const ARCHIVE_PAGE = 20;
 
 type Rankable = { id: string; last_activity_at: string; sources: { created_at: string }[]; messages: { created_at: string }[] };
 
@@ -79,7 +79,7 @@ export async function loadEditionOrder(client: SupabaseClient, groupId: string):
   return rankStories(cutEdition(data as Rankable[]).stories).map(story => story.id);
 }
 
-export type ArchivedStory = { id: string; title: string; category: string | null; last_activity_at: string; sources: { count: number }[]; messages: { count: number }[] };
+type ArchivedStory = { id: string; title: string; category: string | null; last_activity_at: string; sources: { count: number }[]; messages: { count: number }[] };
 
 /** A page of the archive: stories whose last activity is before `before`, newest first. */
 export async function loadArchive(client: SupabaseClient, groupId: string, before: string) {

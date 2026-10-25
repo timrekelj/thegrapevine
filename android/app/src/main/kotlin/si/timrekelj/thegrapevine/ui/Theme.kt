@@ -16,21 +16,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import si.timrekelj.thegrapevine.R
 
 /**
- * A black-and-white broadsheet, the same tokens as `web/app/globals.css`. Newsprint and ink carry
- * the page; colour comes only from the photographs and avatars. Press red is the one spot ink and
- * means one thing: new to you.
+ * The vine colour roles (design/DIRECTION.md, Tokens). Some keep older names: `paper` is the ground,
+ * and `red` is the vine green, which only ever means "new to you".
  */
 @Immutable
 data class Palette(
     val paper: Color,
     val raised: Color,
+    /** Fields, the composer, quoted replies and placeholder tiles. */
+    val raised2: Color,
     val ink: Color,
     val ink2: Color,
     val ink3: Color,
@@ -38,44 +38,57 @@ data class Palette(
     val tint: Color,
     val red: Color,
     val onRed: Color,
+    /** The soft fill behind a "new" line. */
+    val vineSoft: Color,
+    /** The ground of the catch-up card, the paper's own writing. */
+    val catchUp: Color,
     val danger: Color,
     val isDark: Boolean,
 )
 
+/** The light palette (leaf-white ground). */
 val MorningEdition = Palette(
-    paper = Color(0xFFF4F1EA),
-    raised = Color(0xFFFBF9F4),
-    ink = Color(0xFF161513),
-    ink2 = Color(0xFF4A4740),
-    ink3 = Color(0xFF75716A),
-    rule = Color(0x29161513),
-    tint = Color(0x0F161513),
-    red = Color(0xFFC8231B),
+    paper = Color(0xFFF0F4EB),
+    raised = Color(0xFFFFFFFF),
+    raised2 = Color(0xFFF6F8F3),
+    ink = Color(0xFF15221B),
+    ink2 = Color(0xFF3F4C45),
+    ink3 = Color(0xFF5E6B63),
+    rule = Color(0x1415221B),
+    tint = Color(0x0F15221B),
+    red = Color(0xFF1E7A39),
     onRed = Color(0xFFFFFFFF),
-    danger = Color(0xFFA3261F),
+    vineSoft = Color(0xFFDCEFE0),
+    catchUp = Color(0xFF15221B),
+    danger = Color(0xFFB42318),
     isDark = false,
 )
 
+/** The dark palette (night on the vine). */
 val EveningEdition = Palette(
-    paper = Color(0xFF121110),
-    raised = Color(0xFF1B1A17),
-    ink = Color(0xFFEDE9E1),
-    ink2 = Color(0xFFB9B3A8),
-    ink3 = Color(0xFF8C877D),
-    rule = Color(0x29EDE9E1),
-    tint = Color(0x14EDE9E1),
-    red = Color(0xFFFF5B4F),
-    onRed = Color(0xFF1A0705),
-    danger = Color(0xFFFF8A80),
+    paper = Color(0xFF0E1711),
+    raised = Color(0xFF172219),
+    raised2 = Color(0xFF1F2C22),
+    ink = Color(0xFFEEF3EA),
+    ink2 = Color(0xFFB5C1B8),
+    ink3 = Color(0xFF8C9A90),
+    rule = Color(0x1AEEF3EA),
+    tint = Color(0x14EEF3EA),
+    red = Color(0xFF4CC46F),
+    onRed = Color(0xFF0E1711),
+    vineSoft = Color(0xFF1D3A26),
+    catchUp = Color(0xFF1D3A26),
+    danger = Color(0xFFFF7A6E),
     isDark = true,
 )
 
 val LocalPalette = staticCompositionLocalOf { MorningEdition }
 
-/** The current edition's inks, read where they're drawn so dark mode follows the system. */
+/** The current palette's roles, read where they're drawn so dark mode follows the system. */
 object Press {
     val paper: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.paper
     val raised: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.raised
+    val raised2: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.raised2
     val ink: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.ink
     val ink2: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.ink2
     val ink3: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.ink3
@@ -83,69 +96,57 @@ object Press {
     val tint: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.tint
     val red: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.red
     val onRed: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.onRed
+    val vineSoft: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.vineSoft
+    val catchUp: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.catchUp
     val danger: Color @Composable @ReadOnlyComposable get() = LocalPalette.current.danger
 }
 
-/** The nameplate: blackletter, only for mastheads. */
-val Nameplate = FontFamily(Font(R.font.unifraktur_maguntia))
-
-/** Newsreader cut for headlines: the 72pt optical size. */
-val NewsDisplay = FontFamily(Font(R.font.newsreader_display_semibold, FontWeight.SemiBold))
-
-/** Newsreader cut for reading: the 16pt optical size. */
-val News = FontFamily(
-    Font(R.font.newsreader_text_regular, FontWeight.Normal),
-    Font(R.font.newsreader_text_italic, FontWeight.Normal, FontStyle.Italic),
-    Font(R.font.newsreader_text_semibold, FontWeight.SemiBold),
-    Font(R.font.newsreader_text_semibold_italic, FontWeight.SemiBold, FontStyle.Italic),
+/** Bricolage Grotesque, bundled: titles and section heads. Everything else is set in [UiText]. */
+val VineDisplay = FontFamily(
+    Font(R.font.bricolage_grotesque, FontWeight.Normal),
+    Font(R.font.bricolage_grotesque, FontWeight.Bold),
+    Font(R.font.bricolage_grotesque, FontWeight.ExtraBold),
 )
 
-/** Datelines, counts and labels. */
-val Mono = FontFamily(
-    Font(R.font.ibm_plex_mono_medium, FontWeight.Medium),
-    Font(R.font.ibm_plex_mono_semibold, FontWeight.SemiBold),
-)
+/** The platform's sans for reading and controls (Google Sans Flex where the system has it). */
+val UiText = FontFamily.SansSerif
 
-/** A masthead in blackletter. */
-@Composable
-@ReadOnlyComposable
-fun nameplate(size: Int) = TextStyle(fontFamily = Nameplate, fontSize = size.sp, lineHeight = (size * 1.05f).sp, color = Press.ink)
-
-/** A headline: Newsreader display, tight. Small sizes use the text cut so they stay sturdy. */
+/** A title in the display face: tight and heavy at headline sizes, a touch looser for row titles. */
 @Composable
 @ReadOnlyComposable
 fun display(size: Int) = TextStyle(
-    fontFamily = if (size >= 26) NewsDisplay else News,
-    fontWeight = FontWeight.SemiBold,
+    fontFamily = VineDisplay,
+    fontWeight = if (size >= 26) FontWeight.ExtraBold else FontWeight.Bold,
     fontSize = size.sp,
-    lineHeight = (size * (if (size >= 26) 1.02f else 1.12f)).sp,
-    letterSpacing = (if (size >= 26) -0.025 else -0.01).em,
+    lineHeight = (size * (if (size >= 26) 1.04f else 1.15f)).sp,
+    letterSpacing = (if (size >= 26) -0.02 else -0.015).em,
     color = Press.ink,
 )
 
-/** An italic section head, like "The conversation". */
-val SectionStyle: TextStyle @Composable @ReadOnlyComposable get() =
-    TextStyle(fontFamily = News, fontWeight = FontWeight.SemiBold, fontStyle = FontStyle.Italic, fontSize = 24.sp, lineHeight = 28.sp, color = Press.ink)
+/** A section title, like "The conversation": the display face at row-title size. */
+val SectionStyle: TextStyle @Composable @ReadOnlyComposable get() = display(19)
 
+/** Times, categories, counts. */
 val MetaStyle: TextStyle @Composable @ReadOnlyComposable get() =
-    TextStyle(fontFamily = Mono, fontWeight = FontWeight.Medium, fontSize = 12.sp, lineHeight = 17.sp, color = Press.ink2)
+    TextStyle(fontFamily = UiText, fontWeight = FontWeight.Normal, fontSize = 13.sp, lineHeight = 17.sp, color = Press.ink2)
 
+/** A sentence-case label over a group of controls, like "Sources · 4". */
 val LabelStyle: TextStyle @Composable @ReadOnlyComposable get() =
-    TextStyle(fontFamily = Mono, fontWeight = FontWeight.SemiBold, fontSize = 11.sp, lineHeight = 14.sp, letterSpacing = 0.12.em, color = Press.ink)
+    TextStyle(fontFamily = UiText, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, lineHeight = 18.sp, color = Press.ink2)
 
 val BodyStyle: TextStyle @Composable @ReadOnlyComposable get() =
-    TextStyle(fontFamily = News, fontSize = 17.sp, lineHeight = 25.sp, color = Press.ink)
+    TextStyle(fontFamily = UiText, fontSize = 17.sp, lineHeight = 23.sp, color = Press.ink)
 
-/** Names and controls stay in the plain system sans. */
+/** Names and controls. */
 val NameStyle: TextStyle @Composable @ReadOnlyComposable get() =
-    TextStyle(fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Press.ink)
+    TextStyle(fontFamily = UiText, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Press.ink)
 
 @Composable
 fun GrapevineTheme(dark: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     val p = if (dark) EveningEdition else MorningEdition
     val scheme = if (dark) darkColorScheme() else lightColorScheme()
-    // Our own surfaces sink when pressed (see Motion.kt); what Material still draws — the tab bar,
-    // menus, switches — gets a faint ink ripple rather than a grey flood.
+    // Our own surfaces sink when pressed (see Motion.kt); what Material still draws (app bars,
+    // menus, switches) gets a faint ink ripple rather than a grey flood.
     val ripple = RippleConfiguration(color = p.ink, rippleAlpha = RippleAlpha(0.08f, 0.06f, 0.05f, 0.10f))
     CompositionLocalProvider(LocalPalette provides p, LocalRippleConfiguration provides ripple) {
         MaterialTheme(

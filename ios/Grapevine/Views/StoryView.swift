@@ -6,9 +6,14 @@ import AVKit
 struct StoryView: View {
     @Environment(AppState.self) private var app
     @Environment(\.scenePhase) private var scenePhase
-    @State private var store = StoryStore()
+    @State private var store: StoryStore
+    init(storyId: UUID, initialStore: StoryStore = StoryStore()) {
+        self.storyId = storyId
+        _store = State(initialValue: initialStore)
+    }
     let storyId: UUID
 
+    @State private var catchUpExpanded = true
     @State private var draft = ""
     @State private var replyTo: Message?
     @State private var reportTarget = "summary"
@@ -26,12 +31,10 @@ struct StoryView: View {
         store.sources.filter { $0.extraction_status == "ok" }.count
     }
 
-    private var timeline: [TimelineEntry] {
-        (store.sources.map { TimelineEntry.source($0) } + store.messages.map { TimelineEntry.message($0) })
-            .sorted { $0.createdAt < $1.createdAt }
-    }
-
+    /// Sources and messages in time order, under their day.
     private var dayGroups: [(Date, [TimelineEntry])] {
+        let timeline = (store.sources.map { TimelineEntry.source($0) } + store.messages.map { TimelineEntry.message($0) })
+            .sorted { $0.createdAt < $1.createdAt }
         let calendar = Calendar.current
         var groups: [(Date, [TimelineEntry])] = []
         for entry in timeline {
@@ -56,7 +59,6 @@ struct StoryView: View {
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                DoubleRule().padding(.bottom, 22)
                 if let story = store.story {
                     SwiftUI.Group {
                         article(story)
@@ -69,7 +71,7 @@ struct StoryView: View {
                     .transition(.opacity)
                 } else if let error = store.error, !store.isLoading {
                     SwiftUI.Group {
-                        Text(error).font(Theme.serif(17)).padding(.vertical)
+                        ErrorNote(message: error, screen: "Story", font: Theme.serif(17), color: Theme.ink).padding(.vertical)
                         Button("Try again") { Task { await store.load(storyId: storyId) } }
                             .font(.system(size: 15, weight: .semibold)).underline()
                             .buttonStyle(PressStyle())
@@ -77,11 +79,11 @@ struct StoryView: View {
                     .transition(.opacity)
                 } else {
                     // Also before the first load starts, so the page never shows blank.
-                    StoryProof().transition(.opacity)
+                    StoryPlaceholder().transition(.opacity)
                 }
             }
             .padding(.horizontal, 20).padding(.bottom, 24)
-            // The story inks in over its proof; new messages slide up into the conversation.
+            // The story fades in over its placeholder; new messages slide up into the conversation.
             .animation(.easeOut(duration: reduceMotion ? 0.2 : 0.45), value: store.story == nil)
             .animation(reduceMotion ? .easeOut(duration: 0.2) : .snappy(duration: 0.4), value: store.messages.map(\.id))
         }
@@ -90,10 +92,9 @@ struct StoryView: View {
         .toolbar(.hidden, for: .tabBar)
         .toolbarVisibility(.visible, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Theme.paper, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                Text("The Grapevine").font(Theme.nameplate(24)).foregroundColor(Theme.ink)
+                Text(store.story?.title ?? "Story").lineLimit(1).font(.system(size: 17, weight: .semibold)).foregroundColor(Theme.ink)
             }
             // Story links open the app on phones that have it, and the website everywhere else.
             ToolbarItem(placement: .topBarTrailing) {
@@ -123,6 +124,9 @@ struct StoryView: View {
             }
         }
         .task(id: scenePhase) {
+            #if DEBUG
+            guard !DesignFixture.enabled else { return }
+            #endif
             guard scenePhase == .active else { return }
             async let read: Void = store.markRead(storyId: storyId)
             await store.load(storyId: storyId)
@@ -131,9 +135,10 @@ struct StoryView: View {
             while !Task.isCancelled {
                 do { try await Task.sleep(for: .seconds(10)) }
                 catch { return }
-                if !sending && store.pendingMessageId == nil { await store.load(storyId: storyId) }
-                // What arrived while reading has been seen: don't mark it new next time.
-                await store.markRead(storyId: storyId)
+                guard !sending && store.pendingMessageId == nil else { continue }
+                // What arrived while reading has been seen: don't mark it new next time. Leaving the
+                // story marks it too, so a poll that found nothing new needn't write.
+                if await store.load(storyId: storyId) { await store.markRead(storyId: storyId) }
             }
         }
         .onDisappear { Task { [store, storyId] in await store.markRead(storyId: storyId) } }
@@ -152,63 +157,53 @@ struct StoryView: View {
 
 extension StoryView {
     @ViewBuilder private func article(_ story: Story) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Kicker(text: story.category ?? "Unfiled")
-            Text("Updated \(timeAgo(story.last_activity_at))").font(Theme.mono(12)).foregroundColor(Theme.ink3)
-        }
+        Text("\(story.category ?? "Unfiled") · Updated \(timeAgo(story.last_activity_at))")
+            .font(Theme.text(15, weight: .semibold)).foregroundColor(Theme.ink3)
         Text(story.title.isEmpty ? "Reading this story" : story.title)
-            .font(Theme.headline(40)).lineSpacing(-4)
+            .font(Theme.headline(34)).tracking(-0.8)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.top, 12).padding(.bottom, 16)
             .accessibilityAddTraits(.isHeader)
-        Button { showHistory = true } label: {
-            Text("Filed from \(Text("\(readableSources)").font(Theme.mono(12, bold: true)).foregroundColor(Theme.ink)) of \(Text("\(store.sources.count)").font(Theme.mono(12, bold: true)).foregroundColor(Theme.ink)) \(store.sources.count == 1 ? "source" : "sources") · \(Text("What changed").underline().font(Theme.mono(12, bold: true)).foregroundColor(Theme.ink))")
-                .font(Theme.mono(12)).foregroundColor(Theme.ink2)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 9)
-                .overlay(alignment: .top) { Rectangle().fill(Theme.ink).frame(height: 1) }
-                .overlay(alignment: .bottom) { Hairline() }
+        VStack(alignment: .leading, spacing: 12) {
+            Button {
+                catchUpExpanded.toggle()
+                let key = "catch-up.\(app.session?.userId.uuidString ?? "member").\(storyId)"
+                if !catchUpExpanded { UserDefaults.standard.set(story.summary, forKey: key) }
+                else { UserDefaults.standard.removeObject(forKey: key) }
+            } label: {
+                HStack { Text("The catch-up").font(.system(size: 15, weight: .semibold)); Spacer(); Image(systemName: catchUpExpanded ? "chevron.up" : "chevron.down").accessibilityHidden(true) }
+                    .frame(minHeight: 32).contentShape(Rectangle())
+            }.buttonStyle(.plain).accessibilityValue(catchUpExpanded ? "Expanded" : "Collapsed")
+            Text(story.summary.isEmpty ? "The summary could not be written." : story.summary)
+                .font(Theme.serif(17)).lineSpacing(4).lineLimit(catchUpExpanded ? nil : 2)
+                .fixedSize(horizontal: false, vertical: true)
+            if catchUpExpanded {
+                HStack(spacing: 12) {
+                    Text("\(readableSources) of \(store.sources.count) sources")
+                    Spacer(minLength: 0)
+                    Button("What changed") { showHistory = true }.underline()
+                    Button("Report") { reportTarget = "summary"; showReport = true }.underline()
+                }.font(Theme.text(13)).padding(.top, 4)
+            }
         }
-        .buttonStyle(PressStyle())
-        PlateView(url: heroURL, label: lead?.displayPublisher ?? "The paper")
-            .aspectRatio(16 / 9, contentMode: .fit)
-            .padding(.top, 20)
-        if let lead {
-            Text("Pictured via \(lead.displayPublisher)")
-                .font(Theme.mono(11)).foregroundColor(Theme.ink3).padding(.top, 8)
+        .padding(20).foregroundStyle(Theme.onCatchUp)
+        .background(Theme.catchUp, in: RoundedRectangle(cornerRadius: 28))
+        .task(id: story.summary) {
+            let key = "catch-up.\(app.session?.userId.uuidString ?? "member").\(storyId)"
+            catchUpExpanded = UserDefaults.standard.string(forKey: key) != story.summary
         }
-        if story.summary.isEmpty {
-            Text("The summary could not be written.").font(Theme.serif(19)).padding(.vertical, 20)
-        } else {
-            DropCapText(text: story.summary, size: 19).padding(.vertical, 20)
-        }
-        HStack(spacing: 0) {
-            Text("Something off? ").foregroundColor(Theme.ink3)
-            Button("Report the summary") { reportTarget = "summary"; showReport = true }
-                .fontWeight(.semibold).underline().foregroundColor(Theme.ink)
-            Text(" · ").foregroundColor(Theme.ink3)
-            Button("wrong category") { reportTarget = "category"; showReport = true }
-                .fontWeight(.semibold).underline().foregroundColor(Theme.ink)
-        }
-        .font(Theme.mono(12))
-        .buttonStyle(PressStyle(scale: 0.96))
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(alignment: .top) { Hairline() }
+        Button("Report title or category") { reportTarget = "category"; showReport = true }
+            .font(Theme.text(13)).foregroundStyle(Theme.ink3).padding(.vertical, 12)
+
     }
 
     @ViewBuilder private var clippings: some View {
         if !store.sources.isEmpty {
-            HStack(alignment: .firstTextBaseline) {
-                Kicker(text: "Clippings")
-                Spacer()
-                Text("\(store.sources.count)").font(Theme.mono(12)).foregroundColor(Theme.ink2)
-            }
-            .padding(.vertical, 10)
-            .overlay(alignment: .bottom) { Rectangle().fill(Theme.ink).frame(height: 1) }
+            FieldLabel(text: "Sources · \(store.sources.count)", size: 15)
+                .padding(.top, 10)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
-                    ForEach(store.sources) { SourceClipView(source: $0) }
+                    ForEach(store.sources) { SourceClipView(source: $0, seenAt: store.lastRead) }
                 }
                 .padding(.horizontal, 20).padding(.vertical, 12)
             }
@@ -218,14 +213,15 @@ extension StoryView {
 
     @ViewBuilder private var conversation: some View {
         let divider = UnreadDivider(messages: store.messages, lastRead: store.lastRead, userId: app.session?.userId)
+        let dayGroups = self.dayGroups
         SectionHead(title: "The conversation").padding(.bottom, 4)
-        if timeline.isEmpty {
+        if dayGroups.isEmpty {
             Text("Start the conversation.").font(Theme.serif(17)).foregroundColor(Theme.ink2).padding(.vertical, 20)
         }
         ForEach(dayGroups, id: \.0) { day, entries in
             HStack(spacing: 12) {
                 Hairline()
-                Text(dayLabel(day)).font(Theme.mono(10, bold: true)).tracking(1.2).foregroundColor(Theme.ink3).fixedSize()
+                Text(dayLabel(day)).font(Theme.text(13, weight: .semibold)).foregroundColor(Theme.ink3).fixedSize()
                 Hairline()
             }
             .padding(.top, 16).padding(.bottom, 2)
@@ -244,34 +240,36 @@ extension StoryView {
     private var composer: some View {
         VStack(alignment: .leading, spacing: 8) {
             if let error = store.error {
-                Text(error).font(.system(size: 13, weight: .medium)).foregroundColor(Theme.danger)
+                ErrorNote(message: error, screen: "Story", font: .system(size: 13, weight: .medium))
                     .arrives()
             }
             if !attachments.isEmpty {
                 HStack {
-                    Text(plural(attachments.count, "attachment")).font(Theme.mono(12))
+                    Text(plural(attachments.count, "attachment")).font(Theme.text(13))
                     Spacer()
                     Button("Remove") { selectedPhotos = []; attachments = [] }
-                        .font(Theme.mono(12, bold: true)).underline().foregroundColor(Theme.ink)
+                        .font(Theme.text(13, weight: .semibold)).underline().foregroundColor(Theme.ink)
                         .disabled(sending || store.pendingMessageId != nil)
                 }
-                .padding(.horizontal, 10).padding(.vertical, 7).background(Theme.tint)
+                .padding(.horizontal, 12).padding(.vertical, 8).background(Theme.raised2, in: RoundedRectangle(cornerRadius: 10))
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
             if let replyTo {
                 HStack {
                     Text("Replying to \(store.profiles[replyTo.author_id]?.display_name ?? "…"): \(replyTo.body ?? "attachment")")
-                        .font(Theme.mono(12)).foregroundColor(Theme.ink2)
+                        .font(Theme.text(13)).foregroundColor(Theme.ink2)
                         .lineLimit(1)
                     Spacer()
                     Button { self.replyTo = nil } label: { Image(systemName: "xmark").font(.system(size: 12, weight: .semibold)) }
                         .tint(Theme.ink2)
                         .disabled(sending || store.pendingMessageId != nil)
                 }
-                .padding(.horizontal, 10).padding(.vertical, 7).background(Theme.tint)
+                .padding(.horizontal, 12).padding(.vertical, 8).background(Theme.raised2, in: RoundedRectangle(cornerRadius: 10))
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
             HStack(spacing: 8) {
+                // PhotosPicker's label closure isn't main-actor isolated, so it reads a copy.
+                let loadingAttachments = loadingAttachments
                 PhotosPicker(selection: $selectedPhotos, maxSelectionCount: 10, matching: .any(of: [.images, .videos])) {
                     SwiftUI.Group {
                         if loadingAttachments {
@@ -281,19 +279,17 @@ extension StoryView {
                         }
                     }
                     .frame(width: 44, height: 44)
-                    .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.rule, lineWidth: 1))
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(PressStyle(scale: 0.94))
                 .foregroundColor(Theme.ink)
                 .accessibilityLabel("Attach images or video")
                 .disabled(sending || loadingAttachments || store.pendingMessageId != nil)
-                TextField("Write to the table…", text: $draft)
+                TextField("Tell the others", text: $draft)
                     .focused($composing)
                     .font(Theme.serif(17))
                     .padding(.horizontal, 12).frame(height: 44)
-                    .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.radius))
-                    .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(composing ? Theme.ink : Theme.rule, lineWidth: 1))
+                    .background(Color.clear)
                     .disabled(sending || store.pendingMessageId != nil)
                 let canSend = !(sending || loadingAttachments || (draft.trimmed.isEmpty && attachments.isEmpty))
                 Button {
@@ -309,13 +305,14 @@ extension StoryView {
                         sending = false
                     }
                 } label: {
-                    Text("Send").padding(.horizontal, 16)
+                    Image(systemName: "arrow.up").frame(width: 44)
                 }
                 .buttonStyle(InkButtonStyle(enabled: canSend, busy: sending, height: 44))
                 .fixedSize()
                 .disabled(!canSend)
                 .accessibilityLabel(sending ? "Sending…" : "Send message")
             }
+            .padding(4).glassEffect()
         }
         .padding(.horizontal, 16).padding(.top, 10).padding(.bottom, 8)
         .animation(.snappy(duration: 0.25), value: replyTo?.id)
@@ -323,20 +320,23 @@ extension StoryView {
         .animation(.snappy(duration: 0.25), value: store.error)
         .background(Theme.paper.opacity(0.94))
         .background(.ultraThinMaterial)
-        .overlay(alignment: .top) { Rectangle().fill(Theme.ink).frame(height: 1) }
+
     }
 }
 
-/// "3 new since 14:05": a red rule across the conversation before the first message that's new to you.
+/// "3 new since 14:05": a vine-green line across the conversation before the first message that's new to you.
 struct NewSinceDivider: View {
     let divider: UnreadDivider
 
     var body: some View {
         HStack(spacing: 14) {
-            Rectangle().fill(Theme.red).frame(height: 2)
-            Kicker(text: "\(divider.count) new since \(clock(divider.since))", color: Theme.red, size: 11)
+            Rectangle().fill(Theme.red.opacity(0.5)).frame(height: 1)
+            Text("\(divider.count) new since \(clock(divider.since))")
+                .font(Theme.text(15, weight: .semibold)).foregroundColor(Theme.red)
+                .padding(.horizontal, 12).padding(.vertical, 5)
+                .background(Theme.vineSoft, in: Capsule())
                 .fixedSize()
-            Rectangle().fill(Theme.red).frame(height: 2)
+            Rectangle().fill(Theme.red.opacity(0.5)).frame(height: 1)
         }
         .padding(.top, 26).padding(.bottom, 6)
         .accessibilityElement(children: .ignore)
@@ -394,16 +394,18 @@ struct SourceEntryView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(source.submitted_by.flatMap { store.profiles[$0]?.display_name } ?? "A member")
                         .font(.system(size: 15, weight: .semibold))
-                    Text("filed a source · \(clock(source.created_at))").font(Theme.mono(12)).foregroundColor(Theme.ink3)
+                    Text("filed a source · \(clock(source.created_at))").font(Theme.text(13)).foregroundColor(Theme.ink3)
                 }
                 if let comment = source.submitter_comment, !comment.isEmpty {
                     Text(comment).font(Theme.serif(18)).fixedSize(horizontal: false, vertical: true)
                 }
                 HStack(alignment: .top, spacing: 12) {
-                    PlateView(url: source.image_url.flatMap { URL(string: $0) }, label: source.publisher)
-                        .frame(width: 72, height: 72)
+                    PlateView(url: source.image_url.flatMap { URL(string: $0) }, label: source.publisher, radius: 10)
+                        .frame(width: 64, height: 64)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
                     VStack(alignment: .leading, spacing: 6) {
-                        Kicker(text: source.publisher + (source.author != nil ? " · on X" : ""), size: 10)
+                        Text(source.publisher + (source.author != nil ? " on X" : ""))
+                            .font(Theme.text(13, weight: .semibold)).foregroundColor(Theme.ink3)
                         Text(source.extraction_status == "failed" ? source.url : source.source_title.isEmpty ? source.domain : source.source_title)
                             .font(Theme.headline(18)).fixedSize(horizontal: false, vertical: true)
                         HStack {
@@ -414,13 +416,13 @@ struct SourceEntryView: View {
                                     .foregroundColor(Theme.ink)
                             }
                         }
-                        .font(Theme.mono(12))
+                        .font(Theme.text(13))
                         if let note {
                             HStack(alignment: .firstTextBaseline, spacing: 4) {
                                 if source.extraction_status == "paywalled" { Image(systemName: "lock.fill").font(.system(size: 10)) }
                                 Text(note)
                             }
-                            .font(Theme.mono(11)).foregroundColor(Theme.ink2)
+                            .font(Theme.text(13)).foregroundColor(Theme.ink2)
                             .padding(.top, 6)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .overlay(alignment: .top) { Hairline() }
@@ -428,7 +430,7 @@ struct SourceEntryView: View {
                     }
                 }
                 .padding(12)
-                .clipping()
+                .card(radius: 14)
             }
         }
         .padding(.vertical, 12)
@@ -436,7 +438,7 @@ struct SourceEntryView: View {
 
     private var note: String? {
         switch source.extraction_status {
-        case "paywalled": "Paywalled — headline only. The summary does not use this source."
+        case "paywalled": "Paywalled: headline only. The summary does not use this source."
         case "failed": "Couldn't read this page"
         case "deleted": "Post deleted or unavailable"
         default: nil
@@ -480,15 +482,20 @@ struct MessageEntryView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(message.author_id == userId ? "You" : store.profiles[message.author_id]?.display_name ?? "Member")
                         .font(.system(size: 15, weight: .semibold))
-                    Text(clock(message.created_at)).font(Theme.mono(12)).foregroundColor(Theme.ink3)
+                    Text(clock(message.created_at)).font(Theme.text(13)).foregroundColor(Theme.ink3)
                 }
                 if let parentId = message.reply_to,
                    let parent = store.messages.first(where: { $0.id == parentId }) {
-                    Text("\(Text(store.profiles[parent.author_id]?.display_name ?? "…").font(.system(size: 13, weight: .semibold)).foregroundColor(Theme.ink)) \(parent.body ?? "Attachment")")
-                        .font(Theme.italic(15)).foregroundColor(Theme.ink2)
-                        .lineLimit(1)
-                        .padding(.leading, 10)
-                        .overlay(alignment: .leading) { Rectangle().fill(Theme.ink).frame(width: 2) }
+                    Text("\(Text(store.profiles[parent.author_id]?.display_name ?? "…").fontWeight(.semibold).foregroundColor(Theme.ink)) \(parent.body ?? "Attachment")")
+                        .font(Theme.text(15)).foregroundColor(Theme.ink2)
+                        .lineLimit(2)
+                        .padding(.leading, 12).padding(.trailing, 10).padding(.vertical, 8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .overlay(alignment: .leading) {
+                            Capsule().fill(memberColors[memberColorIndex(parent.author_id.uuidString)])
+                                .frame(width: 3).padding(.vertical, 8).padding(.leading, 4)
+                        }
+                        .background(Theme.raised2, in: RoundedRectangle(cornerRadius: 10))
                 }
                 if let body = message.body, !body.isEmpty {
                     Text(body).font(Theme.serif(18)).fixedSize(horizontal: false, vertical: true)
@@ -553,8 +560,8 @@ struct MessageEntryView: View {
     }
 }
 
-/// One reaction and its count. A tap pops the chip like a rubber stamp coming down and rolls the
-/// count over; the count also rolls when friends' reactions arrive.
+/// One reaction and its count. A tap pops the chip and rolls the count over; the count also rolls
+/// when friends' reactions arrive.
 struct ReactionChip: View {
     let emoji: String
     let count: Int
@@ -592,7 +599,7 @@ struct ReactionChip: View {
     }
 }
 
-/// The full palette, set in a ruled box like the rest of the paper.
+/// The full palette of reactions, in a popover.
 struct ReactionPicker: View {
     let isMine: (String) -> Bool
     let onPick: (String) -> Void
@@ -604,8 +611,8 @@ struct ReactionPicker: View {
                     Text(emoji)
                         .font(.system(size: 26))
                         .frame(width: 44, height: 44)
-                        .background(isMine(emoji) ? Theme.tint : Color.clear, in: RoundedRectangle(cornerRadius: 3))
-                        .overlay(RoundedRectangle(cornerRadius: 3).stroke(isMine(emoji) ? Theme.ink : .clear, lineWidth: 1))
+                        .background(isMine(emoji) ? Theme.tint : Color.clear, in: RoundedRectangle(cornerRadius: 10))
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(isMine(emoji) ? Theme.ink : .clear, lineWidth: 1))
                 }
                 .buttonStyle(PressStyle(scale: 0.85))
                 .accessibilityLabel(isMine(emoji) ? "Remove \(emoji)" : "React \(emoji)")
@@ -618,25 +625,29 @@ struct ReactionPicker: View {
 
 struct SourceClipView: View {
     let source: Source
+    var seenAt: Date? = nil
 
-    var body: some View {
+    @ViewBuilder var body: some View {
+        if let url = source.webURL { Link(destination: url) { content }.buttonStyle(.plain) }
+        else { content }
+    }
+    private var content: some View {
         HStack(alignment: .top, spacing: 10) {
-            PlateView(url: source.image_url.flatMap { URL(string: $0) }, label: source.publisher)
-                .frame(width: 64, height: 64)
+            SourceBunch(sources: [source], seenAt: seenAt, size: 32)
             VStack(alignment: .leading, spacing: 4) {
-                Text(source.publisher).font(Theme.mono(12, bold: true))
+                Text(source.publisher).font(Theme.text(13, weight: .semibold)).foregroundColor(Theme.ink3)
                 Text(source.source_title.isEmpty ? source.domain : source.source_title)
                     .font(Theme.headline(15)).lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
                 if source.extraction_status == "paywalled" {
-                    Label("Headline only", systemImage: "lock.fill").font(Theme.mono(10)).foregroundColor(Theme.ink2)
+                    Label("Headline only", systemImage: "lock.fill").font(Theme.text(11, weight: .medium)).foregroundColor(Theme.ink2)
                 }
             }
             Spacer(minLength: 0)
         }
         .frame(width: 236, alignment: .leading)
         .padding(10)
-        .clipping()
+        .card(radius: 14)
     }
 }
 
@@ -670,7 +681,7 @@ struct ReportSheet: View {
                 }
                 .disabled(busy)
                 .busyAccessibility(busy, "Reporting…")
-                if let error = store.error { Text(error).font(.caption).arrives() }
+                if let error = store.error { ErrorNote(message: error, screen: "Story correction", color: Theme.ink).arrives() }
             }
             .scrollContentBackground(.hidden).background(Theme.paper)
             .navigationTitle("Report a correction")

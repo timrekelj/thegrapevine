@@ -3,6 +3,8 @@ package si.timrekelj.thegrapevine
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.jsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -230,6 +232,9 @@ class CoreTest {
         assertEquals(DeepLink.Route.Story(id), DeepLink.route("https://thegrapevine.si/story/${id.uppercase()}/"))
         assertEquals(null, DeepLink.route("https://thegrapevine.si/story/not-a-uuid"))
         assertEquals(null, DeepLink.route("https://thegrapevine.si/invite"))
+        assertEquals(DeepLink.Route.Invite("a1b2c3"), DeepLink.route("https://thegrapevine.si/invite?code=%20A1B2C3"))
+        assertEquals(null, DeepLink.route("https://thegrapevine.si/invite?code=a%27%3B--"))
+        assertEquals(null, DeepLink.route("https://thegrapevine.si/invite?code=" + "a".repeat(65)))
         assertEquals(null, DeepLink.route("https://thegrapevine.si/login"))
         // Only our own https links: MainActivity is exported, so any app can send it a VIEW intent.
         assertEquals(null, DeepLink.route("https://evil.example/invite?code=GrapevineDemo"))
@@ -247,30 +252,51 @@ class CoreTest {
     }
 
     @Test
-    fun plateGivesDarkPartsTheBigDotsOnPaper() {
-        // On paper, white needs no ink and black is a solid; in between, dots grow with darkness.
-        assertEquals(0f, Plate.radius(1f, dark = false), 0.0001f)
-        assertEquals(Plate.MAX_RADIUS, Plate.radius(0f, dark = false), 0.0001f)
-        assertTrue(Plate.radius(0.3f, dark = false) > Plate.radius(0.7f, dark = false))
-        // A mid-grey dot has half the area of a solid one.
-        val half = Plate.radius(0.5f, dark = false)
-        val solid = Plate.radius(0f, dark = false)
-        assertEquals(0.5f, half * half / (solid * solid), 0.001f)
+    fun feedbackScreenshotsAreScaledToTheLongestSide() {
+        assertEquals(1080 to 2400, Feedback.scaledSize(1080, 2400, maxSide = 4000))
+        assertEquals(922 to 2048, Feedback.scaledSize(1080, 2400))
+        assertEquals(2048 to 1536, Feedback.scaledSize(4032, 3024))
+        assertEquals(2048 to 1, Feedback.scaledSize(10000, 1))
+        assertEquals(2048 to 2048, Feedback.scaledSize(2048, 2048))
     }
 
     @Test
-    fun plateGivesLightPartsTheBigDotsOnTheEveningEdition() {
-        assertEquals(0f, Plate.radius(0f, dark = true), 0.0001f)
-        assertEquals(Plate.MAX_RADIUS, Plate.radius(1f, dark = true), 0.0001f)
-        assertTrue(Plate.radius(0.7f, dark = true) > Plate.radius(0.3f, dark = true))
+    fun feedbackBodyMatchesTheFunctionContract() {
+        val context = FeedbackContext(app_version = "1.2.0 (7)", os = "Android 16 (API 36)", device = "Google Pixel 9", screen = "Story")
+        val json = encodeBody(Feedback.body(FeedbackKind.Enhancement, "  Bigger type, please \n", listOf("u/i.jpg"), context))
+        val body = SupabaseJson.decodeFromString<kotlinx.serialization.json.JsonObject>(json)
+        assertEquals(setOf("kind", "description", "images", "context"), body.keys)
+        assertEquals("enhancement", body["kind"]!!.jsonPrimitive.content)
+        assertEquals("Bigger type, please", body["description"]!!.jsonPrimitive.content)
+        // No error was shown, so none is sent.
+        assertEquals(setOf("platform", "app_version", "os", "device", "screen"), body["context"]!!.jsonObject.keys)
+        assertEquals("android", body["context"]!!.jsonObject["platform"]!!.jsonPrimitive.content)
+        assertEquals(listOf("bug", "enhancement", "feature"), FeedbackKind.entries.map { it.value })
+        val result = SupabaseJson.decodeFromString<FeedbackResult>("""{"id":"r","issue_number":42,"issue_url":"https://github.com/x/y/issues/42"}""")
+        assertEquals(42, result.issue_number)
+        assertEquals(null, SupabaseJson.decodeFromString<FeedbackResult>("""{"id":"r"}""").issue_url)
     }
 
     @Test
-    fun plateMeasuresLuminanceAndScreensAtTheWebPitch() {
-        assertEquals(0f, Plate.luminance(0, 0, 0), 0.0001f)
-        assertEquals(1f, Plate.luminance(255, 255, 255), 0.0001f)
-        assertTrue(Plate.luminance(0, 255, 0) > Plate.luminance(255, 0, 0))
-        assertEquals(138, Plate.columns(360f))
+    fun feedbackNamesTheDeviceOnce() {
+        assertEquals("Google Pixel 9", Feedback.device("Google", "Pixel 9"))
+        assertEquals("Samsung SM-S921B", Feedback.device("samsung", "SM-S921B"))
+        assertEquals("OnePlus CPH2581", Feedback.device("OnePlus", "CPH2581"))
+        assertEquals("motorola edge 50", Feedback.device("motorola", "motorola edge 50"))
+    }
+
+    @Test
+    fun shakeNeedsSustainedAccelerationAndRestsAfterwards() {
+        val still = ShakeDetector()
+        assertFalse((0L..2000L step 60).any { still.onSample(0f, 0f, 9.81f, it) })
+        // One bump (a phone set down hard) is not a shake.
+        val bump = ShakeDetector()
+        assertFalse((0L..600L step 60).any { bump.onSample(0f, 0f, if (it == 120L) 30f else 9.81f, it) })
+        val shaken = ShakeDetector()
+        val hits = (0L..3000L step 60).filter { shaken.onSample(20f, 5f, 9.81f, it) }
+        assertTrue(hits.isNotEmpty())
+        // Rests for two seconds after a shake, however long it goes on.
+        assertTrue(hits.zipWithNext().all { (a, b) -> b - a >= 2000 })
     }
 
     private fun assertThrows(block: () -> Unit) {

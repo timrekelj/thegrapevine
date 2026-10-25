@@ -1,5 +1,8 @@
 package si.timrekelj.thegrapevine.ui
 
+import si.timrekelj.thegrapevine.FeedbackKind
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -12,7 +15,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
@@ -43,7 +47,7 @@ import si.timrekelj.thegrapevine.R
 
 private enum class Stage { Checking, SignedOut, Onboarding, Paper }
 
-/** Mirrors `ContentView` in GrapevineApp.swift. One stage fades into the next, like a page turned under the light. */
+/** Mirrors `ContentView` in GrapevineApp.swift. One stage cross-fades into the next. */
 @Composable
 fun RootScreen(app: AppState) {
     val stage = when {
@@ -52,17 +56,25 @@ fun RootScreen(app: AppState) {
         app.group == null -> Stage.Onboarding
         else -> Stage.Paper
     }
-    Crossfade(stage, Modifier.fillMaxSize().background(Press.paper), animationSpec = tween(320), label = "stage") { current ->
-        Box(Modifier.fillMaxSize()) {
-            when (current) {
-                Stage.Checking -> GoingToPress(modifier = Modifier.align(Alignment.Center))
-                Stage.SignedOut -> LoginScreen(app)
-                Stage.Onboarding -> OnboardingScreen(app)
-                Stage.Paper -> MainTabs(app)
+    val signedIn = app.checked && app.session != null
+    // Errors offer "Report" only once there is someone to file it as.
+    val reporter = remember(app) { { error: String, screen: String -> app.report(FeedbackKind.Bug, screen, error) } }
+    CompositionLocalProvider(
+        LocalMemberNames provides app.members.associate { it.user_id to it.profiles.display_name },
+        LocalReporter provides reporter.takeIf { signedIn },
+    ) {
+        Crossfade(stage, Modifier.fillMaxSize().background(Press.paper), animationSpec = tween(320), label = "stage") { current ->
+            Box(Modifier.fillMaxSize()) {
+                when (current) {
+                    Stage.Checking -> LoadingMark(modifier = Modifier.align(Alignment.Center))
+                    Stage.SignedOut -> LoginScreen(app)
+                    Stage.Onboarding -> OnboardingScreen(app)
+                    Stage.Paper -> MainTabs(app)
+                }
             }
         }
     }
-    val signedIn = app.checked && app.session != null
+    FeedbackHost(app)
     LaunchedEffect(signedIn) {
         if (signedIn) OneSignalManager.requestPushPermission()
     }
@@ -99,7 +111,7 @@ private fun MainTabs(app: AppState) {
             storyId = storyId,
             app = app,
             onBack = close,
-            backLabel = if (archiveFrom != null) "← Archive" else "← Front page",
+            backLabel = if (archiveFrom != null) "Back to earlier editions" else "Back to the front page",
         )
         return
     }
@@ -112,59 +124,19 @@ private fun MainTabs(app: AppState) {
         return
     }
 
-    Scaffold(
-        containerColor = Press.paper,
-        // The tabs draw under the status bar's own paper strip; the bar pads itself.
-        contentWindowInsets = WindowInsets(0),
-        bottomBar = {
-            Column {
-                Hairline(color = Press.ink)
-                NavigationBar(containerColor = Press.paper, tonalElevation = 0.dp) {
-                    val colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Press.ink,
-                        selectedTextColor = Press.ink,
-                        unselectedIconColor = Press.ink3,
-                        unselectedTextColor = Press.ink3,
-                        indicatorColor = Press.tint,
-                    )
-                    val label = @Composable { text: String -> Text(text.uppercase(), style = LabelStyle.copy(fontSize = 10.sp, color = androidx.compose.ui.graphics.Color.Unspecified)) }
-                    NavigationBarItem(
-                        selected = tab == 0,
-                        onClick = { tab = 0 },
-                        icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = null) },
-                        label = { label("Paper") },
-                        colors = colors,
-                    )
-                    NavigationBarItem(
-                        selected = tab == 1,
-                        onClick = { tab = 1 },
-                        icon = { Icon(painterResource(R.drawable.ic_friends), contentDescription = null) },
-                        label = { label("Friends") },
-                        colors = colors,
-                    )
-                    NavigationBarItem(
-                        selected = tab == 2,
-                        onClick = { tab = 2 },
-                        icon = { Icon(Icons.Filled.AccountCircle, contentDescription = null) },
-                        label = { label("Profile") },
-                        colors = colors,
-                    )
+    if (tab != 0) {
+        BackHandler { tab = 0 }
+        Column(Modifier.fillMaxSize().background(Press.paper).statusBarsPadding()) {
+            Box(Modifier.padding(horizontal = 4.dp, vertical = 4.dp)) {
+                IconButton(onClick = { tab = 0 }) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to the front page", tint = Press.ink)
                 }
             }
-        },
-    ) { padding ->
-        // Tabs change like turning to another section: a short crossfade.
-        Crossfade(tab, Modifier.padding(padding).statusBarsPadding().clipToBounds(), animationSpec = tween(220), label = "tab") { tab ->
-            when (tab) {
-                0 -> FrontPageScreen(
-                    app,
-                    paper,
-                    onOpen = { openStory = it },
-                    onEarlier = { openArchive = InstantSerializer.format(it) },
-                )
-                1 -> FriendsScreen(app)
-                else -> ProfileScreen(app, onSignOut = { paper.clear() })
-            }
+            if (tab == 1) FriendsScreen(app) else ProfileScreen(app, onSignOut = { paper.clear() })
         }
+        return
+    }
+    Box(Modifier.fillMaxSize().background(Press.paper).statusBarsPadding()) {
+        FrontPageScreen(app, paper, onOpen = { openStory = it }, onEarlier = { openArchive = InstantSerializer.format(it) }, onPeople = { tab = 1 }, onAccount = { tab = 2 })
     }
 }

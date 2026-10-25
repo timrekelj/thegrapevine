@@ -1,33 +1,22 @@
 import SwiftUI
 
-/// A member's avatar: their colour halftone disc, drawn by the web app from their id (`/avatar/<id>.png`).
-/// Loaded through `PhotoStore`, so the many copies of one avatar on a page share a single download and,
-/// once loaded, draw straight away when scrolled back into view.
+/// A member's disc: their initial in ink on a lit gradient of their hue (see `MemberHues` in Vine.swift).
 struct MemberAvatar: View {
     let profile: Profile
     var size: CGFloat = 32
-    @State private var image: UIImage?
-
-    private var url: URL { Config.webURL.appending(path: "avatar/\(profile.id.uuidString.lowercased()).png") }
-
     var body: some View {
-        SwiftUI.Group {
-            if let image = image ?? PhotoStore.shared.cached(url) {
-                Image(uiImage: image).resizable().scaledToFill()
-            } else {
-                Theme.tint
-            }
-        }
-        .task(id: profile.id) {
-            if PhotoStore.shared.cached(url) == nil { image = try? await PhotoStore.shared.image(url) }
-        }
-        .frame(width: size, height: size)
-        .clipShape(Circle())
-        .accessibilityLabel(profile.display_name)
+        let index = memberColorIndex(profile.id.uuidString)
+        Text(profile.display_name.prefix(1).uppercased())
+            .font(.system(size: size * 0.4, weight: .semibold))
+            .foregroundStyle(Color(hex: 0x15221B))
+            .frame(width: size, height: size)
+            .background(RadialGradient(colors: [memberLightColors[index], memberColors[index]], center: .topLeading, startRadius: 0, endRadius: size), in: Circle())
+            .accessibilityLabel(profile.display_name)
     }
+
 }
 
-/// Overlapping avatars, each ringed in paper.
+/// Overlapping discs, each ringed in the ground colour.
 struct AvatarStack: View {
     let profiles: [Profile]
     var size: CGFloat = 26
@@ -43,174 +32,107 @@ struct AvatarStack: View {
     }
 }
 
-/// A block of red: something new to you.
-struct Stamp: View {
+/// "3 new": a vine-green capsule badge for what is new to you.
+struct NewBadge: View {
     let text: String
     var body: some View {
-        Text(text.uppercased())
-            .font(Theme.mono(11, bold: true)).tracking(0.6)
-            .padding(.horizontal, 7).padding(.vertical, 3)
-            .background(Theme.red).foregroundColor(Theme.onRed)
-            .rotationEffect(.degrees(-2))
+        Text(text)
+            .font(Theme.text(13, weight: .semibold))
+            .padding(.horizontal, 9).padding(.vertical, 4)
+            .background(Theme.red, in: Capsule()).foregroundColor(Theme.onRed)
     }
 }
 
-/// A dot of red before a count of new things.
-struct NewMark: View {
-    let text: String
-    var body: some View {
-        HStack(spacing: 5) {
-            Circle().fill(Theme.red).frame(width: 7, height: 7).inkPulse()
-            Text(text).font(Theme.mono(12, bold: true)).foregroundColor(Theme.ink)
-        }
-    }
-}
-
-/// A photograph printed through the colour halftone screen, or — with no picture — a type plate
-/// with the publisher's name. `screen = false` shows the photo clean. While the photo is on its way
-/// the plate is a proof of swelling dots; a freshly printed plate inks in, soft then sharp.
+/// A source photograph, shown clean and filling its frame, or, with no picture, a tile with the
+/// publisher's name. While the photo is on its way the frame holds a plain placeholder shape.
+/// `radius` rounds the placeholder and the tile; callers clip the photo to their own frame.
 struct PlateView: View {
     let url: URL?
     let label: String
     var height: CGFloat? = nil
-    var screen = true
+    var radius: CGFloat = 14
 
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.displayScale) private var displayScale
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var printed: UIImage?
+    @State private var photo: UIImage?
     @State private var failed = false
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                if let printed {
-                    SwiftUI.Group {
-                        if screen {
-                            Image(uiImage: printed).resizable()
-                        } else {
-                            Image(uiImage: printed).resizable().scaledToFill()
-                        }
-                    }
-                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .inkIn))
+                if let photo {
+                    Image(uiImage: photo).resizable().scaledToFill()
+                        .transition(.opacity)
                 } else if url == nil || failed {
-                    TypePlate(label: label)
+                    PublisherTile(label: label, radius: radius)
                 } else {
-                    ProofPlate().transition(.opacity)
+                    PlaceholderShape(radius: radius).transition(.opacity)
                 }
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
             .clipped()
-            .task(id: "\(url?.absoluteString ?? "")|\(Int(geometry.size.width))x\(Int(geometry.size.height))|\(colorScheme == .dark)|\(screen)") {
-                await load(size: geometry.size)
-            }
         }
         .frame(height: height)
+        .task(id: url) { await load() }
         .accessibilityHidden(true)
     }
 
-    private func load(size: CGSize) async {
-        guard let url, size.width > 1, size.height > 1 else { return }
-        if !screen {
-            do { printed = try await PhotoStore.shared.image(url) } catch { failed = true }
-            return
-        }
-        // A plate already printed (scrolled back into view, or reprinted) shows at once; only fresh ink inks in.
-        let fresh = printed == nil
-        let dark = colorScheme == .dark
-        let scale = displayScale
-        let key = "\(url.absoluteString)|\(Int(size.width))x\(Int(size.height))@\(scale)|\(dark)"
-        if let hit = Halftone.cached(key) { printed = hit; return }
+    private func load() async {
+        guard let url else { return }
+        if let hit = PhotoStore.shared.cached(url) { photo = hit; return }
         do {
-            let photo = try await PhotoStore.shared.image(url)
-            let result = await Task.detached(priority: .userInitiated) {
-                Halftone.print(photo, size: size, scale: scale, dark: dark, key: key)
-            }.value
-            if let result {
-                withAnimation(fresh ? .easeOut(duration: 0.55) : nil) { printed = result }
-            } else { failed = true }
+            let loaded = try await PhotoStore.shared.image(url)
+            withAnimation(reduceMotion ? nil : .easeOut(duration: 0.3)) { photo = loaded }
         } catch { failed = true }
     }
 }
 
-extension AnyTransition {
-    /// A plate inking in: the dots arrive blurred and a touch large, then settle onto the paper.
-    static var inkIn: AnyTransition {
-        .modifier(active: InkIn(amount: 1), identity: InkIn(amount: 0))
-    }
-}
-
-private struct InkIn: ViewModifier {
-    let amount: CGFloat
-    func body(content: Content) -> some View {
-        content.blur(radius: 5 * amount).scaleEffect(1 + 0.03 * amount)
-    }
-}
-
-/// A source with no picture: the publisher's name, set on a light screen.
-struct TypePlate: View {
+/// A source with no picture: the publisher's name on a plain raised tile.
+struct PublisherTile: View {
     let label: String
+    var radius: CGFloat = 14
     var body: some View {
-        ZStack {
-            Canvas { context, size in
-                // One path, filled once, rather than a fill per dot.
-                let step: CGFloat = 4
-                var dots = Path()
-                for x in stride(from: step / 2, to: size.width, by: step) {
-                    for y in stride(from: step / 2, to: size.height, by: step) {
-                        dots.addEllipse(in: CGRect(x: x - 0.9, y: y - 0.9, width: 1.8, height: 1.8))
-                    }
-                }
-                context.fill(dots, with: .color(Theme.rule))
-            }
-            Text(label)
-                .font(Theme.italic(15, medium: true))
-                .foregroundColor(Theme.ink)
-                .multilineTextAlignment(.center)
-                .lineLimit(2).minimumScaleFactor(0.6)
-                .padding(.horizontal, 5).padding(.vertical, 2)
-                .background(Theme.raised)
-                .padding(6)
-        }
-        .background(Theme.raised)
-        .overlay(Rectangle().stroke(Theme.rule, lineWidth: 1))
+        Text(label)
+            .font(Theme.headline(17))
+            .foregroundColor(Theme.ink2)
+            .multilineTextAlignment(.center)
+            .lineLimit(2).minimumScaleFactor(0.6)
+            .padding(8)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Theme.raised2, in: RoundedRectangle(cornerRadius: radius))
     }
 }
 
-/// A section head: a thick rule, then an italic title running into a hairline.
+/// A section title in the display face.
 struct SectionHead: View {
     let title: String
     var body: some View {
-        VStack(spacing: 10) {
-            Rectangle().fill(Theme.ink).frame(height: 3)
-            HStack(spacing: 14) {
-                Text(title).font(Theme.italic(26, medium: true)).foregroundColor(Theme.ink).fixedSize()
-                Hairline()
-            }
-        }
-        .accessibilityAddTraits(.isHeader)
+        Text(title).font(Theme.headline(19)).foregroundStyle(Theme.ink)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
     }
 }
 
-/// A dashed border, like a cut-out clipping.
-struct Clipping: ViewModifier {
+/// A raised object: the raised surface, rounded, with the soft pillow shadow and a faint edge.
+struct Card: ViewModifier {
+    var radius: CGFloat = 14
     func body(content: Content) -> some View {
         content
-            .background(Theme.raised)
-            .overlay(Rectangle().stroke(Theme.ink3, style: StrokeStyle(lineWidth: 1, dash: [3, 3])))
+            .background(Theme.raised, in: RoundedRectangle(cornerRadius: radius))
+            .overlay(RoundedRectangle(cornerRadius: radius).stroke(Theme.rule.opacity(0.4), lineWidth: 1))
+            .shadow(color: Theme.shadow, radius: 14, y: 8)
     }
 }
 
 extension View {
-    func clipping() -> some View { modifier(Clipping()) }
+    func card(radius: CGFloat = 14) -> some View { modifier(Card(radius: radius)) }
 }
 
 struct MetaRow: View {
     let text: String
     var body: some View {
         Text(text)
-            .font(Theme.mono(12))
-            .foregroundColor(Theme.ink2)
+            .font(Theme.text(13))
+            .foregroundColor(Theme.ink3)
     }
 }
 
@@ -240,27 +162,19 @@ func clock(_ date: Date) -> String {
 }()
 
 @MainActor func dayLabel(_ date: Date) -> String {
-    dayFormatter.string(from: date).uppercased()
+    dayFormatter.string(from: date)
 }
 
-/// The head of a tab page: a small nameplate, the double rule, then a kicker and a headline.
+/// The head of a page: a large title in the display face and an optional line under it.
 struct PageHead: View {
-    let kicker: String
     let title: String
     var dateline: String? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("The Grapevine").font(Theme.nameplate(30))
-                .frame(maxWidth: .infinity).padding(.top, 12).padding(.bottom, 10)
-            DoubleRule()
-            Kicker(text: kicker, color: Theme.ink2, size: 10).padding(.top, 20)
-            Text(title).font(Theme.headline(44)).padding(.top, 4)
-                .accessibilityAddTraits(.isHeader)
-            if let dateline {
-                Text(dateline).font(Theme.mono(12)).foregroundColor(Theme.ink2).padding(.top, 2)
-            }
-            Rectangle().fill(Theme.ink).frame(height: 1).padding(.top, 14).padding(.bottom, 4)
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(Theme.headline(34)).accessibilityAddTraits(.isHeader)
+            if let dateline { Text(dateline).font(Theme.text(15)).foregroundStyle(Theme.ink2) }
         }
+        .padding(.top, 24).padding(.bottom, 20)
     }
 }

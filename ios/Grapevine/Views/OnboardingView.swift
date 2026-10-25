@@ -17,9 +17,9 @@ struct OnboardingView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     VStack(alignment: .leading, spacing: 10) {
-                        Kicker(text: "Make yourself at home")
+                        FieldLabel(text: "Make yourself at home", size: 15)
                         Text("Your people.\nYour paper.")
-                            .font(Theme.headline(46)).lineSpacing(-6).foregroundColor(Theme.ink)
+                            .font(Theme.headline(34)).lineSpacing(-4).foregroundColor(Theme.ink)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: 36)
@@ -45,12 +45,12 @@ struct OnboardingView: View {
 
     private var form: some View {
         VStack(alignment: .leading, spacing: 8) {
-            label("YOUR NAME")
+            label("Your name")
             paperField("What friends call you", text: $displayName).textContentType(.name)
                 .focused($focus, equals: .name)
                 .submitLabel(.next).onSubmit { focus = joining ? .code : .paper }
             if joining {
-                label("INVITE CODE").padding(.top, 10)
+                label("Invite code").padding(.top, 10)
                 paperField("From your friend’s invite", text: $inviteCode)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                     .focused($focus, equals: .code)
@@ -63,7 +63,7 @@ struct OnboardingView: View {
                     .padding(.top, 8)
                 quietButton("Start a new paper instead") { joining = false; localError = nil }
             } else {
-                label("NAME YOUR PAPER").padding(.top, 10)
+                label("Name your paper").padding(.top, 10)
                 paperField("The Sunday Club", text: $groupName)
                     .focused($focus, equals: .paper)
                     .submitLabel(.go).onSubmit { Task { await create() } }
@@ -83,7 +83,7 @@ struct OnboardingView: View {
     // MARK: - Pieces
 
     private func label(_ text: String) -> some View {
-        Kicker(text: text)
+        FieldLabel(text: text)
     }
 
     private func paperField(_ placeholder: String, text: Binding<String>) -> some View {
@@ -95,7 +95,7 @@ struct OnboardingView: View {
             Text(title).font(.system(size: 15, weight: .medium))
                 .frame(maxWidth: .infinity, minHeight: 46)
                 .foregroundColor(Theme.ink)
-                .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(Theme.rule, lineWidth: 1))
+                .overlay(Capsule().stroke(Theme.rule, lineWidth: 1))
                 .contentShape(Rectangle())
         }
         .buttonStyle(PressStyle()).disabled(busy)
@@ -137,7 +137,7 @@ struct OnboardingView: View {
     }
 }
 
-/// The paper being made, updated as you type: its nameplate in blackletter, your disc and a first-edition stamp.
+/// The paper being made, updated as you type: a card with its name, your disc and the first story to come.
 private struct PaperPreview: View {
     let profile: Profile?
     let name: String
@@ -146,41 +146,31 @@ private struct PaperPreview: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Kicker(text: Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)), color: Theme.ink2, size: 9)
-                Spacer()
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(paper.trimmed.isEmpty ? placeholder : paper.trimmed)
+                        .font(Theme.headline(24)).foregroundColor(paper.trimmed.isEmpty ? Theme.ink3 : Theme.ink)
+                        .lineLimit(2).minimumScaleFactor(0.6)
+                    Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)))
+                        .font(Theme.text(15, weight: .semibold)).foregroundColor(Theme.ink2)
+                }
+                Spacer(minLength: 0)
                 if let profile { MemberAvatar(profile: profile, size: 34) }
             }
-            Text(paper.trimmed.isEmpty ? placeholder : paper.trimmed)
-                .font(Theme.nameplate(40)).foregroundColor(paper.trimmed.isEmpty ? Theme.ink3 : Theme.ink)
-                .lineLimit(2).minimumScaleFactor(0.5)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 10)
-            VStack(spacing: 2) {
-                Rectangle().fill(Theme.ink).frame(height: 2)
-                Rectangle().fill(Theme.ink).frame(height: 1)
-            }
-            .padding(.top, 10).padding(.bottom, 14)
+            Hairline().padding(.vertical, 16)
             HStack(spacing: 14) {
-                TypePlate(label: "Your first link").frame(width: 96, height: 72)
+                PublisherTile(label: "Your first link").frame(width: 64, height: 64)
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Share a link and it becomes the lead story.")
-                        .font(Theme.headline(18)).foregroundColor(Theme.ink)
+                        .font(Theme.headline(17)).foregroundColor(Theme.ink)
                         .fixedSize(horizontal: false, vertical: true)
                     Text("\(name.trimmed.isEmpty ? "You" : name.trimmed) · 1 member")
-                        .font(Theme.mono(12)).foregroundColor(Theme.ink2).lineLimit(1)
+                        .font(Theme.text(13)).foregroundColor(Theme.ink3).lineLimit(1)
                 }
             }
         }
-        .padding(.horizontal, 18).padding(.top, 14).padding(.bottom, 18)
-        .background(Theme.raised)
-        .overlay(Rectangle().stroke(Theme.rule, lineWidth: 1))
-        .overlay(alignment: .topTrailing) {
-            Stamp(text: "First edition").rotationEffect(.degrees(6)).offset(x: -14, y: -12)
-        }
-        .shadow(color: .black.opacity(0.18), radius: 18, y: 14)
-        .rotationEffect(.degrees(-1))
+        .padding(20)
+        .card(radius: 28)
         .accessibilityHidden(true)
     }
 }

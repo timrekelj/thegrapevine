@@ -21,7 +21,7 @@ struct LoginView: View {
         GeometryReader { proxy in
             ScrollView {
                 VStack(spacing: 0) {
-                    nameplate
+                    masthead
                     Spacer(minLength: 40)
                     VStack(alignment: .leading, spacing: 24) {
                         intro
@@ -43,27 +43,24 @@ struct LoginView: View {
 
     // MARK: - Sections
 
-    private var nameplate: some View {
-        VStack(spacing: 0) {
-            Text("The Grapevine").font(Theme.nameplate(52)).foregroundColor(Theme.ink)
+    /// The mark and the name, with a back button on the code step.
+    private var masthead: some View {
+        VStack(spacing: 10) {
+            BunchMark(size: 64)
+            Text("The Grapevine").font(Theme.headline(24)).foregroundColor(Theme.ink)
                 .lineLimit(1).minimumScaleFactor(0.6)
-                .padding(.bottom, 10)
-            DoubleRule()
-            HStack {
-                Kicker(text: Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)), size: 10)
-                Spacer()
-                Kicker(text: "Private edition", size: 10)
-            }
-            .padding(.vertical, 7)
-            Rectangle().fill(Theme.ink).frame(height: 1)
+                .accessibilityAddTraits(.isHeader)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 12)
         .overlay(alignment: .topLeading) {
             if sent {
                 Button { changeEmail() } label: {
                     Image(systemName: "chevron.left").font(.system(size: 17, weight: .semibold))
                         .frame(width: 44, height: 44)
+                        .background(Theme.raised, in: Circle())
                 }
-                .foregroundColor(Theme.ink).offset(x: -12, y: -6)
+                .foregroundColor(Theme.ink).offset(x: -4)
                 .accessibilityLabel("Use a different email")
             }
         }
@@ -72,7 +69,7 @@ struct LoginView: View {
     private var intro: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(sent ? "Check your inbox." : "Good stories.\nBetter company.")
-                .font(Theme.headline(46)).lineSpacing(-6).foregroundColor(Theme.ink)
+                .font(Theme.headline(34)).lineSpacing(-4).foregroundColor(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
             if sent {
                 Text("We sent a \(signInCodeLength)-digit code to \(Text(email.trimmed).fontWeight(.semibold).foregroundColor(Theme.ink))")
@@ -90,7 +87,7 @@ struct LoginView: View {
     private var emailStep: some View {
         VStack(alignment: .leading, spacing: 24) {
             VStack(alignment: .leading, spacing: 8) {
-                Kicker(text: "Email address")
+                FieldLabel(text: "Email")
                 TextField("you@example.com", text: $email)
                     .keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
@@ -105,7 +102,7 @@ struct LoginView: View {
             }
             HStack(spacing: 12) {
                 Rectangle().fill(Theme.rule).frame(height: 1)
-                Text("or").font(Theme.italic(17)).foregroundColor(Theme.ink3)
+                Text("or").font(Theme.text(15)).foregroundColor(Theme.ink3)
                 Rectangle().fill(Theme.rule).frame(height: 1)
             }
             VStack(spacing: 12) {
@@ -134,8 +131,8 @@ struct LoginView: View {
                     // The white style has no outline of its own, so all three buttons share our hairline.
                     .signInWithAppleButtonStyle(.white)
                     .frame(height: 50)
-                    .clipShape(field)
-                    .overlay(field.stroke(Theme.rule, lineWidth: 1).allowsHitTesting(false))
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(Theme.rule, lineWidth: 1).allowsHitTesting(false))
                     .disabled(busy).opacity(busy ? 0.5 : 1)
                 ForEach([AuthProvider.google, .x], id: \.self) { provider in
                     Button { signIn(provider) } label: {
@@ -147,8 +144,8 @@ struct LoginView: View {
                         }
                         .frame(maxWidth: .infinity, minHeight: 50)
                         .foregroundColor(.black)
-                        .background(Color.white, in: field)
-                        .overlay(field.stroke(Theme.rule, lineWidth: 1))
+                        .background(Color.white, in: Capsule())
+                        .overlay(Capsule().stroke(Theme.rule, lineWidth: 1))
                     }
                     .buttonStyle(PressStyle()).disabled(busy).opacity(busy ? 0.5 : 1)
                 }
@@ -177,13 +174,12 @@ struct LoginView: View {
                         let active = focus == .code && index == min(digits.count, signInCodeLength - 1)
                         Text(index < digits.count ? String(digits[index]) : "")
                             .font(Theme.headline(30)).monospacedDigit()
-                            // Each digit is set into its cell like a sort dropped into the forme.
+                            // Each digit rolls into its cell.
                             .contentTransition(.numericText())
                             .foregroundColor(Theme.ink)
                             .frame(maxWidth: .infinity, minHeight: 62)
                             .background(Theme.raised, in: field)
-                            .overlay(field.stroke(app.error != nil ? Theme.danger : active ? Theme.ink : Theme.rule, lineWidth: 1))
-                            .background(field.fill(active ? Theme.rule : .clear).offset(x: 3, y: 3))
+                            .overlay(field.stroke(app.error != nil ? Theme.danger : active ? Theme.ink : Theme.rule, lineWidth: active ? 1.5 : 1))
                     }
                 }
                 .allowsHitTesting(false)
@@ -203,7 +199,7 @@ struct LoginView: View {
                         .font(.system(size: 15, weight: .medium)).monospacedDigit()
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .foregroundColor(left > 0 ? Theme.ink2 : Theme.ink)
-                        .overlay(field.stroke(left > 0 ? .clear : Theme.rule, lineWidth: 1))
+                        .overlay(Capsule().stroke(left > 0 ? .clear : Theme.rule, lineWidth: 1))
                 }
                 .buttonStyle(PressStyle()).disabled(busy || left > 0)
             }
@@ -214,7 +210,7 @@ struct LoginView: View {
 
     private var footer: some View {
         Text(LocalizedStringKey("By continuing, you agree to the [Terms](\(Config.webURL.appending(path: "terms").absoluteString)) and [Privacy Policy](\(Config.webURL.appending(path: "privacy").absoluteString))."))
-            .font(Theme.mono(11)).foregroundColor(Theme.ink3).tint(Theme.ink)
+            .font(Theme.text(13)).foregroundColor(Theme.ink3).tint(Theme.ink)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
     }
@@ -231,7 +227,7 @@ struct LoginView: View {
         }
     }
 
-    /// The ink button; while signing in it prints dots and reads `busyText` to VoiceOver.
+    /// The ink button; while signing in it shows dots and reads `busyText` to VoiceOver.
     private func primaryButton(_ title: String, busyText: String, enabled: Bool, action: @escaping () -> Void) -> some View {
         Button(title, action: action)
             .buttonStyle(InkButtonStyle(enabled: enabled, busy: busy && enabled))

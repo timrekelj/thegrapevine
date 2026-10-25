@@ -17,19 +17,21 @@ final class PaperStore {
         isLoading = true
         error = nil
         do {
-            let memberships: [Membership] = try await API.getMany(Membership.self, path: "rest/v1/group_members", query: [
+            // When the reader last saw the paper, fetched alongside the edition.
+            async let memberships = API.getMany(Membership.self, path: "rest/v1/group_members", query: [
                 URLQueryItem(name: "user_id", value: "eq.\(session.userId)"),
                 URLQueryItem(name: "group_id", value: "eq.\(group.id)"),
             ])
-            seenAt = memberships.first?.last_seen_at
-            let rows: [StoryRow] = try await API.getMany(StoryRow.self, path: "rest/v1/stories", query: [
+            async let stories = API.getMany(StoryRow.self, path: "rest/v1/stories", query: [
                 URLQueryItem(name: "select", value: "id,title,summary,category,last_activity_at,created_at,sources(\(Source.columns)),messages(*)"),
                 URLQueryItem(name: "group_id", value: "eq.\(group.id)"),
                 URLQueryItem(name: "order", value: "last_activity_at.desc"),
                 URLQueryItem(name: "limit", value: "\(Edition.max + 1)"),
             ])
+            let (seen, rows) = try await (memberships, stories)
+            seenAt = seen.first?.last_seen_at
             let edition = Edition.cut(rows, activity: \.last_activity_at)
-            stories = rank(edition.kept)
+            self.stories = rank(edition.kept)
             earlierBefore = edition.more ? edition.kept.last?.last_activity_at : nil
             // record this edition as seen
             struct SeenBody: Encodable { let last_seen_at: String }

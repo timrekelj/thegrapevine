@@ -2,7 +2,10 @@
 
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import InkDots, { BusyLabel } from '@/components/print/InkDots';
+import Link from '@/components/print/PressLink';
+import FilingMark from '@/components/print/FilingMark';
+import { BusyLabel } from '@/components/print/InkDots';
+import ReportLink from '@/components/report/ReportLink';
 import styles from './paper.module.css';
 
 // The Supabase client loads on first use: `/` is also the landing page, which never needs it.
@@ -20,7 +23,7 @@ export default function ShareLink({ groupId, groupName }: { groupId: string; gro
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
-  const [toast, setToast] = useState<{ text: string; sourceId?: string } | null>(null);
+  const [toast, setToast] = useState<{ text: string; sourceId?: string; storyId?: string } | null>(null);
   useEffect(() => {
     if (!toast) return;
     const dismiss = setTimeout(() => setToast(null), 10_000);
@@ -75,8 +78,8 @@ export default function ShareLink({ groupId, groupName }: { groupId: string; gro
           title = result.data?.title;
         }
         setToast(data.status === 'joined'
-          ? { text: `Filed under ${title || 'the story'}`, sourceId: data.source_id }
-          : { text: `New story: ${title || 'Your shared link'}` });
+          ? { text: `+1 source · ${title || 'Filed in the paper'}`, sourceId: data.source_id, storyId: data.story_id }
+          : { text: `New story: ${title || 'Your shared link'}`, storyId: data.story_id });
         router.refresh();
       }
       dialog.current?.close();
@@ -108,18 +111,18 @@ export default function ShareLink({ groupId, groupName }: { groupId: string; gro
     <button className="btn" onClick={() => { setError(''); dialog.current?.showModal(); }}><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.6" /></svg>Share a link</button>
     <dialog ref={dialog} className={styles.dialog} onCancel={event => { if (busy) event.preventDefault(); }} aria-labelledby={headingId}>
       <form onSubmit={submit}>
-        <header className={styles.dialogHead}><span className="label">Filing for {groupName}</span><h2 id={headingId} className="headline">Share a link</h2></header>
+        <header className={styles.dialogHead}><h2 id={headingId} className="headline">Share a link</h2></header>
         <label>Link<input type="url" required autoFocus placeholder="https://…" value={url} disabled={busy} onChange={e => setUrl(e.target.value)} /></label>
-        <label><span>Your comment <span className={styles.optional}>(optional)</span></span><textarea value={comment} disabled={busy} onChange={e => setComment(e.target.value)} /></label>
+        <label><span>Add a line <span className={styles.optional}>(optional)</span></span><textarea value={comment} disabled={busy} onChange={e => setComment(e.target.value)} /></label>
         <p className="meta">Everyone in {groupName} sees this with your name.</p>
-        {status && <p className={`meta ${styles.filing}`} role="status"><InkDots size="sm" status={false} />{status}</p>}
-        {error && <p className={styles.error} role="alert">{error}</p>}
+        {status && <p className={`meta ${styles.filing}`} role="status"><FilingMark busy />{status}</p>}
+        {error && <p className={styles.error} role="alert">{error} <ReportLink error={error} /></p>}
         <div className={styles.dialogActions}>
           <button type="button" className={styles.cancel} disabled={busy} onClick={() => dialog.current?.close()}>Cancel</button>
-          <button className="btn" type="submit" disabled={busy} aria-busy={busy}><BusyLabel busy={busy} label="Filing…">Post</BusyLabel></button>
+          <button className="btn" type="submit" disabled={busy} aria-busy={busy}><BusyLabel busy={busy} label="Filing…">File it</BusyLabel></button>
         </div>
       </form>
     </dialog>
-    {toast && <div className={styles.toast} role="status">{toast.text}{toast.sourceId && <> · <button disabled={busy} aria-busy={busy} onClick={undo}><BusyLabel busy={busy} label="Undoing…">Undo</BusyLabel></button></>}</div>}
+    {toast && <div className={styles.toast} role="status">{toast.text}{toast.storyId && <> · <Link href={`/story/${encodeURIComponent(toast.storyId)}`}>Open the story</Link></>}{toast.sourceId && <> · <button disabled={busy} aria-busy={busy} onClick={undo}><BusyLabel busy={busy} label="Undoing…">Undo</BusyLabel></button></>}</div>}
   </>;
 }

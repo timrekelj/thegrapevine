@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto'
-import Link from '@/components/print/PressLink'
 import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
 import { connection } from 'next/server'
 import { createPaper } from '@/lib/papers'
 import { isUuid } from '@/lib/validate'
 import SubmitButton from '@/components/print/SubmitButton'
+import Brand from '@/components/print/Brand'
 import styles from '@/components/print/card.module.css'
 
 export default async function NewGroupPage({ searchParams }: PageProps<'/group/new'>) {
@@ -16,9 +16,9 @@ export default async function NewGroupPage({ searchParams }: PageProps<'/group/n
 
   async function createGroup(formData: FormData) {
     'use server'
-    const { supabase, user } = await requireUser('/group/new')
+    const { supabase, userId } = await requireUser('/group/new')
     const name = String(formData.get('name') ?? '').trim()
-    const error = await createPaper(supabase, user.id, groupId, name)
+    const error = await createPaper(supabase, userId, groupId, name)
     if (error) redirect(`/group/new?${new URLSearchParams({ id: groupId, name, error })}`)
     redirect('/')
   }
@@ -26,9 +26,7 @@ export default async function NewGroupPage({ searchParams }: PageProps<'/group/n
   return (
     <main className={styles.page}>
       <div className={styles.card}>
-        <Link href="/" className={`masthead ${styles.brand}`}>The Grapevine</Link>
-        <div className="double-rule" />
-        <p className="label">A new paper</p>
+        <Brand className={styles.brand} />
         <h1 className="headline">Name your paper.</h1>
         <p className="summary">A private place for your friends’ links and the conversations around them.</p>
         <form action={createGroup} className={styles.form}>

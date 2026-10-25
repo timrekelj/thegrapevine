@@ -1,5 +1,5 @@
 import { body, HttpError, json, sameSecret, uuid } from '../_shared/cors.ts';
-import { supabase } from '../_shared/supabase.ts';
+import { check, supabase } from '../_shared/supabase.ts';
 import { preferenceFor, pushPayload, type PushKind } from './push.ts';
 import { capture, featureEnabled, telemetryUser, withTelemetry } from '../_shared/telemetry.ts';
 
@@ -16,9 +16,8 @@ export async function handleNotification(req: Request) {
     if (input.type !== 'INSERT' || input.schema !== 'public' || input.table !== 'notifications' || !uuid(input.record?.id)) {
       throw new HttpError(400, 'Expected a notifications INSERT webhook');
     }
-    const { data: notification, error } = await supabase.from('notifications')
-      .select('*').eq('id', input.record.id).maybeSingle();
-    if (error) throw error;
+    const notification = await check(supabase.from('notifications')
+      .select('*').eq('id', input.record.id).maybeSingle());
     if (!notification || notification.read || !notification.story_id ||
         !Object.hasOwn(preferenceFor, notification.kind) ||
         Date.parse(notification.created_at) < Date.now() - 86400000) {
@@ -27,23 +26,19 @@ export async function handleNotification(req: Request) {
     const kind = notification.kind as PushKind;
     telemetryUser(notification.user_id);
     if (!await featureEnabled('push-delivery-enabled')) return json({ skipped: true });
-    const { data: member, error: memberError } = await supabase.from('group_members')
-      .select('user_id').eq('group_id', notification.group_id).eq('user_id', notification.user_id).maybeSingle();
-    if (memberError) throw memberError;
-    if (!member) return json({ skipped: true });
-    const { data: enabled, error: preferenceError } = await supabase.rpc('notifications_enabled', {
-      u: notification.user_id, g: notification.group_id, which: preferenceFor[kind],
-    });
-    if (preferenceError) throw preferenceError;
-    if (!enabled) return json({ skipped: true });
-    // A reply that also mentions its recipient should produce only one push.
-    if (kind === 'mention' && notification.message_id) {
-      const { data: reply, error: replyError } = await supabase.from('notifications').select('id')
-        .eq('message_id', notification.message_id).eq('user_id', notification.user_id)
-        .eq('kind', 'direct_reply').limit(1);
-      if (replyError) throw replyError;
-      if (reply?.length) return json({ skipped: true });
-    }
+    // Current membership and preferences; a reply that also mentions its recipient sends only the reply.
+    const [member, enabled, reply] = await Promise.all([
+      check(supabase.from('group_members').select('user_id')
+        .eq('group_id', notification.group_id).eq('user_id', notification.user_id).maybeSingle()),
+      check(supabase.rpc('notifications_enabled', {
+        u: notification.user_id, g: notification.group_id, which: preferenceFor[kind],
+      })),
+      kind === 'mention' && notification.message_id
+        ? check(supabase.from('notifications').select('id').eq('message_id', notification.message_id)
+          .eq('user_id', notification.user_id).eq('kind', 'direct_reply').limit(1))
+        : null,
+    ]);
+    if (!member || !enabled || reply?.length) return json({ skipped: true });
     const key = Deno.env.get('ONESIGNAL_REST_API_KEY');
     if (!key) throw new Error('Missing ONESIGNAL_REST_API_KEY');
     const response = await fetch('https://api.onesignal.com/notifications', {

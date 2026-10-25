@@ -1,32 +1,31 @@
 package si.timrekelj.thegrapevine
 
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.okhttp.OkHttp
-import io.ktor.client.plugins.HttpTimeout
-import io.ktor.client.request.prepareGet
-import io.ktor.client.request.header
-import io.ktor.client.request.request
-import io.ktor.client.request.setBody
-import io.ktor.client.request.url
-import io.ktor.client.statement.bodyAsChannel
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.contentLength
-import io.ktor.http.isSuccess
-import io.ktor.utils.io.readRemaining
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.io.readByteArray
-import okhttp3.Cache
-import io.ktor.http.ContentType
-import io.ktor.http.HttpMethod
-import io.ktor.http.contentType
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.Dispatcher
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import java.io.IOException
+import java.io.InterruptedIOException
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 sealed class ApiError(message: String) : Exception(message) {
     class Http(val code: Int, val body: String) : ApiError(httpMessage(code, body))
@@ -46,23 +45,35 @@ private fun httpMessage(code: Int, body: String): String {
 
 inline fun <reified T> encodeBody(value: T): String = SupabaseJson.encodeToString(value)
 
+enum class HttpMethod { Get, Post, Put, Patch, Delete }
+
 /**
  * A direct REST client against Supabase, ported from `ios/Grapevine/API.swift`.
  * All orchestration (submission, clustering, summaries) lives in Edge Functions,
  * so there is nothing else to talk to.
  */
 class Api(
-    private val http: HttpClient = defaultHttpClient(),
+    private val http: OkHttpClient = defaultHttpClient(),
     /** Pictures only: no Supabase credentials are sent with it, and its responses may be cached on disk. */
-    private val pictures: HttpClient = http,
+    private val pictures: OkHttpClient = http,
 ) {
 
+    /** Read by every request, written by sign-in and refreshes on other coroutines. */
+    @Volatile
     var session: Session? = null
+        set(value) {
+            if (value == null) signedURLs.clear()
+            field = value
+        }
 
     /** Persisting a refreshed session is the app's job, not the client's. */
+    @Volatile
     var onSessionChanged: ((Session) -> Unit)? = null
 
     private val refreshMutex = Mutex()
+
+    /** Signed media URLs by storage path, with when to stop handing them out; forgotten on sign-out. */
+    private val signedURLs = ConcurrentHashMap<String, Pair<String, Long>>()
 
     // ---------------------------------------------------------------- transport
 
@@ -81,6 +92,16 @@ class Api(
         }
     }
 
+    /**
+     * Renews a session read back from storage. Refresh tokens are single-use, so this goes through the
+     * same lock as [refreshIfNeeded]: two screens restoring at once (the app and its share sheet) share
+     * one refresh instead of the second spending a token the first already rotated.
+     */
+    suspend fun restore(stored: Session): Session = refreshMutex.withLock {
+        session?.takeIf { it.userId == stored.userId && !Jwt.isExpired(it.accessToken) }
+            ?: refreshSession(stored.refreshToken)
+    }
+
     suspend fun request(
         path: String,
         method: HttpMethod = HttpMethod.Get,
@@ -95,27 +116,29 @@ class Api(
     ): String {
         refreshIfNeeded(path)
 
-        val response = http.request(Config.supabaseURL + path) {
-            this.method = method
-            if (query.isNotEmpty()) url { query.forEach { (name, value) -> parameters.append(name, value) } }
-            header("apikey", Config.supabasePublishableKey)
-            session?.let { header("Authorization", "Bearer ${it.accessToken}") }
-            val preferences = listOfNotNull(
-                "return=representation".takeIf { preferRepresentation },
-                "resolution=merge-duplicates".takeIf { mergeDuplicates },
-            )
-            if (preferences.isNotEmpty()) header("Prefer", preferences.joinToString(","))
-            if (body != null) {
-                setBody(body)
-                contentType(ContentType.Application.Json)
-            } else if (file != null) {
-                setBody(file)
-                contentType(ContentType.parse(fileContentType))
-            }
+        val url = (Config.supabaseURL + path).toHttpUrl().newBuilder()
+            .apply { query.forEach { (name, value) -> addQueryParameter(name, value) } }
+            .build()
+        val content = when {
+            body != null -> body.toRequestBody(JSON)
+            file != null -> file.toRequestBody(fileContentType.toMediaTypeOrNull())
+            method == HttpMethod.Get || method == HttpMethod.Delete -> null
+            else -> ByteArray(0).toRequestBody()
         }
+        val request = Request.Builder().url(url)
+            .method(method.name.uppercase(), content)
+            .header("apikey", Config.supabasePublishableKey)
+            .apply {
+                session?.let { header("Authorization", "Bearer ${it.accessToken}") }
+                val preferences = listOfNotNull(
+                    "return=representation".takeIf { preferRepresentation },
+                    "resolution=merge-duplicates".takeIf { mergeDuplicates },
+                )
+                if (preferences.isNotEmpty()) header("Prefer", preferences.joinToString(","))
+            }
+            .build()
 
-        val text = response.bodyAsText()
-        val status = response.status.value
+        val (status, text) = http.fetch(request) { it.code to it.body.string() }
         if (status == 401 && mapUnauthorized) throw ApiError.Unauthorized
         if (status >= 500) Telemetry.httpError(status)
         if (status !in 200..299) throw ApiError.Http(status, text)
@@ -172,37 +195,51 @@ class Api(
 
     // ------------------------------------------------------------------- media
 
-    suspend fun upload(attachment: Attachment, path: String) {
+    /** Story media goes to `media`; screenshots for reports to `feedback`. */
+    suspend fun upload(attachment: Attachment, path: String, bucket: String = "media") {
         request(
-            path = "storage/v1/object/media/$path",
+            path = "storage/v1/object/$bucket/$path",
             method = HttpMethod.Post,
             file = attachment.data,
             fileContentType = attachment.contentType,
         )
     }
 
-    /** A short-lived signed URL, or the original URL when it is already absolute. */
+    /**
+     * A short-lived signed URL, or the original URL when it is already absolute. Signed URLs are
+     * reused while they have a while left, so a photo scrolled away and back keeps the same URL and
+     * comes from the picture caches instead of being signed, downloaded and decoded again.
+     */
     suspend fun mediaURL(path: String): String {
         if (path.startsWith("http://") || path.startsWith("https://")) return path
         if (path.startsWith("/seed/")) return Config.webURL + path
+        val now = System.currentTimeMillis()
+        signedURLs[path]?.let { (url, until) -> if (now < until) return url }
         val signed: SignedUrl = postObject(
             path = "storage/v1/object/sign/media/$path",
-            body = encodeBody(SignedUrlBody(expiresIn = 3600)),
+            body = encodeBody(SignedUrlBody(expiresIn = SIGNED_URL_SECONDS)),
         )
-        return Config.supabaseURL + "storage/v1" + signed.signedURL
+        val url = Config.supabaseURL + "storage/v1" + signed.signedURL
+        // Handed out for most of its life only, so whoever gets it last still has time to load it.
+        signedURLs[path] = url to now + SIGNED_URL_SECONDS * 1000L * 3 / 4
+        return url
     }
 
     /**
-     * Raw bytes for avatars and the halftone plates; Coil is deliberately not a dependency.
+     * Raw bytes for the photos on stories and in messages; Coil is deliberately not a dependency.
      * Image URLs come from scraped pages, so the size is capped rather than trusted.
      */
-    suspend fun fetchBytes(url: String): ByteArray = pictures.prepareGet(url).execute { response ->
-        if (!response.status.isSuccess()) throw ApiError.Http(response.status.value, "")
-        val length = response.contentLength()
-        if (length != null && length > MAX_PICTURE_BYTES) throw ApiError.Network("Picture too large")
-        val bytes = response.bodyAsChannel().readRemaining(MAX_PICTURE_BYTES + 1L).readByteArray()
-        if (bytes.size > MAX_PICTURE_BYTES) throw ApiError.Network("Picture too large")
-        bytes
+    suspend fun fetchBytes(url: String): ByteArray {
+        val request = runCatching { Request.Builder().url(url).build() }.getOrNull()
+            ?: throw ApiError.Network("Not a picture link")
+        return pictures.fetch(request) { response ->
+            if (!response.isSuccessful) throw ApiError.Http(response.code, "")
+            val body = response.body
+            if (body.contentLength() > MAX_PICTURE_BYTES) throw ApiError.Network("Picture too large")
+            val source = body.source()
+            if (source.request(MAX_PICTURE_BYTES + 1L)) throw ApiError.Network("Picture too large")
+            source.readByteArray()
+        }
     }
 
     // -------------------------------------------------------------------- auth
@@ -255,15 +292,20 @@ class Api(
     @Serializable
     private data class UserPayload(val id: String, val email: String? = null)
 
-    suspend fun refreshSession(refreshToken: String): Session =
-        session(
+    /** A refresh token Auth won't take (revoked, already rotated, user gone) means the session is over. */
+    suspend fun refreshSession(refreshToken: String): Session {
+        val text = try {
             request(
                 path = "auth/v1/token",
                 method = HttpMethod.Post,
                 query = listOf("grant_type" to "refresh_token"),
                 body = encodeBody(RefreshBody(refreshToken)),
-            ),
-        )
+            )
+        } catch (e: ApiError.Http) {
+            throw if (e.code == 400 || e.code == 403) ApiError.Unauthorized else e
+        }
+        return session(text)
+    }
 
     /**
      * Asks Supabase Auth to change the signed-in user's email.
@@ -319,15 +361,49 @@ class Api(
         const val DELETE_ACCOUNT_FUNCTION = "functions/v1/delete-account"
 
         private const val MAX_PICTURE_BYTES = 15 * 1024 * 1024
+        private const val SIGNED_URL_SECONDS = 3600
+        private val JSON = "application/json".toMediaType()
 
-        fun defaultHttpClient(cache: Cache? = null): HttpClient = HttpClient(OkHttp) {
-            expectSuccess = false
-            install(HttpTimeout) {
-                requestTimeoutMillis = 30_000
-                connectTimeoutMillis = 15_000
-                socketTimeoutMillis = 30_000
+        /**
+         * No limit on a whole call, so a large video upload on a slow line isn't cut off; a connection
+         * that goes quiet for [IDLE_SECONDS] is. A story's reads, its photos' signed URLs and the
+         * photos themselves all go to the Supabase host at once, so more than OkHttp's default five
+         * may be in flight there (HTTP/2 carries them on one connection).
+         */
+        fun defaultHttpClient(): OkHttpClient = OkHttpClient.Builder()
+            .dispatcher(Dispatcher().apply { maxRequestsPerHost = 16 })
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(IDLE_SECONDS, TimeUnit.SECONDS)
+            .writeTimeout(IDLE_SECONDS, TimeUnit.SECONDS)
+            .build()
+
+        private const val IDLE_SECONDS = 30L
+
+        /**
+         * Runs [request] without blocking the caller, and reads the response with [read] on OkHttp's
+         * thread. Cancelling the coroutine cancels the call. A dropped or unreachable connection
+         * becomes one readable [ApiError.Network].
+         */
+        private suspend fun <T> OkHttpClient.fetch(request: Request, read: (Response) -> T): T =
+            suspendCancellableCoroutine { continuation ->
+                val call = newCall(request)
+                continuation.invokeOnCancellation { call.cancel() }
+                call.enqueue(object : Callback {
+                    override fun onFailure(call: Call, e: IOException) {
+                        continuation.resumeWithException(offline(e))
+                    }
+
+                    override fun onResponse(call: Call, response: Response) {
+                        runCatching { response.use(read) }
+                            .onSuccess { continuation.resume(it) }
+                            .onFailure { continuation.resumeWithException(if (it is IOException) offline(it) else it) }
+                    }
+                })
             }
-            if (cache != null) engine { config { cache(cache) } }
-        }
+
+        private fun offline(e: IOException) = ApiError.Network(
+            if (e is InterruptedIOException) "The connection timed out. Please try again."
+            else "Could not reach The Grapevine. Check your connection and try again.",
+        )
     }
 }

@@ -47,7 +47,6 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -62,7 +61,16 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -152,7 +160,7 @@ private val AddReactionIcon: ImageVector by lazy {
 /** Mirrors `StoryView.swift`. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit, backLabel: String = "← Front page") {
+fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit, backLabel: String = "Back to the front page") {
     val api = LocalApi.current
     val store: StoryState = viewModel(key = "story-$storyId") { StoryState(api) }
     val scope = rememberCoroutineScope()
@@ -166,6 +174,7 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit, backLabel: S
     var loadingAttachments by remember { mutableStateOf(false) }
     var reportTarget by remember { mutableStateOf<String?>(null) }
     var showHistory by remember { mutableStateOf(false) }
+    var showMore by remember { mutableStateOf(false) }
     val userId = app.session?.userId.orEmpty()
 
     // shortcut: poll while this story is visible; use Realtime subscriptions for larger groups.
@@ -185,7 +194,7 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit, backLabel: S
                     delay(10_000)
                     if (!isSending && store.pendingMessageId == null) store.load(storyId)
                     // Messages seen live shouldn't show as new next time.
-                    store.markRead(storyId)
+                    store.markRead(storyId, onlyIfChanged = true)
                 }
             } finally {
                 // Leaving the story, or the app going to the background.
@@ -210,6 +219,12 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit, backLabel: S
         }
     }
 
+    var catchUpExpanded by rememberSaveable(storyId) { mutableStateOf(true) }
+    val summaryPreferences = remember(context) { context.getSharedPreferences("summary-versions", android.content.Context.MODE_PRIVATE) }
+    val summaryKey = "${app.session?.userId}.$storyId"
+    LaunchedEffect(store.story?.summary) {
+        store.story?.summary?.let { catchUpExpanded = summaryPreferences.getString(summaryKey, null) != it }
+    }
     val locked = sending || store.pendingMessageId != null
 
     // Sources and messages interleaved by time, grouped by day; rebuilt only when either list changes.
@@ -224,27 +239,42 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit, backLabel: S
     Scaffold(
         containerColor = Press.paper,
         topBar = {
-            Column(Modifier.background(Press.paper).statusBarsPadding().padding(horizontal = 20.dp).padding(top = 8.dp)) {
-                Row(Modifier.fillMaxWidth().heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(backLabel, style = MetaStyle.copy(color = Press.ink), modifier = Modifier.weight(1f).pressable(give = Give.Type, onClick = onBack).padding(vertical = 8.dp))
-                    Text("The Grapevine", style = nameplate(24))
-                    Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                        // Story links open the app on phones that have it, and the website everywhere else.
-                        TextAction("Share") {
-                            val link = "${Config.webURL}/story/$storyId"
-                            val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, link)
-                            context.startActivity(Intent.createChooser(send, "Share story"))
+            TopAppBar(
+                title = {},
+                navigationIcon = {
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = backLabel, tint = Press.ink) }
+                },
+                actions = {
+                    // Story links open the app on phones that have it, and the website everywhere else.
+                    IconButton(onClick = {
+                        val link = "${Config.webURL}/story/$storyId"
+                        val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, link)
+                        context.startActivity(Intent.createChooser(send, "Share story"))
+                    }) { Icon(Icons.Outlined.Share, contentDescription = "Share story", tint = Press.ink) }
+                    Box {
+                        IconButton(onClick = { showMore = true }, enabled = store.story != null) {
+                            Icon(Icons.Filled.MoreVert, contentDescription = "More", tint = Press.ink)
+                        }
+                        DropdownMenu(expanded = showMore, onDismissRequest = { showMore = false }, shape = Corner, containerColor = Press.raised) {
+                            DropdownMenuItem(text = { Text("Report the title or category", style = BodyStyle.copy(fontSize = 15.sp)) }, onClick = {
+                                showMore = false
+                                reportTarget = "category"
+                            })
                         }
                     }
-                }
-                DoubleRule(Modifier.padding(top = 4.dp))
-            }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Press.paper, scrolledContainerColor = Press.paper),
+            )
         },
         bottomBar = {
             Column(Modifier.background(Press.paper).navigationBarsPadding().imePadding()) {
-                Hairline(color = Press.ink)
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Insert(store.error) { Text(it, style = MetaStyle.copy(color = Press.danger)) }
+                    Insert(store.error) { error ->
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text(error, style = MetaStyle.copy(color = Press.danger), modifier = Modifier.weight(1f))
+                            ReportAction(error, "Story")
+                        }
+                    }
                     Insert(attachments.size.takeIf { it > 0 }) { count ->
                         ComposerNote(plural(count, "attachment"), "Remove", enabled = !locked) { attachments = emptyList() }
                     }
@@ -258,10 +288,10 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit, backLabel: S
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Box(
                             Modifier
-                                .pressable(enabled = !locked && !loadingAttachments, onClickLabel = "Attach images or video") {
+                                .pressable(enabled = !locked && !loadingAttachments, give = Give.Chip, onClickLabel = "Attach images or video") {
                                     picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
                                 }
-                                .size(48.dp).border(1.dp, Press.rule, Corner),
+                                .size(48.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             // Reading the picked files off the disk: dots where the plus was.
@@ -271,9 +301,9 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit, backLabel: S
                                 Icon(Icons.Filled.Add, contentDescription = "Attach images or video", tint = Press.ink)
                             }
                         }
-                        PaperField(draft, { draft = it }, "Write to the table…", modifier = Modifier.weight(1f), singleLine = false)
+                        PaperField(draft, { draft = it }, "Tell the others", modifier = Modifier.weight(1f), singleLine = false, pill = true)
                         val canSend = !sending && !loadingAttachments && (draft.isNotBlank() || attachments.isNotEmpty())
-                        InkButton("Send", enabled = canSend, modifier = Modifier, height = 48.dp, busy = sending, busyLabel = "Sending…") {
+                        SendButton(enabled = canSend, busy = sending) {
                             scope.launch {
                                 sending = true
                                 if (store.postMessage(draft, replyTo?.id, attachments)) {
@@ -293,60 +323,58 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit, backLabel: S
         LazyColumn(Modifier.fillMaxSize().padding(padding)) {
             if (story != null) {
                 val readable = store.sources.count { it.extraction_status == "ok" }
-                val lead = store.sources.firstOrNull { it.image_url != null }
                 item(key = "head") {
-                    Column(Modifier.animateItem().padding(horizontal = 20.dp).padding(top = 22.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text((story.category ?: "Unfiled").uppercase(), style = LabelStyle)
-                            Text("Updated ${clock(store.history.firstOrNull()?.created_at ?: story.last_activity_at)}", style = MetaStyle.copy(color = Press.ink3))
-                        }
-                        Text(story.title.ifEmpty { "Reading this story" }, style = display(40), modifier = Modifier.padding(top = 12.dp, bottom = 16.dp))
-                        Hairline(color = Press.ink)
-                        Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.animateItem().padding(horizontal = 20.dp).padding(top = 8.dp)) {
+                        Text(
+                            "${story.category ?: "Unfiled"} · updated ${clock(store.history.firstOrNull()?.created_at ?: story.last_activity_at)}",
+                            style = LabelStyle.copy(color = Press.ink3),
+                        )
+                        Text(story.title.ifEmpty { "Reading this story" }, style = display(34), modifier = Modifier.padding(top = 10.dp, bottom = 20.dp))
+                        // The paper's own writing sits on a dark card so it never reads as a friend's message.
+                        val catchText = Color(0xFFEEF3EA)
+                        val catchMeta = catchText.copy(alpha = 0.72f)
+                        Column(Modifier.fillMaxWidth().background(Press.catchUp, CardCorner).padding(start = 20.dp, end = 12.dp, top = 8.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(Modifier.fillMaxWidth().pressable(give = Give.Type, onClickLabel = if (catchUpExpanded) "Collapse catch-up" else "Expand catch-up") {
+                                catchUpExpanded = !catchUpExpanded
+                                summaryPreferences.edit().apply { if (!catchUpExpanded) putString(summaryKey, story.summary) else remove(summaryKey) }.apply()
+                            }.heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text("The catch-up", style = NameStyle.copy(color = catchText), modifier = Modifier.weight(1f))
+                                Icon(
+                                    if (catchUpExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                                    contentDescription = null,
+                                    tint = catchMeta,
+                                    modifier = Modifier.padding(horizontal = 8.dp),
+                                )
+                            }
                             Text(
-                                buildAnnotatedString {
-                                    append("Filed from ")
-                                    withStyle(SpanStyle(color = Press.ink, fontWeight = FontWeight.SemiBold)) { append("$readable") }
-                                    append(" of ")
-                                    withStyle(SpanStyle(color = Press.ink, fontWeight = FontWeight.SemiBold)) { append("${store.sources.size}") }
-                                    append(if (store.sources.size == 1) " source · " else " sources · ")
-                                },
-                                style = MetaStyle,
+                                story.summary.ifEmpty { "The summary could not be written." },
+                                style = BodyStyle.copy(color = catchText),
+                                maxLines = if (catchUpExpanded) Int.MAX_VALUE else 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(end = 8.dp),
                             )
-                            TextAction("What changed") { showHistory = true }
-                        }
-                        Hairline()
-                        PlateView(lead?.image_url, store.sources.firstOrNull()?.publisher ?: "The paper", Modifier.padding(top = 20.dp).fillMaxWidth().aspectRatio(16f / 9f))
-                        lead?.let { MetaRow("Pictured via ${it.publisher}", Modifier.padding(top = 7.dp).alpha(0.8f)) }
-                        if (story.summary.isNotEmpty()) {
-                            DropCapSummary(story.summary, Modifier.padding(top = 18.dp, bottom = 12.dp))
-                        } else {
-                            Text("The summary could not be written.", style = BodyStyle, modifier = Modifier.padding(top = 18.dp, bottom = 12.dp))
-                            GhostButton("Retry summary") { reportTarget = "summary" }
-                        }
-                        Hairline()
-                        Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text("Something off?", style = MetaStyle.copy(color = Press.ink3))
-                            TextAction("Report the summary") { reportTarget = "summary" }
-                            TextAction("Wrong category") { reportTarget = "category" }
+                            if (catchUpExpanded) {
+                                Box(Modifier.padding(end = 8.dp).fillMaxWidth().height(1.dp).background(catchText.copy(alpha = 0.14f)))
+                                Row(Modifier.padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    Text("$readable of ${plural(store.sources.size, "source")}", style = MetaStyle.copy(fontSize = 14.sp, color = catchMeta), modifier = Modifier.weight(1f))
+                                    CatchUpAction("What changed") { showHistory = true }
+                                    CatchUpAction("Report") { reportTarget = "summary" }
+                                }
+                            }
                         }
                     }
                 }
-                if (store.sources.isNotEmpty()) item(key = "clippings") {
-                    Column(Modifier.animateItem().padding(top = 20.dp)) {
-                        Row(Modifier.padding(horizontal = 20.dp).padding(bottom = 8.dp)) {
-                            Text("CLIPPINGS", style = LabelStyle, modifier = Modifier.weight(1f))
-                            MetaRow("${store.sources.size}")
-                        }
-                        Hairline(Modifier.padding(horizontal = 20.dp))
+                if (store.sources.isNotEmpty()) item(key = "sources") {
+                    Column(Modifier.animateItem().padding(top = 24.dp)) {
+                        Text("Sources · ${store.sources.size}", style = LabelStyle, modifier = Modifier.padding(horizontal = 20.dp))
                         LazyRow(
-                            contentPadding = PaddingValues(horizontal = 20.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.padding(top = 12.dp),
-                        ) { items(store.sources, key = { it.id }) { SourceClip(it) } }
+                            contentPadding = PaddingValues(horizontal = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.padding(top = 10.dp),
+                        ) { items(store.sources, key = { it.id }) { SourceGrape(it, store.lastRead) } }
                     }
                 }
-                item(key = "conversation") { SectionHead("The conversation", Modifier.animateItem().padding(horizontal = 20.dp).padding(top = 36.dp)) }
+                item(key = "conversation") { SectionHead("The conversation", Modifier.animateItem().padding(horizontal = 20.dp).padding(top = 28.dp)) }
 
                 if (timeline.isEmpty()) item(key = "empty") { Text("Start the conversation.", style = BodyStyle.copy(color = Press.ink2), modifier = Modifier.animateItem().padding(20.dp)) }
                 timeline.forEach { entries ->
@@ -377,14 +405,13 @@ fun StoryScreen(storyId: String, app: AppState, onBack: () -> Unit, backLabel: S
                 store.notice?.let { notice -> item(key = "notice") { MetaRow(notice, Modifier.animateItem().padding(horizontal = 20.dp, vertical = 12.dp)) } }
                 item(key = "foot") { Spacer(Modifier.height(24.dp)) }
             } else if (store.error == null) {
-                // Before the story first comes back: the page in galley proof, which the story fades in over.
-                item(key = "proof") { StoryProof(Modifier.animateItem()) }
+                // Before the story first comes back: a placeholder of its layout, which the story fades in over.
+                item(key = "skeleton") { StorySkeleton(Modifier.animateItem()) }
             } else {
                 store.error?.let { error ->
                     item {
                         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Text("STOP THE PRESSES", style = LabelStyle)
-                            Text("This story could not be loaded.", style = display(30))
+                            Text("This story could not be loaded.", style = display(28))
                             Text(error, style = BodyStyle.copy(color = Press.ink2))
                             InkButton("Try again", modifier = Modifier) { scope.launch { store.load(storyId) } }
                         }
@@ -419,43 +446,84 @@ private fun readAttachment(context: Context, uri: Uri): Attachment {
 
 @Composable
 private fun ComposerNote(text: String, action: String, enabled: Boolean, onAction: () -> Unit) {
-    Row(Modifier.fillMaxWidth().background(Press.tint).padding(horizontal = 10.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().background(Press.raised2, FieldCorner).padding(horizontal = 12.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(text, style = MetaStyle, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
         Spacer(Modifier.width(10.dp))
         TextAction(action, enabled = enabled, onClick = onAction)
     }
 }
 
+/** The send key: an ink circle with an up arrow; three dots while the message goes out. */
+@Composable
+private fun SendButton(enabled: Boolean, busy: Boolean, onClick: () -> Unit) {
+    val live = enabled || busy
+    Box(
+        Modifier
+            .pressable(enabled = enabled && !busy, haptic = true, role = Role.Button, onClickLabel = "Send", onClick = onClick)
+            .semantics { contentDescription = if (busy) "Sending…" else "Send" }
+            .size(48.dp).background(if (live) Press.ink else Press.ink.copy(alpha = 0.4f), CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (busy) InkDots(color = Press.paper, dotSize = 5.dp, contentDescription = null)
+        else Icon(ArrowUpGlyph, contentDescription = null, tint = Press.paper)
+    }
+}
+
+/** An underlined action on the dark catch-up card. */
+@Composable
+private fun CatchUpAction(text: String, onClick: () -> Unit) {
+    Text(
+        text,
+        style = MetaStyle.copy(fontSize = 14.sp, color = Color(0xFFEEF3EA), fontWeight = FontWeight.SemiBold, textDecoration = TextDecoration.Underline),
+        modifier = Modifier.pressable(give = Give.Type, role = Role.Button, onClick = onClick).padding(vertical = 12.dp),
+    )
+}
+
 @Composable
 private fun DayDivider(label: String) {
-    Row(Modifier.padding(horizontal = 20.dp).padding(top = 26.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Hairline(Modifier.weight(1f))
-        Text(label, style = LabelStyle.copy(color = Press.ink3), modifier = Modifier.padding(horizontal = 12.dp))
-        Hairline(Modifier.weight(1f))
-    }
+    Text(
+        label,
+        style = LabelStyle.copy(color = Press.ink3, textAlign = TextAlign.Center),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 26.dp, bottom = 4.dp),
+    )
 }
 
-/** Where this visit's unread messages start, like the web's `.story-new-divider`: red is "new to you". */
+/** Where this visit's unread messages start: vine green, the colour of "new to you". */
 @Composable
 private fun NewSinceDivider(label: String) {
-    Row(Modifier.padding(horizontal = 20.dp).padding(top = 26.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.weight(1f).height(2.dp).background(Press.red))
-        Text(label.uppercase(), style = LabelStyle.copy(color = Press.red), modifier = Modifier.padding(horizontal = 14.dp))
-        Box(Modifier.weight(1f).height(2.dp).background(Press.red))
+    Row(Modifier.padding(horizontal = 20.dp).padding(top = 22.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.weight(1f).height(1.dp).background(Press.red))
+        Text(
+            label,
+            style = LabelStyle.copy(color = Press.red),
+            modifier = Modifier.padding(horizontal = 10.dp).background(Press.vineSoft, CircleShape).padding(horizontal = 10.dp, vertical = 3.dp),
+        )
+        Box(Modifier.weight(1f).height(1.dp).background(Press.red))
     }
 }
 
+/** A source as its grape in the filer's hue, with the publisher under it; opens the original. */
 @Composable
-private fun SourceClip(source: Source) {
-    Row(
-        Modifier.width(250.dp).clipping(Press.ink3, Press.raised).padding(10.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+private fun SourceGrape(source: Source, seenAt: Instant? = null) {
+    val uri = LocalUriHandler.current
+    val new = seenAt == null || source.created_at > seenAt
+    val paywalled = source.extraction_status == "paywalled"
+    Column(
+        Modifier.widthIn(min = 72.dp, max = 132.dp)
+            .pressable(give = Give.Chip, onClickLabel = "Open ${source.publisher}") { uri.openWebLink(source.url) }
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        PlateView(source.image_url, source.publisher, Modifier.size(60.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(source.publisher, style = MetaStyle.copy(color = Press.ink, fontWeight = FontWeight.SemiBold), maxLines = 1)
-            Text(source.source_title.ifEmpty { source.domain }, style = display(15), maxLines = 3, overflow = TextOverflow.Ellipsis)
-            if (source.extraction_status == "paywalled") MetaRow("Headline only")
+        Grape(source.submitted_by ?: source.id, new, 44.dp)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (paywalled) Icon(Icons.Outlined.Lock, contentDescription = "Headline only", tint = Press.ink3, modifier = Modifier.size(14.dp))
+            Text(
+                if (new) "${source.publisher} · new" else source.publisher,
+                style = MetaStyle.copy(color = if (new) Press.red else Press.ink2, fontWeight = FontWeight.SemiBold),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -475,32 +543,27 @@ private fun SourceEntry(source: Source, store: StoryState, userId: String, onOpe
     Row(Modifier.padding(horizontal = 20.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Avatar(source.submitted_by ?: source.id, 36.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            EntryHead(if (author?.id == userId) "You" else author?.display_name ?: "A member", "filed a source", source.created_at)
+            EntryHead(if (author?.id == userId) "You" else author?.display_name ?: "A member", "filed ${source.publisher}", source.created_at)
             source.submitter_comment?.takeIf { it.isNotEmpty() }?.let { Text(it, style = BodyStyle) }
+            val opens = source.url.startsWith("http://") || source.url.startsWith("https://")
             Row(
-                Modifier.fillMaxWidth().clipping(Press.ink3, Press.raised).padding(12.dp),
+                Modifier.padding(top = 4.dp).fillMaxWidth()
+                    .pressable(enabled = opens, give = Give.Story, onClickLabel = "Open ${source.publisher}") { onOpen(source.url) }
+                    .card(Corner).padding(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                PlateView(source.image_url, source.publisher, Modifier.size(72.dp))
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Text((source.publisher + (source.author?.let { " · $it" } ?: "")).uppercase(), style = LabelStyle, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(source.source_title.ifEmpty { source.domain }, style = display(18))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        MetaRow(clock(source.created_at), Modifier.weight(1f))
-                        if (source.url.startsWith("http://") || source.url.startsWith("https://")) {
-                            TextAction("Open ↗") { onOpen(source.url) }
-                        }
-                    }
+                if (source.image_url != null) PhotoView(source.image_url, source.publisher, Modifier.size(64.dp), shape = RoundedCornerShape(10.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(source.publisher + (source.author?.let { " · $it" } ?: ""), style = MetaStyle.copy(color = Press.ink3, fontWeight = FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(source.source_title.ifEmpty { source.domain }, style = NameStyle.copy(fontSize = 16.sp, lineHeight = 21.sp), maxLines = 3, overflow = TextOverflow.Ellipsis)
                     when (source.extraction_status) {
-                        "paywalled" -> "Paywalled — headline only. The summary does not use this source."
+                        "paywalled" -> "Paywalled, headline only. The summary does not use this source."
                         "failed" -> "Couldn't read this page"
                         "deleted" -> "Post deleted or unavailable"
                         else -> null
-                    }?.let { note ->
-                        Hairline()
-                        MetaRow(note)
-                    }
+                    }?.let { note -> MetaRow(note, Modifier.padding(top = 4.dp)) }
                 }
+                if (opens) Icon(OpenInNewGlyph, contentDescription = null, tint = Press.ink3, modifier = Modifier.size(20.dp))
             }
         }
     }
@@ -543,17 +606,21 @@ private fun MessageEntry(
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             EntryHead(if (message.author_id == userId) "You" else author?.display_name ?: "A member", null, message.created_at)
             message.reply_to?.let { parentId -> store.messages.firstOrNull { it.id == parentId } }?.let { parent ->
-                Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(Modifier.width(2.dp).fillMaxHeight().background(Press.ink))
+                Row(
+                    Modifier.height(IntrinsicSize.Min).clip(FieldCorner).background(Press.raised2).padding(end = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Box(Modifier.width(3.dp).fillMaxHeight().background(Press.ink3))
                     Text(
                         buildAnnotatedString {
-                            withStyle(SpanStyle(fontStyle = FontStyle.Normal, fontWeight = FontWeight.SemiBold, color = Press.ink)) {
+                            withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, color = Press.ink)) {
                                 append(store.profiles[parent.author_id]?.display_name ?: "…")
                             }
                             append("  ")
                             append(parent.body ?: "Attachment")
                         },
-                        style = BodyStyle.copy(fontStyle = FontStyle.Italic, fontSize = 15.sp, lineHeight = 20.sp, color = Press.ink2),
+                        style = BodyStyle.copy(fontSize = 15.sp, lineHeight = 20.sp, color = Press.ink2),
+                        modifier = Modifier.padding(vertical = 6.dp),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -587,9 +654,8 @@ private fun MessageEntry(
                             DropdownMenu(
                                 expanded = picking,
                                 onDismissRequest = { picking = false },
-                                shape = RoundedCornerShape(3.dp),
-                                containerColor = Press.paper,
-                                border = BorderStroke(1.dp, Press.ink),
+                                shape = Corner,
+                                containerColor = Press.raised,
                             ) {
                                 ReactionPicker(mine = reactions.filter { it.user_id == userId }.map { it.emoji }.toSet()) { emoji ->
                                     picking = false
@@ -599,15 +665,15 @@ private fun MessageEntry(
                         }
                     }
                 }
-                TextAction("↩ Reply", enabled = replyEnabled) { onReply(message) }
+                TextAction("Reply", enabled = replyEnabled) { onReply(message) }
             }
         }
     }
 }
 
 /**
- * A reaction's count, in a pill. Pressing gives; a change pops it like a fresh impression, and the
- * count rolls up or down like a counter on the press.
+ * A reaction's count, in a pill. Pressing gives; a change pops it once, and the count rolls up or
+ * down.
  */
 @Composable
 private fun ReactionChip(emoji: String, count: Int, mine: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
@@ -621,7 +687,7 @@ private fun ReactionChip(emoji: String, count: Int, mine: Boolean, modifier: Mod
         pop.animateTo(1.18f, tween(90, easing = LinearOutSlowInEasing))
         pop.animateTo(1f, spring(dampingRatio = 0.38f, stiffness = Spring.StiffnessMedium))
     }
-    val fill by animateColorAsState(if (mine) Press.ink else Press.paper, tween(180), label = "reaction fill")
+    val fill by animateColorAsState(if (mine) Press.ink else Press.raised2, tween(180), label = "reaction fill")
     val type by animateColorAsState(if (mine) Press.paper else Press.ink, tween(180), label = "reaction type")
     val edge by animateColorAsState(if (mine) Press.ink else Press.rule, tween(180), label = "reaction edge")
     Row(
@@ -648,7 +714,7 @@ private fun ReactionChip(emoji: String, count: Int, mine: Boolean, modifier: Mod
     }
 }
 
-/** The full palette, set in a ruled box like the rest of the paper. */
+/** The full set of reactions, in a menu. */
 @Composable
 private fun ReactionPicker(mine: Set<String>, onPick: (String) -> Unit) {
     Column(Modifier.padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -659,9 +725,8 @@ private fun ReactionPicker(mine: Set<String>, onPick: (String) -> Unit) {
                     Box(
                         Modifier
                             .size(44.dp)
-                            .clip(RoundedCornerShape(3.dp))
+                            .clip(CircleShape)
                             .background(if (selected) Press.tint else Color.Transparent)
-                            .border(BorderStroke(1.dp, if (selected) Press.ink else Color.Transparent), RoundedCornerShape(3.dp))
                             .pressable(give = Give.Chip, onClickLabel = if (selected) "Remove $emoji" else "React $emoji") { onPick(emoji) },
                         contentAlignment = Alignment.Center,
                     ) {
@@ -679,21 +744,26 @@ private fun MessageMedia(media: Media) {
     val uriHandler = LocalUriHandler.current
     val url by produceState<String?>(null, media.url) { value = runCatching { api.mediaURL(media.url) }.getOrNull() }
     if (media.kind == "video") {
-        Text(
-            "▶  Play video",
-            style = MetaStyle.copy(color = Press.ink),
-            modifier = Modifier.pressable(enabled = url != null, give = Give.Story) { url?.let(uriHandler::openWebLink) }.clipping(Press.ink3, Press.raised).padding(horizontal = 16.dp, vertical = 14.dp),
-        )
+        Row(
+            Modifier.pressable(enabled = url != null, give = Give.Story, role = Role.Button) { url?.let(uriHandler::openWebLink) }
+                .card(Corner).padding(start = 12.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = Press.ink)
+            Text("Play video", style = NameStyle)
+        }
     } else {
-        // Printed through the screen like every photo on the web; a tap shows it clean (the web's hover).
-        // GIFs stay clean, as on the web.
-        var reveal by remember(media.id) { mutableStateOf(false) }
-        PlateView(
-            url,
-            media.alt_text ?: "Shared image",
-            Modifier.fillMaxWidth().aspectRatio(4f / 3f).pressable(give = Give.Story, onClickLabel = if (reveal) "Print through the screen" else "Show the clean photo") { reveal = !reveal },
-            screen = media.kind != "gif" && !reveal,
-        )
+        Box(Modifier.fillMaxWidth().aspectRatio(16f / 10f).semantics { contentDescription = media.alt_text ?: "Shared image" }) {
+            PhotoView(url, media.alt_text ?: "Shared image", Modifier.matchParentSize())
+            if (media.kind == "gif") {
+                Text(
+                    "GIF",
+                    style = MetaStyle.copy(fontSize = 11.sp, lineHeight = 13.sp, fontWeight = FontWeight.Medium, color = Color.White),
+                    modifier = Modifier.align(Alignment.BottomStart).padding(10.dp).background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(6.dp)).padding(horizontal = 6.dp, vertical = 2.dp),
+                )
+            }
+        }
     }
 }
 
@@ -704,14 +774,13 @@ private fun ReportSheet(store: StoryState, initialTarget: String, onDismiss: () 
     var target by remember { mutableStateOf(initialTarget) }
     var note by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Press.paper, shape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp), sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Press.raised, shape = SheetCorner, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(
             Modifier.fillMaxWidth().imePadding().padding(horizontal = 20.dp).padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text("Report a correction", style = display(28))
-            DoubleRule()
-            Text("WHAT IS WRONG?", style = LabelStyle)
+            Text("Report a correction", style = display(26))
+            Text("What is wrong?", style = LabelStyle)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("summary" to "Summary", "title" to "Title", "category" to "Category").forEach { (value, label) ->
                     val selected = target == value
@@ -719,14 +788,14 @@ private fun ReportSheet(store: StoryState, initialTarget: String, onDismiss: () 
                         label,
                         style = MetaStyle.copy(color = if (selected) Press.paper else Press.ink, fontWeight = FontWeight.SemiBold),
                         modifier = Modifier.pressable(give = Give.Chip, role = Role.RadioButton) { target = value }
-                            .background(animateColorAsState(if (selected) Press.ink else Press.paper, label = "target").value, Corner)
-                            .border(1.dp, if (selected) Press.ink else Press.rule, Corner)
-                            .padding(horizontal = 14.dp, vertical = 9.dp),
+                            .heightIn(min = 40.dp)
+                            .background(animateColorAsState(if (selected) Press.ink else Press.raised2, label = "target").value, FieldCorner)
+                            .border(1.dp, if (selected) Press.ink else Press.rule, FieldCorner)
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
                     )
                 }
             }
-            Text("NOTE (OPTIONAL)", style = LabelStyle)
-            PaperField(note, { note = it }, "…", singleLine = false)
+            PaperField(note, { note = it }, "What should it say?", label = "Note (optional)", singleLine = false)
             InkButton("Report", busy = busy, busyLabel = "Reporting…") {
                 scope.launch {
                     busy = true
@@ -743,17 +812,16 @@ private fun ReportSheet(store: StoryState, initialTarget: String, onDismiss: () 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HistorySheet(history: List<StoryHistoryEntry>, onDismiss: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Press.paper, shape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)) {
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Press.raised, shape = SheetCorner) {
         LazyColumn(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
             item {
-                Text("What changed", style = display(28))
-                DoubleRule(Modifier.padding(top = 12.dp, bottom = 4.dp))
+                Text("What changed", style = display(26), modifier = Modifier.padding(bottom = 4.dp))
             }
             if (history.isEmpty()) item { Text("No previous summaries yet.", style = BodyStyle, modifier = Modifier.padding(vertical = 12.dp)) }
             items(history, key = { it.id }) { version ->
                 Column(Modifier.padding(vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     MetaRow("${dayLabel(version.created_at)} · ${clock(version.created_at)}")
-                    Text(version.title, style = display(21))
+                    Text(version.title, style = display(19))
                     Text(version.summary, style = BodyStyle.copy(fontSize = 15.sp, lineHeight = 22.sp, color = Press.ink2))
                 }
                 Hairline()

@@ -7,48 +7,47 @@ struct FriendsView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    PageHead(kicker: "The people behind the paper", title: "Friends",
-                             dateline: "\(app.members.count) at the table · \(app.group?.name ?? "Your paper")")
-                    ForEach(Array(app.members.enumerated()), id: \.element.id) { index, member in
-                        if index > 0 { Hairline() }
-                        HStack(spacing: 14) {
-                            MemberAvatar(profile: member.profiles, size: 42)
-                            Text(member.profiles.display_name).font(Theme.headline(20))
-                            Spacer()
-                            if member.role == "owner" {
-                                Kicker(text: "Owner", color: Theme.ink2, size: 10)
-                                    .padding(.horizontal, 7).padding(.vertical, 4)
-                                    .overlay(Rectangle().stroke(Theme.ink2, lineWidth: 1))
+                    PageHead(title: "People",
+                             dateline: "\(app.members.count) in \(app.group?.name ?? "your paper")")
+                    VStack(spacing: 0) {
+                        ForEach(Array(app.members.enumerated()), id: \.element.id) { index, member in
+                            if index > 0 { Hairline() }
+                            HStack(spacing: 14) {
+                                MemberAvatar(profile: member.profiles, size: 42)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(member.profiles.display_name).font(Theme.text(17))
+                                    if let detail = detail(member) {
+                                        Text(detail).font(Theme.text(15)).foregroundColor(Theme.ink2)
+                                    }
+                                }
+                                Spacer()
                             }
+                            .padding(.horizontal, 16).padding(.vertical, 12)
+                            .accessibilityElement(children: .combine)
                         }
-                        .padding(.vertical, 12)
                     }
+                    .card(radius: 24)
                     if let group = app.group {
-                        VStack(alignment: .center, spacing: 14) {
-                            Kicker(text: "You’re cordially invited to", color: Theme.ink2, size: 10)
-                            Text(group.name).font(Theme.nameplate(38)).multilineTextAlignment(.center)
-                                .lineLimit(2).minimumScaleFactor(0.5)
-                            Text("◆ ◆ ◆").font(Theme.serif(12)).foregroundColor(Theme.ink3)
-                            Text("Good papers start with good company. Share an invitation to yours.")
-                                .font(Theme.serif(17)).foregroundColor(Theme.ink2).multilineTextAlignment(.center)
-                                .fixedSize(horizontal: false, vertical: true)
-                            VStack(spacing: 6) {
-                                Kicker(text: "Invite code", color: Theme.ink2, size: 10)
-                                Text(group.invite_code).font(Theme.mono(17, bold: true))
+                        VStack(alignment: .leading, spacing: 12) {
+                            FieldLabel(text: "Invite someone", size: 15)
+                            HStack {
+                                Text("Invite code").font(Theme.text(15)).foregroundColor(Theme.ink2)
+                                Spacer()
+                                Text(group.invite_code).font(Theme.text(20, weight: .bold)).monospacedDigit()
                                     .textSelection(.enabled)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .clipping()
+                                Spacer()
                             }
+                            .padding(.horizontal, 16).frame(minHeight: 56)
+                            .background(Theme.raised2, in: RoundedRectangle(cornerRadius: 14))
+                            Text("Anyone with the code can join and read everything in the paper.")
+                                .font(Theme.text(15)).foregroundColor(Theme.ink2)
+                                .fixedSize(horizontal: false, vertical: true)
                             ShareLink(item: Config.webURL.appending(path: "invite").appending(queryItems: [URLQueryItem(name: "code", value: group.invite_code)])) {
                                 Label("Share invitation", systemImage: "square.and.arrow.up")
                             }
                             .buttonStyle(InkButtonStyle())
+                            .padding(.top, 4)
                         }
-                        .padding(.horizontal, 22).padding(.vertical, 26)
-                        .background(Theme.raised)
-                        .overlay(Rectangle().stroke(Theme.ink, lineWidth: 1))
-                        .overlay(Rectangle().stroke(Theme.ink, lineWidth: 1).padding(5))
                         .padding(.top, 32)
                     }
                 }
@@ -56,6 +55,17 @@ struct FriendsView: View {
             }
             .background(Theme.paper)
             .toolbarVisibility(.hidden, for: .navigationBar)
+        }
+    }
+
+    private func detail(_ member: Member) -> String? {
+        let you = member.user_id == app.session?.userId
+        let owner = member.role == "owner"
+        switch (you, owner) {
+        case (true, true): return "You · started the paper"
+        case (true, false): return "You"
+        case (false, true): return "Started the paper"
+        default: return nil
         }
     }
 }

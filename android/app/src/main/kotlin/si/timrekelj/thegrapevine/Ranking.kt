@@ -1,6 +1,7 @@
 package si.timrekelj.thegrapevine
 
 import java.net.URI
+import java.net.URLDecoder
 import kotlin.math.pow
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -70,6 +71,9 @@ object DeepLink {
 
     private val UUID_PATTERN = Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
 
+    /** What an invite code can look like (today 12 hex digits); the server caps codes at 64 characters. */
+    private val INVITE_PATTERN = Regex("[0-9a-z_-]{1,64}")
+
     /** Where an incoming link should go, or null for links the app doesn't handle. */
     fun route(uri: String): Route? {
         val parsed = runCatching { URI(uri) }.getOrNull() ?: return null
@@ -77,7 +81,10 @@ object DeepLink {
         if (parsed.scheme != "https" || !parsed.host.equals(HOST, ignoreCase = true)) return null
         val path = parsed.path.orEmpty().trimEnd('/')
         return when {
-            path == "/invite" -> queryParams(parsed.rawQuery.orEmpty())["code"]?.let { Route.Invite(it.trim().lowercase()) }
+            path == "/invite" -> queryParams(parsed.rawQuery.orEmpty())["code"]
+                ?.let { runCatching { URLDecoder.decode(it, "UTF-8") }.getOrNull() }
+                ?.trim()?.lowercase()?.takeIf(INVITE_PATTERN::matches)
+                ?.let { Route.Invite(it) }
             path.startsWith("/story/") -> path.removePrefix("/story/").takeIf(UUID_PATTERN::matches)?.let { Route.Story(it.lowercase()) }
             else -> null
         }

@@ -1,9 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
+import { currentUserId } from '@/lib/auth'
 
 export async function GET(request: Request) {
-  const client = await createClient()
-  const { data: { user } } = await client.auth.getUser()
-  if (!user) return Response.json({ error: 'Sign in first.' }, { status: 401 })
+  if (!await currentUserId(await createClient())) return Response.json({ error: 'Sign in first.' }, { status: 401 })
   const key = process.env.GIPHY_API_KEY?.trim()
   if (!key) return Response.json({ error: 'GIF search is unavailable.' }, { status: 503 })
   const query = new URL(request.url).searchParams.get('q')?.trim().slice(0, 120)

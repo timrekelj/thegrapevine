@@ -15,7 +15,12 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -39,23 +44,21 @@ fun ArchiveScreen(archive: ArchiveState, list: LazyListState, onBack: () -> Unit
     }
 
     Column(Modifier.fillMaxSize().background(Press.paper)) {
-        Column(Modifier.statusBarsPadding().padding(horizontal = Gutter).padding(top = 8.dp)) {
-            Row(Modifier.fillMaxWidth().heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("← Front page", style = MetaStyle.copy(color = Press.ink), modifier = Modifier.weight(1f).pressable(give = Give.Type, onClick = onBack).padding(vertical = 8.dp))
-                Text("The Grapevine", style = nameplate(24))
-                Spacer(Modifier.weight(1f))
+        Row(Modifier.statusBarsPadding().padding(horizontal = 4.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to the front page", tint = Press.ink)
             }
-            DoubleRule(Modifier.padding(top = 4.dp))
         }
 
         LazyColumn(Modifier.fillMaxSize(), state = list) {
-            item { SectionHead("Earlier editions", Modifier.padding(horizontal = Gutter).padding(top = 22.dp)) }
+            item { Text("Earlier editions", style = display(30), modifier = Modifier.padding(horizontal = Gutter).padding(top = 4.dp)) }
             days.forEach { day ->
                 item(key = "day-${day.first().id}") {
-                    Column(Modifier.fillMaxWidth().padding(horizontal = Gutter).padding(top = 26.dp)) {
-                        Text(dayLabel(day.first().last_activity_at), style = LabelStyle)
-                        Hairline(Modifier.padding(top = 8.dp), color = Press.ink)
-                    }
+                    Text(
+                        dayLabel(day.first().last_activity_at),
+                        style = LabelStyle,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = Gutter).padding(top = 28.dp, bottom = 2.dp),
+                    )
                 }
                 items(day, key = { it.id }) { story ->
                     ArchivedRow(story, Modifier.animateItem().pressable(give = Give.Story, onClickLabel = "Open story") { onOpen(story.id) })
@@ -69,8 +72,8 @@ fun ArchiveScreen(archive: ArchiveState, list: LazyListState, onBack: () -> Unit
                         TextAction("Try again") { archive.loadPage() }
                     }
                 }
-                // The first page comes up in galley proof; later pages ink the button's dots.
-                archive.isLoading && stories.isEmpty() -> item(key = "proof") { ArchiveProof(Modifier.animateItem()) }
+                // The first page comes up as a placeholder; later pages show the button's busy dots.
+                archive.isLoading && stories.isEmpty() -> item(key = "skeleton") { ArchiveSkeleton(Modifier.animateItem()) }
                 archive.loaded && stories.isEmpty() -> item {
                     Text("Nothing older yet.", style = BodyStyle.copy(color = Press.ink2), modifier = Modifier.padding(Gutter))
                 }
@@ -92,9 +95,11 @@ fun ArchiveScreen(archive: ArchiveState, list: LazyListState, onBack: () -> Unit
 private fun ArchivedRow(story: ArchivedStory, modifier: Modifier) {
     Column(modifier.fillMaxWidth().padding(horizontal = Gutter)) {
         Column(Modifier.padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text((story.category ?: "News").uppercase(), style = LabelStyle)
-            Text(story.title.ifEmpty { "A link from the table" }, style = display(20))
-            MetaRow("${plural(story.sourceCount, "source")} · ${plural(story.messageCount, "message")}")
+            Text(story.title.ifEmpty { "A link from the table" }, style = display(19))
+            Text(
+                "${story.category ?: "News"} · ${plural(story.sourceCount, "source")} · ${plural(story.messageCount, "message")}",
+                style = MetaStyle.copy(fontSize = 14.sp, color = Press.ink3),
+            )
         }
         Hairline()
     }

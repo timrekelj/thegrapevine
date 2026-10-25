@@ -25,6 +25,6 @@ export default function LaterEdition({ groupId, order }: { groupId: string; orde
     return () => { active = false; clearInterval(timer); };
   }, [groupId, order]);
   return moved > 0 ? <button className={styles.later} disabled={reprinting} aria-busy={reprinting} onClick={() => reprint(() => router.refresh())}>
-    <BusyLabel busy={reprinting} label="Printing the later edition…">↑ Later edition · {plural(moved, 'story', 'stories')} moved · Reload</BusyLabel>
+    <BusyLabel busy={reprinting} label="Updating the paper…">{plural(moved, 'story', 'stories')} moved · Show</BusyLabel>
   </button> : null;
 }
