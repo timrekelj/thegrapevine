@@ -4,11 +4,11 @@ import { redirect } from 'next/navigation'
 import { connection } from 'next/server'
 import { requireAccount, requireUser } from '@/lib/auth'
 import { emailChangeNotice, sameEmail } from '@/lib/account'
-import { dayline } from '@/lib/format'
 import { isEmail } from '@/lib/validate'
 import { captureServer } from '@/lib/telemetry-server'
 import Avatar from '@/components/print/Avatar'
 import SubmitButton from '@/components/print/SubmitButton'
+import Brand from '@/components/print/Brand'
 import styles from './settings.module.css'
 
 export const metadata: Metadata = { title: 'Your account · The Grapevine' }
@@ -30,8 +30,6 @@ export default async function SettingsPage({ searchParams }: PageProps<'/setting
   const error = text(params.error)
   const notice = emailChangeNotice(text(params.notice), user.email, user.new_email)
   const describedBy = error ? 'account-error' : undefined
-  const now = new Date()
-  const today = dayline(now)
 
   async function changeEmail(formData: FormData) {
     'use server'
@@ -80,10 +78,9 @@ export default async function SettingsPage({ searchParams }: PageProps<'/setting
 
   return (
     <main className={`fresh-ink ${styles.page}`}>
-      <header className={styles.nameplate}>
-        <Link href="/" className="nameplate">The Grapevine</Link>
-        <div className="double-rule" />
-        <p className={styles.dateline}><time dateTime={now.toISOString()}>{today}</time><span>Your account</span></p>
+      <header className={styles.top}>
+        <Brand />
+        <Link href="/" className="meta">Back to the paper</Link>
       </header>
       <div className={styles.body}>
         <div className={styles.who}>

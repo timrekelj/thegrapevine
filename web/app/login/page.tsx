@@ -1,12 +1,11 @@
 import type { Metadata } from 'next'
-import Link from '@/components/print/PressLink'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { safeRedirect } from '@/lib/auth'
 import { connection } from 'next/server'
 import { captureServer } from '@/lib/telemetry-server'
 import { invitePreview } from '@/lib/metadata'
-import { dayline } from '@/lib/format'
+import Brand from '@/components/print/Brand'
 import { isEmail } from '@/lib/validate'
 import SubmitButton from '@/components/print/SubmitButton'
 import { CodeInput, ResendButton, SignInButton } from './code-input'
@@ -49,7 +48,6 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
   const sentTo = typeof params.email === 'string' ? params.email : ''
   const error = typeof params.error === 'string' ? params.error : ''
   const deleted = params.notice === 'deleted'
-  const today = dayline(new Date())
 
   async function signInWithProvider(formData: FormData) {
     'use server'
@@ -107,11 +105,7 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
 
   return (
     <main className={styles.page}>
-      <header className={styles.nameplate}>
-        <Link href="/" className="nameplate">The Grapevine</Link>
-        <div className="double-rule" />
-        <p className={styles.dateline}><span>{today}</span><span>Private edition</span></p>
-      </header>
+      <header className={styles.top}><Brand /></header>
       <div className={styles.body}>
         <div className={styles.intro}>
           <h1 className="display">{sentTo ? 'Check your inbox.' : <>Good stories.<br />Better company.</>}</h1>

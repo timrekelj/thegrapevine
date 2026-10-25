@@ -7,24 +7,20 @@ struct MessageMediaView: View {
     @State private var url: URL?
     @State private var player: AVPlayer?
     @State private var error: String?
-    @State private var reveal = false
 
     var body: some View {
         SwiftUI.Group {
             if let player {
-                VideoPlayer(player: player).frame(height: 220)
+                VideoPlayer(player: player).frame(height: 220).clipShape(RoundedRectangle(cornerRadius: 14))
             } else if let url {
                 if media.kind == "gif" {
-                    GIFView(url: url).frame(height: 240)
+                    GIFView(url: url).frame(height: 240).clipShape(RoundedRectangle(cornerRadius: 14))
                         .accessibilityLabel(media.alt_text ?? "Shared GIF")
                 } else {
-                    // Printed through the screen like every photo on the web; a tap shows it clean (the web's hover).
-                    PlateView(url: url, label: "Attachment unavailable", screen: !reveal)
+                    PlateView(url: url, label: "Attachment unavailable")
                         .aspectRatio(4 / 3, contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
                         .frame(maxWidth: 440, alignment: .leading)
-                        .contentShape(Rectangle())
-                        .onTapGesture { reveal.toggle() }
-                        .sensoryFeedback(.selection, trigger: reveal)
                         .accessibilityElement()
                         .accessibilityLabel(media.alt_text ?? "Shared image")
                         .accessibilityAddTraits(.isImage)
@@ -32,8 +28,8 @@ struct MessageMediaView: View {
             } else if let error {
                 Text(error).font(.caption)
             } else {
-                // A proof plate where the attachment will print.
-                ProofPlate()
+                // A plain placeholder where the attachment will show.
+                PlaceholderShape(radius: 14)
                     .aspectRatio(4 / 3, contentMode: .fit)
                     .frame(maxWidth: 440, alignment: .leading)
                     .accessibilityElement()

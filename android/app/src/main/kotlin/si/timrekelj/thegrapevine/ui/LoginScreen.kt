@@ -31,9 +31,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -74,8 +77,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -94,7 +95,7 @@ fun LoginScreen(app: AppState) {
     var sent by rememberSaveable { mutableStateOf(false) }
     var code by rememberSaveable { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
-    /** Which action is at the press, so only its button prints the dots. */
+    /** Which action is running, so only its button shows the busy dots. */
     var working by remember { mutableStateOf<String?>(null) }
     var resendLeft by rememberSaveable { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
@@ -158,7 +159,7 @@ fun LoginScreen(app: AppState) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Column(Modifier.widthIn(max = 468.dp).fillMaxWidth().weight(1f)) {
-                Nameplate(onBack = if (sent) ({ changeEmail() }) else null)
+                Masthead(onBack = if (sent) ({ changeEmail() }) else null)
                 Spacer(Modifier.height(40.dp))
                 Spacer(Modifier.weight(1f))
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -166,7 +167,7 @@ fun LoginScreen(app: AppState) {
                     if (sent) {
                         Text(
                             buildAnnotatedString {
-                                append("We sent a $SIGN_IN_CODE_LENGTH-digit code to ")
+                                append("A $SIGN_IN_CODE_LENGTH-digit code is on its way to ")
                                 withStyle(SpanStyle(color = Press.ink, fontWeight = FontWeight.SemiBold)) { append(email.trim()) }
                             },
                             style = BodyStyle.copy(color = Press.ink2),
@@ -197,19 +198,14 @@ fun LoginScreen(app: AppState) {
                         }
                     }
                 } else {
-                    Text("EMAIL ADDRESS", style = LabelStyle)
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(
+                    PaperField(
                         value = email,
                         onValueChange = { email = it },
-                        placeholder = { Text("you@example.com", style = BodyStyle.copy(color = Press.ink3)) },
-                        textStyle = BodyStyle,
-                        singleLine = true,
+                        placeholder = "you@example.com",
+                        label = "Email address",
                         isError = app.error != null,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Send),
                         keyboardActions = KeyboardActions(onSend = { sendCode() }),
-                        shape = Corner,
-                        colors = fieldColors(),
                         modifier = Modifier.fillMaxWidth().semantics { contentType = ContentType.EmailAddress },
                     )
                     ErrorLine(app.error)
@@ -221,7 +217,7 @@ fun LoginScreen(app: AppState) {
                         modifier = Modifier.padding(vertical = 24.dp),
                     ) {
                         HorizontalDivider(Modifier.weight(1f), color = Press.rule)
-                        Text("or", style = BodyStyle.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, color = Press.ink3))
+                        Text("or", style = MetaStyle.copy(fontSize = 15.sp, color = Press.ink3))
                         HorizontalDivider(Modifier.weight(1f), color = Press.rule)
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -238,27 +234,23 @@ fun LoginScreen(app: AppState) {
     }
 }
 
+/** The paper's name beside the vine mark, with a way back while a code is pending. */
 @Composable
-private fun Nameplate(onBack: (() -> Unit)?) {
-    Box(Modifier.fillMaxWidth()) {
-        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("The Grapevine", style = nameplate(50), maxLines = 1)
-            Spacer(Modifier.height(10.dp))
-            DoubleRule()
-            Row(Modifier.fillMaxWidth().padding(vertical = 7.dp)) {
-                Text(LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE d MMMM")).uppercase(), style = LabelStyle.copy(fontSize = 10.sp), modifier = Modifier.weight(1f))
-                Text("PRIVATE EDITION", style = LabelStyle.copy(fontSize = 10.sp))
-            }
-            Hairline(color = Press.ink)
-        }
+private fun Masthead(onBack: (() -> Unit)?) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
         if (onBack != null) {
-            Box(
-                Modifier.align(Alignment.TopStart).size(40.dp).pressable(give = Give.Chip, role = Role.Button, onClick = onBack),
-                contentAlignment = Alignment.Center,
-            ) {
+            IconButton(onClick = onBack, modifier = Modifier.offset(x = (-12).dp)) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Use a different email", tint = Press.ink)
             }
+        } else {
+            // The app icon's bunch, in ink so it holds in dark mode. The art carries the adaptive-icon
+            // margin, so it is drawn larger than the box that lays it out.
+            Box(Modifier.size(32.dp), contentAlignment = Alignment.Center) {
+                Icon(painterResource(R.drawable.ic_vine_monochrome), contentDescription = null, tint = Press.ink, modifier = Modifier.requiredSize(56.dp))
+            }
+            Spacer(Modifier.width(10.dp))
         }
+        Text("The Grapevine", style = display(24), maxLines = 1)
     }
 }
 
@@ -283,11 +275,11 @@ private fun CodeCells(code: String, invalid: Boolean, onChange: (String) -> Unit
                     repeat(SIGN_IN_CODE_LENGTH) { index ->
                         val active = focused && index == minOf(code.length, SIGN_IN_CODE_LENGTH - 1)
                         Box(
-                            Modifier.weight(1f).height(62.dp).background(Press.raised, Corner)
-                                .border(if (active) 1.5.dp else 1.dp, if (invalid) Press.danger else if (active) Press.ink else Press.rule, Corner),
+                            Modifier.weight(1f).height(62.dp).background(Press.raised2, FieldCorner)
+                                .border(if (active) 1.5.dp else 1.dp, if (invalid) Press.danger else if (active) Press.ink else Press.rule, FieldCorner),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Text(code.getOrNull(index)?.toString() ?: "", style = display(30))
+                            Text(code.getOrNull(index)?.toString() ?: "", style = BodyStyle.copy(fontSize = 26.sp, fontWeight = FontWeight.SemiBold, fontFeatureSettings = "tnum"))
                         }
                     }
                 }
@@ -308,14 +300,14 @@ private fun QuietButton(text: String, enabled: Boolean, busy: Boolean = false, o
     GhostButton(text, enabled = enabled, busy = busy, busyLabel = "Sending a new code…", onClick = onClick)
 }
 
-/** A sign-in provider on a raised card; while its browser is being opened, ink dots replace its name. */
+/** A sign-in provider on a raised capsule; while its browser is being opened, busy dots replace its name. */
 @Composable
 private fun ProviderButton(provider: AuthProvider, enabled: Boolean, busy: Boolean, onClick: () -> Unit) {
     Box(
         Modifier.fillMaxWidth()
             .pressable(enabled = enabled, role = Role.Button, onClickLabel = provider.title, onClick = onClick)
             .heightIn(min = 52.dp).alpha(if (enabled || busy) 1f else 0.5f)
-            .clip(Corner).background(Press.raised).border(1.dp, Press.rule, Corner)
+            .clip(CircleShape).background(Press.raised).border(1.dp, Press.rule, CircleShape)
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center,
     ) {

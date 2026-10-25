@@ -97,7 +97,6 @@ final class AppState {
         session = nil; profile = nil; group = nil; members = []
         API.reset()
         PhotoStore.shared.removeAll()
-        Halftone.removeAll()
         checked = true
     }
 
@@ -148,10 +147,11 @@ final class AppState {
             async let table = API.getMany(Member.self, path: "rest/v1/group_members", query: [
                 URLQueryItem(name: "select", value: "user_id,role,profiles(id,display_name,monogram)"),
                 URLQueryItem(name: "group_id", value: "eq.\(membership.group_id)"),
-                URLQueryItem(name: "order", value: "joined_at.asc"),
+                URLQueryItem(name: "order", value: "joined_at.asc,user_id.asc"),
             ])
             let (loadedGroup, loadedMembers) = try await (paper, table)
             // Members first: the paper appears as soon as `group` is set, with its readers already known.
+            MemberHues.record(loadedMembers.map(\.user_id))
             members = loadedMembers
             group = loadedGroup
             error = nil

@@ -1,8 +1,8 @@
-/** A member's portrait, drawn by /avatar from a stable seed. Decorative: the name is always printed or labelled nearby. */
-export default function Avatar({ seed, name }: { seed: string; name?: string }) {
-  return <span className="av" title={name}>
-    {/* An SVG from our own route; next/image adds nothing here. */}
-    {/* eslint-disable-next-line @next/next/no-img-element */}
-    <img src={`/avatar/${encodeURIComponent(seed)}`} alt="" width={64} height={64} loading="lazy" decoding="async" />
-  </span>
+import type { CSSProperties } from 'react'
+import { memberColors, memberIndex, memberLights } from '@/lib/identity'
+
+export default function Avatar({ seed, name, order }: { seed: string; name?: string; order?: readonly string[] }) {
+  const index = memberIndex(seed, order)
+  const style = { '--member-fill': `radial-gradient(circle at 30% 25%, ${memberLights[index]}, ${memberColors[index]} 70%)` } as CSSProperties
+  return <span className="av" style={style} title={name} aria-hidden="true">{name?.trim().slice(0, 1).toLocaleUpperCase() || '·'}</span>
 }

@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import si.timrekelj.thegrapevine.ui.MemberHues
 
 /** Mirrors `AppState.swift`: who is signed in, and which paper they belong to. */
 class AppState(
@@ -192,14 +193,16 @@ class AppState(
             }
 
             group = api.getOne<Group>("rest/v1/groups", listOf("id" to "eq.${membership.group_id}"))
-            members = api.getMany(
+            val loadedMembers = api.getMany<Member>(
                 "rest/v1/group_members",
                 listOf(
                     "select" to "user_id,role,profiles(id,display_name,monogram)",
                     "group_id" to "eq.${membership.group_id}",
-                    "order" to "joined_at.asc",
+                    "order" to "joined_at.asc,user_id.asc",
                 ),
             )
+            MemberHues.record(loadedMembers.map { it.user_id })
+            members = loadedMembers
             error = null
         } catch (e: Exception) {
             error = e.message

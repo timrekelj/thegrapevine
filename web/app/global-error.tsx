@@ -10,7 +10,6 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
   return <html lang="en"><body>
     <main className="fatal">
       <p className="masthead">The Grapevine</p>
-      <p className="label">Stop the presses</p>
       <h1 className="display">Something went wrong.</h1>
       <button className="btn" onClick={reset}>Try again</button>
       {/* A plain link: the app's layout and router are what failed. */}

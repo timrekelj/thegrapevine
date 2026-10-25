@@ -21,7 +21,7 @@ export default async function Home() {
   const loadedAt = new Date();
   const [{ data: group, error: groupError }, { data: memberRows, error: membersError }, edition] = await Promise.all([
     client.from('groups').select('name,created_at').eq('id', groupId).single(),
-    client.from('group_members').select('profiles(id,display_name,monogram)').eq('group_id', groupId).order('joined_at'),
+    client.from('group_members').select('profiles(id,display_name,monogram)').eq('group_id', groupId).order('joined_at').order('user_id'),
     loadPaperStories(client, groupId),
   ]);
   if (groupError) throw groupError;

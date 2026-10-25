@@ -31,7 +31,7 @@ enum FeedbackKind: String, CaseIterable, Identifiable {
     var placeholder: String {
         switch self {
         case .bug: "What did you do, what happened, and what did you expect instead?"
-        case .enhancement: "What works, but could work better — and how?"
+        case .enhancement: "What works, but could work better, and how?"
         case .feature: "What would you like the paper to do, and what would it help with?"
         }
     }

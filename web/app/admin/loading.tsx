@@ -2,7 +2,7 @@ import InkDots from '@/components/print/InkDots'
 import { Line } from '@/components/print/Proof'
 import styles from '@/components/admin/admin.module.css'
 
-/** Any admin ledger as a galley proof: a heading, a row of totals and a table, under the real admin bar. */
+/** Any admin ledger while it loads, as plain shapes: a heading, a row of totals and a table, under the real admin bar. */
 export default function Loading() {
   return <main className={`galley ${styles.page}`} aria-busy="true">
     <div className={styles.heading}><div style={{ display: 'grid', gap: 10 }}><Line strong w="220px" h={30} /><Line w="260px" /></div><InkDots kicker="Totting up" size="sm" /></div>

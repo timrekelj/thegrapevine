@@ -25,9 +25,16 @@ struct GrapevineApp: App {
 
 struct ContentView: View {
     @Environment(AppState.self) private var app
-    @State private var tab = 0
 
     var body: some View {
+        #if DEBUG
+        if DesignFixture.enabled { DesignPreviewView() } else { content }
+        #else
+        content
+        #endif
+    }
+
+    private var content: some View {
         SwiftUI.Group {
             if !app.checked {
                 LaunchPlate().transition(.opacity)
@@ -36,14 +43,7 @@ struct ContentView: View {
             } else if app.group == nil {
                 OnboardingView().transition(.opacity)
             } else {
-                TabView(selection: $tab) {
-                    Tab("Paper", systemImage: "newspaper", value: 0) { FrontPageView() }
-                    Tab("Friends", systemImage: "person.2.fill", value: 1) { FriendsView() }
-                    Tab("Profile", systemImage: "person.crop.circle", value: 2) { ProfileView() }
-                }
-                .tint(Theme.ink)
-                .onChange(of: app.pendingStoryId) { _, id in if id != nil { tab = 0 } }
-                .transition(.opacity)
+                FrontPageView()
             }
         }
         .animation(.easeOut(duration: 0.35), value: app.checked)
@@ -63,17 +63,12 @@ struct ContentView: View {
     }
 }
 
-/// While the saved session is checked: the nameplate on a blank page, and the dots going to press.
+/// While the saved session is checked: the grape bunch mark on the ground, as on the icon.
 private struct LaunchPlate: View {
     var body: some View {
-        VStack(spacing: 0) {
-            Text("The Grapevine").font(Theme.nameplate(44))
-                .lineLimit(1).minimumScaleFactor(0.6)
-                .padding(.bottom, 10)
-            DoubleRule()
-            PressLoading().padding(.top, 28)
-        }
-        .padding(.horizontal, 40)
-        .frame(maxWidth: 420)
+        BunchMark(size: 104)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .accessibilityElement()
+            .accessibilityLabel("The Grapevine, loading")
     }
 }

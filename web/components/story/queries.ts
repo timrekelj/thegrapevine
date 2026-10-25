@@ -25,7 +25,8 @@ const isPublic = (url: string) => /^https?:\/\//.test(url) || url.startsWith('/'
 export async function loadStory(client: SupabaseClient, id: string, previous: Message[] = []): Promise<{ story: Story; details: StoryDetails } | null> {
   const [story, sources, messages, history] = await Promise.all([
     // The paper's members ride along with the story, so nothing waits for its group id.
-    client.from('stories').select(`${STORY},groups(group_members(profiles(id,display_name,monogram)))`).eq('id', id).maybeSingle(),
+    client.from('stories').select(`${STORY},groups(group_members(profiles(id,display_name,monogram)))`).eq('id', id)
+      .order('joined_at', { referencedTable: 'groups.group_members' }).order('user_id', { referencedTable: 'groups.group_members' }).maybeSingle(),
     client.from('sources').select(SOURCE).eq('story_id', id).order('created_at', { ascending: false }),
     client.from('messages').select(MESSAGE).eq('story_id', id).order('created_at'),
     client.from('story_history').select('id,title,summary,created_at').eq('story_id', id).order('created_at', { ascending: false }),

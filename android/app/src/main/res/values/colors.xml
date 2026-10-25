@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Newsprint and ink: matches the web paper token (globals.css). -->
-    <color name="paper">#F4F1EA</color>
-    <color name="ic_launcher_background">#F4F1EA</color>
+    <!-- The ground (leaf-white), behind the app before Compose draws; matches the ground token in design/DIRECTION.md. -->
+    <color name="paper">#F0F4EB</color>
+    <color name="ic_launcher_background">#F0F4EB</color>
 </resources>

@@ -5,6 +5,7 @@ const PUBLIC = ['/', '/login', '/invite', '/auth/callback']
 
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname
+  if (process.env.NODE_ENV === 'development' && path === '/design-preview') return NextResponse.next()
   let response = NextResponse.next({ request })
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -35,8 +36,8 @@ export async function proxy(request: NextRequest) {
 }
 
 // Skipped entirely, because they are public and need no session: build assets, the icons, demo
-// pictures, avatars (generated art that reveals nothing about a member), the app-link files Apple
+// pictures, the app-link files Apple
 // and Google fetch signed out, the legal notices, and the link-preview images bots fetch signed out.
 export const config = {
-  matcher: ['/((?!_next/|favicon\\.ico$|icon\\.svg$|seed/|avatar/|\\.well-known/|terms$|privacy$|opengraph-image|invite/opengraph-image).*)'],
+  matcher: ['/((?!_next/|favicon\\.ico$|icon\\.svg$|apple-icon\\.png$|seed/|\\.well-known/|terms$|privacy$|opengraph-image|invite/opengraph-image).*)'],
 }

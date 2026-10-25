@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { currentUserId } from '@/lib/auth'
 import { loadArchive } from '@/lib/queries'
 import { dayline, plural } from '@/lib/format'
+import Brand from '@/components/print/Brand'
 import styles from '@/components/paper/paper.module.css'
 
 export const metadata: Metadata = { title: 'Earlier editions · The Grapevine' }
@@ -30,18 +31,16 @@ export default async function ArchivePage({ searchParams }: PageProps<'/archive'
 
   return <main className={styles.paper}>
     <header className={styles.archiveHead}>
-      <Link href="/" className="meta">← Front page</Link>
-      <span className="masthead">{name}</span>
-      <span />
+      <Brand name={name} />
+      <Link href="/" className="meta">Back to the paper</Link>
     </header>
-    <div className="double-rule" />
     <section className={styles.archive}>
       <h1 className={styles.sectionHead}>Earlier editions</h1>
       {stories.length === 0 && <p className="summary">Nothing older yet.</p>}
       {[...days].map(([day, stories]) => <section key={day} className={styles.archiveDay}>
         <h2 className="label">{day}</h2>
         {stories.map(story => <Link key={story.id} href={`/story/${story.id}`} className={styles.archiveStory}>
-          <span className="label">{story.category || 'News'}</span>
+          <span className="meta">{story.category || 'News'}</span>
           <h3 className="headline">{story.title || 'A link from the table'}</h3>
           <span className="meta tnum">{plural(story.sources[0]?.count ?? 0, 'source')} · {plural(story.messages[0]?.count ?? 0, 'message')}</span>
         </Link>)}

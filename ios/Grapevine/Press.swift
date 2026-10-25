@@ -1,19 +1,19 @@
 import SwiftUI
 
-// MARK: - The press
-// How the paper shows work in progress and answers a touch. Nothing spins: ink dots print in turn,
-// buttons sink like a stamp, and the page inks in when the edition is ready.
+// MARK: - Touch and loading
+// How the app shows work in progress and answers a touch. Nothing spins: three dots pulse in turn,
+// buttons give a little under the finger, and content fades in over its placeholder.
 // Shared with the share extension, so it depends only on `Theme`.
 
-/// Three dots of ink printing in turn: the paper's only loading mark. With Reduce Motion the dots
-/// only fade, without swelling.
+/// Three dots pulsing in turn: the app's only loading mark. With Reduce Motion the dots
+/// only fade, without growing.
 struct InkDots: View {
     var size: CGFloat = 7
     var color: Color = Theme.ink
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// One impression of all three dots, and how far apart they strike.
+    /// One pass over all three dots, and how far apart they pulse.
     private static let cycle = 1.1, stagger = 0.15
 
     var body: some View {
@@ -44,13 +44,13 @@ struct InkDots: View {
     }
 }
 
-/// Ink dots over a kicker: "Going to press…", for a whole page that's on its way.
+/// Dots over a short line, for a whole page that's on its way.
 struct PressLoading: View {
-    var text = "Going to press…"
+    var text = "Loading"
     var body: some View {
-        VStack(spacing: 14) {
-            InkDots(size: 8).accessibilityHidden(true)
-            Kicker(text: text, color: Theme.ink2, size: 10)
+        VStack(spacing: 12) {
+            InkDots(size: 8, color: Theme.ink3).accessibilityHidden(true)
+            Text(text).font(Theme.text(15, weight: .semibold)).foregroundColor(Theme.ink2)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(text)
@@ -58,7 +58,7 @@ struct PressLoading: View {
 }
 
 /// A label that keeps its place while its work is under way: the text stays in the layout, unseen,
-/// so nothing around it moves, and ink dots print where it was.
+/// so nothing around it moves, and the dots pulse where it was.
 struct BusyLabel: View {
     let text: String
     var busy: Bool
@@ -73,9 +73,9 @@ struct BusyLabel: View {
     }
 }
 
-/// The ink block button. Dims only the fill when disabled, so the label stays readable. Sinks like a
-/// stamp under the finger, with a light tap on primary actions; `busy` swaps the label for paper-white
-/// ink dots, keeping the button's size, and stops further taps.
+/// The primary button: an ink-filled capsule. Dims only the fill when disabled, so the label stays
+/// readable. Gives a little under the finger, with a light tap; `busy` swaps the label for dots in the
+/// ground colour, keeping the button's size, and stops further taps.
 struct InkButtonStyle: ButtonStyle {
     var enabled = true
     var busy = false
@@ -101,9 +101,9 @@ struct InkButtonStyle: ButtonStyle {
                 .frame(maxWidth: .infinity, minHeight: height)
                 // A busy button keeps its full ink: the work is under way, not unavailable.
                 .background(Theme.ink.opacity(enabled || busy ? (pressed ? 0.82 : 1) : 0.4),
-                            in: RoundedRectangle(cornerRadius: Theme.radius))
+                            in: Capsule())
                 .foregroundColor(Theme.paper)
-                .contentShape(RoundedRectangle(cornerRadius: Theme.radius))
+                .contentShape(Capsule())
                 .scaleEffect(pressed && !reduceMotion ? 0.97 : 1)
                 .offset(y: pressed && !reduceMotion ? 1 : 0)
                 .animation(.spring(response: 0.22, dampingFraction: 0.6), value: pressed)
@@ -114,8 +114,8 @@ struct InkButtonStyle: ButtonStyle {
     }
 }
 
-/// For whole stories and quiet controls: a slight give and a dim under the finger, as a page
-/// pressed flat. No haptic; the next screen is the answer.
+/// For whole stories and quiet controls: a slight give and a dim under the finger.
+/// No haptic; the next screen is the answer.
 struct PressStyle: ButtonStyle {
     var scale: CGFloat = 0.985
 
@@ -146,5 +146,26 @@ extension View {
     /// A confirmation arriving: it settles in from just above.
     func arrives() -> some View {
         transition(.opacity.combined(with: .offset(y: -6)))
+    }
+}
+
+/// A submitted link is a grape; the green ring records its arrival.
+struct FilingMark: View {
+    var busy = false
+    var confirmed = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var progress = false
+    var body: some View {
+        ZStack {
+            Image(systemName: "leaf.fill").font(.system(size: 20)).foregroundStyle(Theme.red).offset(x: -10, y: -18)
+            Circle().fill(Theme.ink).frame(width: 36, height: 36)
+            Circle().trim(from: 0, to: confirmed ? 1 : progress ? 0.85 : 0.2)
+                .stroke(Theme.red, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                .rotationEffect(.degrees(-90)).frame(width: 46, height: 46)
+                .animation(busy && !reduceMotion ? .easeInOut(duration: 1.2).repeatForever(autoreverses: true) : .easeOut(duration: 0.2), value: progress)
+        }
+        .frame(width: 64, height: 64).accessibilityHidden(true)
+        .onAppear { progress = busy }
+        .onChange(of: busy) { progress = busy }
     }
 }

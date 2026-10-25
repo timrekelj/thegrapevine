@@ -1,7 +1,7 @@
 import SwiftUI
 import PhotosUI
 
-/// "Report a problem or idea": a letter to the editor, filed as a public GitHub issue.
+/// "Report a problem or idea": a report filed as a public GitHub issue.
 /// Presented by `Feedback.present`; `close` dismisses it.
 struct FeedbackView: View {
     let close: () -> Void
@@ -37,14 +37,14 @@ struct FeedbackView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Kicker(text: "Letters to the editor", color: Theme.ink2)
                         Text("Report a problem or idea")
-                            .font(Theme.headline(32)).fixedSize(horizontal: false, vertical: true)
+                            .font(Theme.headline(30)).fixedSize(horizontal: false, vertical: true)
                             .accessibilityAddTraits(.isHeader)
-                        Text("Tell us what went wrong, or what would make the paper better.")
-                            .font(Theme.serif(17)).foregroundColor(Theme.ink2)
+                        Text("Tell us what went wrong, or what would make the app better.")
+                            .font(Theme.text(15)).foregroundColor(Theme.ink2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    DoubleRule().padding(.bottom, 6)
+                    .padding(.bottom, 8)
                     if let filed {
                         thanks(filed).arrives()
                     } else {
@@ -77,58 +77,60 @@ struct FeedbackView: View {
     // MARK: - Form
 
     @ViewBuilder private var form: some View {
-        Kicker(text: "What kind?")
+        FieldLabel(text: "What kind?")
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 8) { kindButtons }
             VStack(spacing: 8) { kindButtons }
         }
         .sensoryFeedback(.selection, trigger: kind)
 
-        Kicker(text: kind.question).padding(.top, 8)
+        FieldLabel(text: kind.question).padding(.top, 8)
         TextEditor(text: $text)
             .focused($writing)
-            .font(Theme.serif(18))
+            .font(Theme.text(17))
             .scrollContentBackground(.hidden)
             .padding(.horizontal, 9).padding(.vertical, 8)
             .frame(minHeight: 160)
             .background(alignment: .topLeading) {
                 if text.isEmpty {
                     Text(kind.placeholder)
-                        .font(Theme.serif(18)).foregroundColor(Theme.ink3)
+                        .font(Theme.text(17)).foregroundColor(Theme.ink3)
                         .padding(.horizontal, 14).padding(.vertical, 16)
                         .accessibilityHidden(true)
                 }
             }
-            .background(Theme.raised, in: RoundedRectangle(cornerRadius: Theme.radius))
-            .overlay(RoundedRectangle(cornerRadius: Theme.radius)
+            .background(Theme.raised2, in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12)
                 .stroke(text.trimmed.count > 4000 ? Theme.danger : writing ? Theme.ink : Theme.rule, lineWidth: 1))
             .disabled(busy)
             .accessibilityLabel(kind.question)
             .accessibilityHint(kind.placeholder)
         if text.trimmed.count > 3600 {
             Text("\(text.trimmed.count) / 4000 characters")
-                .font(Theme.mono(11)).foregroundColor(text.trimmed.count > 4000 ? Theme.danger : Theme.ink3)
+                .font(Theme.text(13)).monospacedDigit()
+                .foregroundColor(text.trimmed.count > 4000 ? Theme.danger : Theme.ink3)
         }
 
         if let errorShown {
             VStack(alignment: .leading, spacing: 4) {
-                Kicker(text: "The error you saw", color: Theme.ink2, size: 10)
-                Text(errorShown).font(Theme.mono(12)).foregroundColor(Theme.ink2)
+                FieldLabel(text: "The error you saw")
+                Text(errorShown).font(Theme.text(15)).foregroundColor(Theme.ink2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(10).frame(maxWidth: .infinity, alignment: .leading)
-            .clipping()
+            .padding(14).frame(maxWidth: .infinity, alignment: .leading)
+            .card(radius: 14)
             .accessibilityElement(children: .combine)
         }
 
         HStack(spacing: 6) {
-            Kicker(text: "Screenshots")
-            Text("(optional, up to \(FeedbackImage.limit))").font(Theme.mono(11)).foregroundColor(Theme.ink3)
+            FieldLabel(text: "Screenshots")
+            Text("(optional, up to \(FeedbackImage.limit))").font(Theme.text(13)).foregroundColor(Theme.ink3)
         }
         .padding(.top, 8)
         screenshots
 
         Text("Reports are posted publicly on GitHub so we can track them. Leave out anything private. Your app version, iOS version and phone model are included.")
-            .font(Theme.mono(11)).foregroundColor(Theme.ink3)
+            .font(Theme.text(13)).foregroundColor(Theme.ink3)
             .fixedSize(horizontal: false, vertical: true)
         if let error {
             Text(error).font(.system(size: 13, weight: .medium)).foregroundColor(Theme.danger).arrives()
@@ -147,12 +149,13 @@ struct FeedbackView: View {
             let selected = option == kind
             Button { kind = option } label: {
                 Text(option.label)
-                    .font(.system(size: 15, weight: selected ? .semibold : .regular))
+                    .font(Theme.text(15, weight: .semibold))
                     .foregroundColor(selected ? Theme.paper : Theme.ink)
+                    .padding(.horizontal, 14)
                     .frame(maxWidth: .infinity, minHeight: 44)
-                    .background(selected ? Theme.ink : Theme.raised, in: RoundedRectangle(cornerRadius: Theme.radius))
-                    .overlay(RoundedRectangle(cornerRadius: Theme.radius).stroke(selected ? Theme.ink : Theme.rule, lineWidth: 1))
-                    .contentShape(Rectangle())
+                    .background(selected ? Theme.ink : Theme.raised2, in: Capsule())
+                    .overlay(Capsule().stroke(selected ? Theme.ink : Theme.rule, lineWidth: 1))
+                    .contentShape(Capsule())
             }
             .buttonStyle(PressStyle(scale: 0.96))
             .disabled(busy)
@@ -167,8 +170,10 @@ struct FeedbackView: View {
                 ForEach(Array(images.enumerated()), id: \.element.id) { index, image in
                     Image(uiImage: image.preview)
                         .resizable().scaledToFill()
-                        .frame(width: 76, height: 96).clipped()
-                        .overlay(Rectangle().stroke(Theme.rule, lineWidth: 1))
+                        .frame(width: 76, height: 96)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.rule.opacity(0.4), lineWidth: 1))
+                        .shadow(color: Theme.shadow, radius: 8, y: 4)
                         .overlay(alignment: .topTrailing) {
                             Button { images.removeAll { $0.id == image.id } } label: {
                                 Image(systemName: "xmark")
@@ -200,8 +205,9 @@ struct FeedbackView: View {
                             }
                         }
                         .frame(width: 76, height: 96)
-                        .overlay(Rectangle().stroke(Theme.ink3, style: StrokeStyle(lineWidth: 1, dash: [3, 3])))
-                        .contentShape(Rectangle())
+                        .background(Theme.raised2, in: RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.rule, lineWidth: 1))
+                        .contentShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .buttonStyle(PressStyle(scale: 0.94))
                     .foregroundColor(Theme.ink)
@@ -209,8 +215,8 @@ struct FeedbackView: View {
                     .accessibilityLabel(loadingImages ? "Adding screenshots…" : "Add screenshots")
                 }
             }
-            // Room for the remove buttons that stand out past each thumbnail's corner.
-            .padding(.top, 12).padding(.trailing, 12)
+            // Room for the remove buttons that stand out past each thumbnail's corner, and the tiles' shadow.
+            .padding(.top, 12).padding(.trailing, 12).padding(.bottom, 10)
         }
         .onChange(of: picked) {
             guard !picked.isEmpty else { return }
@@ -225,16 +231,16 @@ struct FeedbackView: View {
     @ViewBuilder private func thanks(_ result: FeedbackResult) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             if let number = result.issue_number {
-                Text("Thanks — filed as #\(number)").font(Theme.headline(26))
+                Text("Thanks, filed as #\(number)").font(Theme.headline(26))
             } else {
-                Text("Thanks — we've got it.").font(Theme.headline(26))
+                Text("Thanks, we have it").font(Theme.headline(26))
             }
             Text(kind == .bug ? "We'll look into it." : "We read every one.")
-                .font(Theme.serif(17)).foregroundColor(Theme.ink2)
+                .font(Theme.text(15)).foregroundColor(Theme.ink2)
             if let link = result.issue_url.flatMap(URL.init(string:)) {
                 Link(destination: link) {
                     Label("Follow it on GitHub", systemImage: "arrow.up.forward.square")
-                        .font(.system(size: 15, weight: .medium)).frame(minHeight: 44)
+                        .font(Theme.text(15, weight: .semibold)).frame(minHeight: 44)
                 }
             }
             Button("Done") { close() }

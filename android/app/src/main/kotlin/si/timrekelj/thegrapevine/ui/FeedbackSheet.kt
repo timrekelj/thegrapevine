@@ -33,7 +33,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -152,23 +151,19 @@ private fun FeedbackSheet(app: AppState, draft: FeedbackDraft) {
         onDismissRequest = app::closeReport,
         // A report on its way can't be swiped away half-sent.
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true, confirmValueChange = { it != SheetValue.Hidden || !draft.busy }),
-        containerColor = Press.paper,
-        shape = RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp),
+        containerColor = Press.raised,
+        shape = SheetCorner,
     ) {
         Column(
             Modifier.fillMaxWidth().imePadding().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("LETTERS TO THE EDITOR", style = LabelStyle.copy(color = Press.ink2))
-                Text("Report a problem or idea", style = display(30))
-            }
-            DoubleRule()
+            Text("Report a problem or idea", style = display(26))
             Insert(draft.result) { result ->
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     Text(
-                        result.issue_number?.let { "Thanks — filed as #$it" } ?: "Thanks — we've got it.",
-                        style = display(24),
+                        result.issue_number?.let { "Thanks, filed as #$it." } ?: "Thanks, we have it.",
+                        style = SectionStyle,
                     )
                     result.issue_url?.let { url -> TextAction("View it on GitHub", onClickLabel = "Open the issue") { links.openWebLink(url) } }
                     InkButton("Done", onClick = app::closeReport)
@@ -176,7 +171,7 @@ private fun FeedbackSheet(app: AppState, draft: FeedbackDraft) {
             }
             Insert(if (draft.result == null) draft else null) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Text("WHAT KIND?", style = LabelStyle)
+                    Text("What kind?", style = LabelStyle)
                     Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         FeedbackKind.entries.forEach { kind ->
                             val selected = draft.kind == kind
@@ -184,8 +179,8 @@ private fun FeedbackSheet(app: AppState, draft: FeedbackDraft) {
                                 Modifier.pressable(enabled = !draft.busy, give = Give.Chip, role = Role.RadioButton) { draft.kind = kind }
                                     .semantics { this.selected = selected }
                                     .heightIn(min = 44.dp)
-                                    .background(animateColorAsState(if (selected) Press.ink else Press.paper, label = "kind").value, Corner)
-                                    .border(1.dp, if (selected) Press.ink else Press.rule, Corner)
+                                    .background(animateColorAsState(if (selected) Press.ink else Press.raised2, label = "kind").value, CircleShape)
+                                    .border(1.dp, if (selected) Press.ink else Press.rule, CircleShape)
                                     .padding(horizontal = 14.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
@@ -193,11 +188,11 @@ private fun FeedbackSheet(app: AppState, draft: FeedbackDraft) {
                             }
                         }
                     }
-                    Text("WHAT HAPPENED?", style = LabelStyle)
                     PaperField(
                         draft.description,
                         { draft.description = it },
                         draft.kind.placeholder,
+                        label = "What happened?",
                         modifier = Modifier.fillMaxWidth().heightIn(min = 132.dp),
                         singleLine = false,
                         enabled = !draft.busy,
@@ -207,12 +202,15 @@ private fun FeedbackSheet(app: AppState, draft: FeedbackDraft) {
                         Text("${draft.description.length} / ${Feedback.MAX_DESCRIPTION} characters", style = MetaStyle)
                     }
                     draft.error?.let { error ->
-                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("ERROR SHOWN (SENT WITH THE REPORT)", style = LabelStyle)
+                        Column(
+                            Modifier.fillMaxWidth().clip(Corner).background(Press.raised2).padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Text("Error shown, sent with the report", style = LabelStyle)
                             Text(error, style = MetaStyle.copy(color = Press.ink2))
                         }
                     }
-                    Text("SCREENSHOTS (UP TO ${Feedback.MAX_IMAGES})", style = LabelStyle)
+                    Text("Screenshots (up to ${Feedback.MAX_IMAGES})", style = LabelStyle)
                     Row(
                         Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -225,7 +223,7 @@ private fun FeedbackSheet(app: AppState, draft: FeedbackDraft) {
                             Box(
                                 Modifier.size(THUMB).pressable(enabled = !draft.busy && !adding, give = Give.Chip, role = Role.Button) {
                                     if (Feedback.MAX_IMAGES - draft.images.size > 1) pickMany.launch(imagesOnly) else pickOne.launch(imagesOnly)
-                                }.clipping(Press.rule, Press.raised),
+                                }.clip(Corner).background(Press.raised2),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 if (adding) InkDots(dotSize = 5.dp, contentDescription = "Adding images")
@@ -256,7 +254,7 @@ private fun Thumbnail(image: FeedbackImage, number: Int, enabled: Boolean, onRem
             bitmap,
             contentDescription = "Image $number",
             contentScale = ContentScale.Crop,
-            modifier = Modifier.size(THUMB).clip(Corner).border(1.dp, Press.rule, Corner),
+            modifier = Modifier.size(THUMB).clip(Corner),
         )
         // The mark is small; the place to press it is a full 44dp in the corner.
         Box(

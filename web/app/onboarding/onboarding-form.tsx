@@ -2,21 +2,23 @@
 
 import { useState } from 'react'
 import Avatar from '@/components/print/Avatar'
+import Bunch from '@/components/print/Bunch'
 import SubmitButton from '@/components/print/SubmitButton'
 import form from '../login/login.module.css'
 import styles from './onboarding.module.css'
 
 type Action = (formData: FormData) => Promise<void>
 
-/** The paper being made, updated as you type: masthead, your portrait and a first-edition stamp. */
+/** The paper being made, updated as you type: its name, your disc, and the spot where the first story will grow. */
 function Preview({ userId, name, paper, placeholder, today }: { userId: string; name: string; paper: string; placeholder: string; today: string }) {
   return <div className={styles.sheet} aria-hidden="true">
-    <span className={`stamp ${styles.stamp}`}>First edition</span>
-    <div className={styles.sheetTop}><span className="label">{today}</span><Avatar seed={userId} /></div>
-    <p className={styles.masthead} data-empty={!paper.trim()}>{paper.trim() || placeholder}</p>
-    <div className={styles.rules} />
+    <div className={styles.sheetTop}>
+      <p className={styles.masthead} data-empty={!paper.trim()}>{paper.trim() || placeholder}</p>
+      <Avatar seed={userId} name={name.trim() || 'You'} />
+    </div>
+    <div className="meta">{today}</div>
     <div className={styles.lead}>
-      <div className={`typeplate ${styles.plate}`}><span>Your first link</span></div>
+      <Bunch sources={[]} size={40} />
       <div>
         <p className={styles.headline}>Share a link and it becomes the lead story.</p>
         <div className="meta">{name.trim() || 'You'} · 1 member</div>

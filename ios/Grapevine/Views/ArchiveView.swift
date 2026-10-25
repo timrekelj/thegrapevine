@@ -15,11 +15,12 @@ struct ArchiveView: View {
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                DoubleRule().padding(.bottom, 22)
-                SectionHead(title: "Earlier editions").padding(.bottom, 4)
+                Text("Earlier editions").font(Theme.headline(30)).tracking(-0.6)
+                    .accessibilityAddTraits(.isHeader)
+                    .padding(.top, 8).padding(.bottom, 4)
                 if let error = store.error, store.stories.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text(error).font(Theme.serif(17))
+                        Text(error).font(Theme.text(17))
                         Button("Try again") { Task { await load(force: true) } }
                             .font(.system(size: 15, weight: .semibold)).underline()
                             .buttonStyle(PressStyle())
@@ -27,16 +28,15 @@ struct ArchiveView: View {
                     .padding(.vertical, 32)
                     .transition(.opacity)
                 } else if !store.loaded {
-                    ArchiveProof().transition(.opacity)
+                    ArchivePlaceholder().transition(.opacity)
                 } else if store.stories.isEmpty {
-                    Text("Nothing older yet.").font(Theme.serif(17)).foregroundColor(Theme.ink2).padding(.vertical, 24)
+                    Text("Nothing older yet.").font(Theme.text(17)).foregroundColor(Theme.ink2).padding(.vertical, 24)
                         .transition(.opacity)
                 } else {
                     ForEach(store.days, id: \.day) { day, stories in
-                        Kicker(text: dayLabel(day), color: Theme.ink2, size: 10)
+                        FieldLabel(text: dayLabel(day), size: 15)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.top, 28).padding(.bottom, 8)
-                            .overlay(alignment: .bottom) { Rectangle().fill(Theme.ink).frame(height: 1) }
+                            .padding(.top, 28).padding(.bottom, 4)
                             .accessibilityAddTraits(.isHeader)
                         ForEach(stories) { story in
                             NavigationLink(value: story.id) { ArchiveRowView(story: story) }
@@ -51,7 +51,7 @@ struct ArchiveView: View {
                 }
             }
             .padding(.horizontal, 20).padding(.bottom, 24)
-            // The first page inks in over its proof; later pages fade in below.
+            // The first page fades in over its placeholder; later pages fade in below.
             .animation(.easeOut(duration: reduceMotion ? 0.2 : 0.4), value: store.loaded)
             .animation(.easeOut(duration: 0.3), value: store.stories.count)
         }
@@ -61,7 +61,7 @@ struct ArchiveView: View {
         .toolbarBackground(Theme.paper, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                Text("The Grapevine").font(Theme.nameplate(24)).foregroundColor(Theme.ink)
+                Text(app.group?.name ?? "The Grapevine").font(Theme.text(17, weight: .semibold)).foregroundColor(Theme.ink)
             }
         }
         .refreshable { await load(force: true) }
@@ -82,14 +82,13 @@ struct ArchiveView: View {
             guard let group = app.group?.id else { return }
             Task { await store.loadEarlier(group: group) }
         } label: {
-            Kicker(text: "Load earlier", size: 12)
+            Text("Load earlier").font(Theme.text(15, weight: .semibold))
                 .opacity(store.isLoading ? 0 : 1)
                 .overlay { if store.isLoading { InkDots(size: 6).transition(.opacity) } }
                 .animation(.easeOut(duration: 0.18), value: store.isLoading)
-                .frame(maxWidth: .infinity, minHeight: 44)
-                .overlay(alignment: .top) { DoubleRule() }
-                .overlay(alignment: .bottom) { Rectangle().fill(Theme.ink).frame(height: 1) }
-                .contentShape(Rectangle())
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .overlay(Capsule().stroke(Theme.rule, lineWidth: 1))
+                .contentShape(Capsule())
         }
         .buttonStyle(PressStyle())
         .disabled(store.isLoading)
@@ -97,18 +96,17 @@ struct ArchiveView: View {
     }
 }
 
-/// A story in the archive: kicker, headline, counts.
+/// A story in the archive: category, title, counts.
 struct ArchiveRowView: View {
     let story: ArchiveRow
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Kicker(text: story.category ?? "News")
             Text(story.title.isEmpty ? "A link from the table" : story.title)
-                .font(Theme.headline(20))
+                .font(Theme.headline(19))
                 .fixedSize(horizontal: false, vertical: true)
-            Text("\(plural(story.sourceCount, "source")) · \(plural(story.messageCount, "message"))")
-                .font(Theme.mono(12)).foregroundColor(Theme.ink2)
+            Text("\(story.category ?? "News") · \(plural(story.sourceCount, "source")) · \(plural(story.messageCount, "message"))")
+                .font(Theme.text(13)).foregroundColor(Theme.ink3)
         }
         .padding(.vertical, 16)
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -6,6 +6,7 @@ import { isUuid } from '@/lib/validate'
 import { dayline } from '@/lib/format'
 import { connection } from 'next/server'
 import form from '../login/login.module.css'
+import Brand from '@/components/print/Brand'
 import styles from './onboarding.module.css'
 import { OnboardingForm } from './onboarding-form'
 
@@ -51,7 +52,7 @@ export default async function OnboardingPage({ searchParams }: PageProps<'/onboa
   return (
     <main className={form.page}>
       <header className={styles.intro}>
-        <p className="label" style={{ margin: 0 }}>Make yourself at home</p>
+        <Brand />
         <h1 className="display">Your people.<br />Your paper.</h1>
       </header>
       <div className={form.body}>
