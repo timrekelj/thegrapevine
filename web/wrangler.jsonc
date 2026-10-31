@@ -13,5 +13,11 @@
     // The worker calls itself for cache revalidation; must match "name" above.
     { "binding": "WORKER_SELF_REFERENCE", "service": "thegrapevine" }
   ],
+  // Runtime values; the NEXT_PUBLIC_ ones must also be set as build variables, since Next inlines them at build time.
+  "vars": {
+    "NEXT_PUBLIC_SITE_URL": "https://thegrapevine.si",
+    "NEXT_PUBLIC_SUPABASE_URL": "https://ivjaenrmhsqnsvzemoez.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_oT-H6EAfuoNp8dcVdTHJow_l1-Skd1C"
+  },
   "observability": { "enabled": true }
 }
