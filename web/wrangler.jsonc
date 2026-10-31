@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Must match the Worker's name in the Cloudflare dashboard.
+  "name": "thegrapevine",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    // The worker calls itself for cache revalidation; must match "name" above.
+    { "binding": "WORKER_SELF_REFERENCE", "service": "thegrapevine" }
+  ],
+  "observability": { "enabled": true }
+}

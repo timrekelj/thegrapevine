@@ -1,0 +1,15 @@
+# Files in public/ are served by Cloudflare directly, so the headers in next.config.ts never reach them.
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=63072000
+
+/_next/static/*
+  Cache-Control: public,max-age=31536000,immutable
+
+/.well-known/apple-app-site-association
+  Content-Type: application/json
+
+/seed/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
