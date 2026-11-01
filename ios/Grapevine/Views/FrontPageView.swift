@@ -81,6 +81,8 @@ struct FrontPageView: View {
                         else { Image(systemName: "person.crop.circle") }
                     }.accessibilityLabel("Your account")
                 }
+                // The avatar is its own circle; a glass pill around it looks empty.
+                .sharedBackgroundVisibility(.hidden)
             }
             .overlay(alignment: .bottomTrailing) {
                 if !paper.stories.isEmpty {
